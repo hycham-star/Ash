@@ -75,6 +75,23 @@ namespace Ash
             return true;
         }
 
+        internal void ValidateCombatState(HeroData hero, CombatResult result)
+        {
+            if (FindHero(hero.InstanceId) != hero || result.HeroInstanceId != hero.InstanceId || result.PlayerFighters.Count != hero.Army.Units.Count)
+                throw new InvalidOperationException("Battle no longer matches the owned army.");
+            foreach (var stack in result.PlayerFighters)
+                if (hero.Army.QuantityOf(stack.Fighter.Definition.Id, stack.Fighter.Level) != stack.InitialQuantity)
+                    throw new InvalidOperationException("Army quantities changed during battle.");
+        }
+
+        internal void CommitCombatSilently(HeroData hero, CombatResult result)
+        {
+            foreach (var stack in result.PlayerFighters)
+                if (stack.Casualties > 0) hero.Army.TryRemoveUnits(stack.Fighter.Definition.Id, stack.Fighter.Level, stack.Casualties);
+            hero.AddXp(result.Rewards.HeroXp);
+        }
+        internal void NotifyCombatChanged() => Changed?.Invoke();
+
         public HeroArmyState ExportState()
         {
             var state = new HeroArmyState { Heroes = new HeroState[Heroes.Count], Reserve = new FighterState[Fighters.Count] };

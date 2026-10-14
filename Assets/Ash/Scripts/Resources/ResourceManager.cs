@@ -44,6 +44,33 @@ namespace Ash
             Changed?.Invoke();
         }
 
+        public void AddBatch(IEnumerable<ResourceAmount> amounts)
+        {
+            var plan = PrepareAddition(amounts);
+            if (CommitAdditionSilently(plan)) NotifyChanged();
+        }
+
+        internal Dictionary<ResourceType, int> PrepareAddition(IEnumerable<ResourceAmount> amounts)
+        {
+            if (amounts == null) throw new ArgumentNullException(nameof(amounts));
+            var plan = new Dictionary<ResourceType, int>();
+            foreach (var amount in amounts)
+            {
+                Validate(amount);
+                int balance = plan.TryGetValue(amount.Type, out int planned) ? planned : balances[amount.Type];
+                plan[amount.Type] = checked(balance + amount.Amount);
+            }
+            return plan;
+        }
+
+        internal bool CommitAdditionSilently(Dictionary<ResourceType, int> plan)
+        {
+            bool changed = false;
+            foreach (var entry in plan) { changed |= balances[entry.Key] != entry.Value; balances[entry.Key] = entry.Value; }
+            return changed;
+        }
+        internal void NotifyChanged() => Changed?.Invoke();
+
         // Aggregate duplicate resource entries before checking; insufficient funds never partially debit.
         public bool TrySpend(IEnumerable<ResourceAmount> cost)
         {

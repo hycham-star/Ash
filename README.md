@@ -1,23 +1,26 @@
 # Ashlands: Rise of the Remnants
 
-Portrait Android, low-poly strategy prototype. Current milestone: **Hero → Army → Fighters**. Every owned hero has an independent army, XP, level, capacity, and specialization bonus. There is no combat, PvP, backend, fake networking, monetization, training simulation, or save/load system.
+Portrait Android, low-poly strategy prototype. Current milestone: **deterministic PvE auto-combat** on top of eight independently hero-owned armies. No PvP, networking, monetization, training simulation, or save/load system is implemented.
 
-## Try the Hero Army test scene
+## Test PvE combat
 
-1. Open this checkout in licensed **Unity 6000.0.23f1**, and allow UGUI 2.0.0 to resolve.
-2. Choose **Ashlands > Open Hero Army Test Scene**.
-3. Outside Play mode, choose **Ashlands > Validate Hero Army System** to check authored assets and scene wiring in a disposable preview scene.
-4. Select a **9:16 portrait** Game view, then press Play.
-5. Select any of the eight hero buttons. Each hero starts level 1 with an empty army. The shared test reserve contains 100 Infantry, 100 Sharpshooters, and 100 Cavalry.
-6. Enter a positive whole-number quantity (default 5), then use **+ Assign** or **− Remove** beside a fighter type. Assignment consumes reserve fighters; removal returns them. Over-capacity and unavailable quantities are rejected without changing state.
-7. Switch heroes to verify their armies remain separate. The detail panel scrolls vertically and displays level, XP, quantity/capacity, calculated power, passive bonus, biography, and ability data.
-8. Use **+125 HERO XP (TEST)** to test progression. It affects only the selected hero. Stop/restart Play to reset all local test data.
+1. Open this checkout in licensed **Unity 6000.0.23f1** and resolve UGUI 2.0.0.
+2. Choose **Ashlands > Open PvE Battle Scene**, then **Ashlands > Validate PvE Combat** outside Play mode.
+3. Set the Game view to **9:16 portrait** and press Play.
+4. Use **Previous Hero / Next Hero** to select a hero. **Balanced Army** fills their capacity across the three fighter types; **Specialty Army** fills with their specialized type. Both use the existing shared reserve, not newly created fighters.
+5. Select **Stray Raiders**, **Raider Patrol**, or **Fortified Outpost** with the Camp button. Use **Ability Auto On/Off** to compare automatic ability effects.
+6. **Preview** simulates without changing any state. **Fight** runs the same calculation and applies casualties, surviving units, XP, resources, and hero fragments once. Scroll Combat Results to inspect the outcome, each side's casualties/survivors, rewards, and round log.
+7. **Reset Test Session** reloads this debug scene and restores its fixtures, clearing all armies, progress, rewards, and fragments. Repeating the same setup after reset yields identical results.
 
-Abilities are **data only** in this milestone; their active bonuses are not executed or included in army power. All starting stock, stats, XP thresholds, capacities, and bonuses are configurable prototype values.
+Suggested smoke checks: Mara Flint + Balanced Army + Stray Raiders gives a straightforward victory. Raider Patrol gives a victory with casualties. Fortified Outpost defeats Mara's full starting army, providing an immediate defeat test. Preparation buttons use the reserve available in the current scene; the separate Hero Army scene also supports custom quantities.
 
-The older Phase1Test scene remains available and now uses the same updated catalogue and view. Its architecture validator menu remains supported.
+Abilities activate automatically at fixed combat ticks; no manual activation is needed. Infantry counters Cavalry, Cavalry counters Sharpshooter, and Sharpshooter counters Infantry. Defeat grants only configured consolation XP; a draw grants no rewards. Wounded survivors start healthy in their next battle; persistent wounds are not implemented.
 
-## Eight original heroes
+The Battle Scene is an instant prototype simulation with a round-by-round results log and cube placeholders, not an animated combat presentation. All balance values are configurable prototype data.
+
+## Hero Army scene
+
+**Ashlands > Open Hero Army Test Scene** retains all eight hero-selection buttons, editable fighter quantity, assign/remove controls, capacity/power display, and the +125 test XP button. Its separate session starts from fresh fixtures. Run **Validate Hero Army System** outside Play mode to validate that scene.
 
 | Rarity | Hero | Specialization |
 | --- | --- | --- |
@@ -39,19 +42,19 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**78 checks passed**: resources, all eight authored heroes and three fighter assets, independent armies, capacity and reserve conservation, quantity changes, passive power calculation, XP thresholds, overflow/invalid input, and detached serializable state. The .NET suite compiles the actual pure C# domain sources and reads the authored assets' flat data fields; it is not a Unity YAML importer.
+**127 domain checks passed**, including 49 PvE checks and the prior 78 resource/hero/army checks. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
-GUID/scene reference checks also passed. Unity Editor is not installed in this cloud environment, so **Unity compilation/import, menu validation, Play mode, and Android export remain unverified**.
+GUID/scene reference checks passed. **Unity compilation/import, menu validators, Play-mode UI/input, and Android export are unverified**: the Unity Editor is not installed in the cloud environment.
 
-Unity-specific validation can be run in batch mode with a licensed editor:
+With a licensed editor, run the Unity-specific validator in batch mode:
 
 ```sh
-Unity -batchmode -nographics -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.PhaseOneValidation.RunHeroArmy -logFile /tmp/ash-hero-army-validation.log
+Unity -batchmode -nographics -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.CombatValidation.Run -logFile /tmp/ash-combat-validation.log
 ```
 
 ## Android (after Editor validation)
 
-Install Android Build Support, SDK/NDK, and OpenJDK through Unity Hub, then select Android in Build Profiles. The build helper exports the HeroArmyTest scene:
+Install Android Build Support, SDK/NDK, and OpenJDK through Unity Hub and select Android in Build Profiles. The build helper exports the Battle Scene:
 
 ```sh
 Unity -batchmode -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.PrepareProject.BuildAndroid -logFile /tmp/ash-android-build.log
@@ -59,4 +62,4 @@ Unity -batchmode -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.Pre
 
 Output: `Builds/Ashlands.apk`; signing/store configuration is not included. The application identifier remains `com.ash.afterthefall`.
 
-See [Hero Army architecture](Docs/HeroArmySystem.md) for formulas, ownership, command contracts, and future integration boundaries. Phase 1 documents are historical records; current behavior is described here.
+See [PvE combat architecture](Docs/PvECombat.md) for formulas, state settlement, and limitations. Earlier milestone documents are historical records.

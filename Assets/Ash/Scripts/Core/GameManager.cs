@@ -16,6 +16,8 @@ namespace Ash
         public ReadOnlyCollection<UnitData> Units { get; private set; }
         [SerializeField, Min(0)] private int initialReservePerType = 100;
         public HeroArmyService HeroArmies { get; private set; }
+        public HeroFragmentWallet Fragments { get; private set; }
+        public BattleManager Battles { get; private set; }
         public bool IsInitialized { get; private set; }
 
         private void Awake()
@@ -48,7 +50,11 @@ namespace Ash
                 units.Add(new UnitData(definition));
             }
             var service = new HeroArmyService(heroes, units, initialReservePerType);
-            Resources = resources; HeroArmies = service;
+            var fragmentIds = new List<string>();
+            foreach (var hero in heroes) fragmentIds.Add(hero.Definition.Id);
+            var fragments = new HeroFragmentWallet(fragmentIds);
+            var battles = new BattleManager(service, resources, fragments);
+            Resources = resources; HeroArmies = service; Fragments = fragments; Battles = battles;
             Heroes = service.Heroes; Units = service.Fighters;
             IsInitialized = true;
         }

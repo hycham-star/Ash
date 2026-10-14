@@ -11,5 +11,11 @@
     <Compile Include="../../Assets/Ash/Scripts/Data/Armies/ArmyData.cs" Link="ArmyData.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Services/HeroArmyService.cs" Link="HeroArmyService.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Services/HeroArmyState.cs" Link="HeroArmyState.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Combat/CombatResult.cs" Link="CombatResult.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Combat/BattleArmy.cs" Link="BattleArmy.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Combat/DamageCalculator.cs" Link="DamageCalculator.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Combat/AutoBattle.cs" Link="AutoBattle.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Combat/HeroFragmentWallet.cs" Link="HeroFragmentWallet.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Combat/BattleManager.cs" Link="BattleManager.cs" />
   </ItemGroup>
 </Project>

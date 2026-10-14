@@ -68,7 +68,7 @@ namespace Ash
                 .Append("\n").Append(ability.Description)
                 .Append("\nTarget: ").Append(ability.TargetType).Append("  Bonus: +").Append(ability.PowerBonusBasisPoints / 100m).Append('%')
                 .Append("\nCooldown: ").Append(ability.CooldownSeconds).Append("s  Duration: ").Append(ability.DurationSeconds).Append("s")
-                .Append("\nData only; no ability activation or combat.\n\nFIGHTERS\n");
+                .Append("\nAuto-activated only in the PvE Battle Scene.\n\nFIGHTERS\n");
             foreach (var fighter in gameManager.Units)
                 text.Append(fighter.Definition.Type).Append(": ").Append(hero.Army.QuantityOf(fighter.Definition.Id, fighter.Level))
                     .Append("  • Base power ").Append(fighter.Power).Append('\n');

@@ -42,6 +42,9 @@ for scene_path in assets.rglob("*.unity"):
     roster_guids = re.findall(r"guid: ([0-9a-f]{32})", roster)
     assert len(roster_guids) == 8 and len(set(roster_guids)) == 8, f"Expected eight distinct hero assets: {scene_path}"
 assert (assets / "Ash/Scenes/HeroArmyTest.unity").exists(), "Missing Hero Army test scene"
+battle = (assets / "Ash/Scenes/BattleScene.unity").read_text()
+encounters = battle.split("  encounters:\n", 1)[1].split("---", 1)[0]
+assert len(set(re.findall(r"guid: ([0-9a-f]{32})", encounters))) == 3, "Battle scene needs three distinct encounter references"
 assert "RuntimeInitializeOnLoadMethod" not in "\n".join(p.read_text() for p in assets.rglob("*.cs")), "Global automatic launcher remains"
 assert not (assets / "Ash/Scripts/Settlement.cs").exists(), "Duplicate legacy resource/combat system remains"
 manifest = json.loads((root / "Packages/manifest.json").read_text())
