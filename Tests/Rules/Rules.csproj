@@ -1,4 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
-  <ItemGroup><Compile Include="../../Assets/Ash/Scripts/Settlement.cs" Link="Settlement.cs" /></ItemGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Ash/Scripts/Resources/ResourceManager.cs" Link="ResourceManager.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Data/Heroes/HeroData.cs" Link="HeroData.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Data/Units/UnitData.cs" Link="UnitData.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Data/Armies/ArmyData.cs" Link="ArmyData.cs" />
+  </ItemGroup>
 </Project>
