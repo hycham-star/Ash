@@ -45,6 +45,11 @@ assert (assets / "Ash/Scenes/HeroArmyTest.unity").exists(), "Missing Hero Army t
 battle = (assets / "Ash/Scenes/BattleScene.unity").read_text()
 encounters = battle.split("  encounters:\n", 1)[1].split("---", 1)[0]
 assert len(set(re.findall(r"guid: ([0-9a-f]{32})", encounters))) == 3, "Battle scene needs three distinct encounter references"
+settlement_path = assets / "Ash/Scenes/SettlementScene.unity"
+assert settlement_path.exists(), "Missing original settlement scene"
+settlement = settlement_path.read_text()
+settlement_encounters = settlement.split("  encounters:\n", 1)[1].split("---", 1)[0]
+assert len(set(re.findall(r"guid: ([0-9a-f]{32})", settlement_encounters))) == 3, "Settlement must reuse three PvE encounters"
 assert "RuntimeInitializeOnLoadMethod" not in "\n".join(p.read_text() for p in assets.rglob("*.cs")), "Global automatic launcher remains"
 assert not (assets / "Ash/Scripts/Settlement.cs").exists(), "Duplicate legacy resource/combat system remains"
 manifest = json.loads((root / "Packages/manifest.json").read_text())
