@@ -63,7 +63,7 @@ namespace Ash.Editor
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.companyName = "Ashlands";
             PlayerSettings.productName = "Ashlands: Rise of the Remnants";
-            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.ash.afterthefall");
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, "com.ash.afterthefall");
         }
 
         public static void BuildAndroid()
