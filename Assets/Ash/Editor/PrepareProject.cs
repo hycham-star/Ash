@@ -10,6 +10,16 @@ namespace Ash.Editor
     public static class PrepareProject
     {
         public const string TestScene = "Assets/Ash/Scenes/Phase1Test.unity";
+        public const string HeroArmyScene = "Assets/Ash/Scenes/HeroArmyTest.unity";
+
+        [MenuItem("Ashlands/Open Hero Army Test Scene")]
+        public static void OpenHeroArmyScene()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            Prepare();
+            EditorSceneManager.OpenScene(HeroArmyScene);
+        }
 
         [MenuItem("Ashlands/Open Phase 1 Test Scene")]
         public static void OpenTestScene()
@@ -23,9 +33,9 @@ namespace Ash.Editor
         [MenuItem("Ashlands/Prepare Project")]
         public static void Prepare()
         {
-            if (!File.Exists(TestScene)) throw new InvalidOperationException("Missing tracked Phase 1 test scene.");
-            if (!EditorBuildSettings.scenes.Any(scene => scene.path == TestScene))
-                EditorBuildSettings.scenes = EditorBuildSettings.scenes.Concat(new[] { new EditorBuildSettingsScene(TestScene, true) }).ToArray();
+            if (!File.Exists(TestScene) || !File.Exists(HeroArmyScene)) throw new InvalidOperationException("Missing tracked test scene.");
+            if (!EditorBuildSettings.scenes.Any(scene => scene.path == HeroArmyScene))
+                EditorBuildSettings.scenes = EditorBuildSettings.scenes.Concat(new[] { new EditorBuildSettingsScene(HeroArmyScene, true) }).ToArray();
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.companyName = "Ashlands";
             PlayerSettings.productName = "Ashlands: Rise of the Remnants";
@@ -36,7 +46,7 @@ namespace Ash.Editor
         {
             Prepare();
             Directory.CreateDirectory("Builds");
-            var result = BuildPipeline.BuildPlayer(new[] { TestScene }, "Builds/Ashlands.apk", BuildTarget.Android, BuildOptions.None);
+            var result = BuildPipeline.BuildPlayer(new[] { HeroArmyScene }, "Builds/Ashlands.apk", BuildTarget.Android, BuildOptions.None);
             if (result.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
                 throw new InvalidOperationException("Android build failed: " + result.summary.result);
         }

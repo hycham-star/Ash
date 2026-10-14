@@ -31,12 +31,17 @@ for target in list(assets.rglob("*.asset")) + list(assets.rglob("*.unity")):
         assert script.suffix == ".cs", f"Script reference points to a non-script: {script}"
         assert re.search(r"class\s+" + re.escape(script.stem) + r"\b", script.read_text()), f"Script class and filename mismatch: {script}"
 
-scene = (assets / "Ash/Scenes/Phase1Test.unity").read_text()
-ids = re.findall(r"^--- !u!\d+ &(\d+)$", scene, re.MULTILINE)
-assert len(ids) == len(set(ids)), "Duplicate scene object IDs"
-for object_id in re.findall(r"\{fileID: (\d+)\}", scene):
-    assert object_id == "0" or object_id in ids, f"Missing local scene object: {object_id}"
-assert "gameManager: {fileID: 1002}" in scene, "Missing explicit manager reference"
+for scene_path in assets.rglob("*.unity"):
+    scene = scene_path.read_text()
+    ids = re.findall(r"^--- !u!\d+ &(\d+)$", scene, re.MULTILINE)
+    assert len(ids) == len(set(ids)), f"Duplicate scene object IDs: {scene_path}"
+    for object_id in re.findall(r"\{fileID: (\d+)\}", scene):
+        assert object_id == "0" or object_id in ids, f"Missing local scene object: {object_id} in {scene_path}"
+    assert "gameManager: {fileID: 1002}" in scene, f"Missing explicit manager reference: {scene_path}"
+    roster = scene.split("  heroDefinitions:\n", 1)[1].split("  unitDefinitions:", 1)[0]
+    roster_guids = re.findall(r"guid: ([0-9a-f]{32})", roster)
+    assert len(roster_guids) == 8 and len(set(roster_guids)) == 8, f"Expected eight distinct hero assets: {scene_path}"
+assert (assets / "Ash/Scenes/HeroArmyTest.unity").exists(), "Missing Hero Army test scene"
 assert "RuntimeInitializeOnLoadMethod" not in "\n".join(p.read_text() for p in assets.rglob("*.cs")), "Global automatic launcher remains"
 assert not (assets / "Ash/Scripts/Settlement.cs").exists(), "Duplicate legacy resource/combat system remains"
 manifest = json.loads((root / "Packages/manifest.json").read_text())

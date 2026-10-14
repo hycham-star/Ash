@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 919563436d1e9c44ec18e8ee685cc47d, type: 3}
+  m_Name: BramHolt
+  m_EditorClassIdentifier:
+  id: bram-holt
+  displayName: Bram Holt
+  biography: A bridge builder who kept the last river crossing open during the collapse.
+  rarity: 1
+  specialization: 0
+  abilityId: iron-span
+  abilityName: Iron Span
+  abilityDescription: Coordinates infantry around a steady defensive formation.
+  abilityTargetType: 0
+  abilityPowerBonusBasisPoints: 2000
+  cooldownSeconds: 35
+  durationSeconds: 10
+  baseCapacity: 40
+  capacityPerLevel: 5
+  baseBonusBasisPoints: 800
+  bonusPerLevelBasisPoints: 100
+  maxLevel: 50
+  baseXpRequired: 100
+  xpPerLevel: 50

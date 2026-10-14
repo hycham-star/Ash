@@ -14,13 +14,14 @@ namespace Ash
         public ResourceManager Resources { get; private set; }
         public ReadOnlyCollection<HeroData> Heroes { get; private set; }
         public ReadOnlyCollection<UnitData> Units { get; private set; }
-        public ArmyData Army { get; private set; }
+        [SerializeField, Min(0)] private int initialReservePerType = 100;
+        public HeroArmyService HeroArmies { get; private set; }
         public bool IsInitialized { get; private set; }
 
         private void Awake()
         {
             try { Initialize(); }
-            catch (Exception error) { Debug.LogError("Phase 1 initialization failed: " + error, this); enabled = false; }
+            catch (Exception error) { Debug.LogError("Game initialization failed: " + error, this); enabled = false; }
         }
 
         // Scene ownership and explicit references instead of a global singleton or automatic spawning.
@@ -46,8 +47,9 @@ namespace Ash
                 if (!ids.Add(definition.Id)) throw new InvalidOperationException("Duplicate unit ID: " + definition.Id);
                 units.Add(new UnitData(definition));
             }
-            Resources = resources; Heroes = heroes.AsReadOnly(); Units = units.AsReadOnly();
-            Army = new ArmyData("test-army");
+            var service = new HeroArmyService(heroes, units, initialReservePerType);
+            Resources = resources; HeroArmies = service;
+            Heroes = service.Heroes; Units = service.Fighters;
             IsInitialized = true;
         }
     }

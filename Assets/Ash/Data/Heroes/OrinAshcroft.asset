@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 919563436d1e9c44ec18e8ee685cc47d, type: 3}
+  m_Name: OrinAshcroft
+  m_EditorClassIdentifier:
+  id: orin-ashcroft
+  displayName: Orin Ashcroft
+  biography: A quiet strategist who negotiated the first shared water treaty of the Ashlands.
+  rarity: 3
+  specialization: 1
+  abilityId: horizon-command
+  abilityName: Horizon Command
+  abilityDescription: Coordinates sharpshooters across an entire defensive horizon.
+  abilityTargetType: 1
+  abilityPowerBonusBasisPoints: 3500
+  cooldownSeconds: 45
+  durationSeconds: 15
+  baseCapacity: 60
+  capacityPerLevel: 5
+  baseBonusBasisPoints: 1800
+  bonusPerLevelBasisPoints: 100
+  maxLevel: 50
+  baseXpRequired: 100
+  xpPerLevel: 50

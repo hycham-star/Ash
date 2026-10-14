@@ -9,5 +9,7 @@
     <Compile Include="../../Assets/Ash/Scripts/Data/Heroes/HeroData.cs" Link="HeroData.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Data/Units/UnitData.cs" Link="UnitData.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Data/Armies/ArmyData.cs" Link="ArmyData.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Services/HeroArmyService.cs" Link="HeroArmyService.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Services/HeroArmyState.cs" Link="HeroArmyState.cs" />
   </ItemGroup>
 </Project>

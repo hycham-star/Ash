@@ -10,11 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 033789039308462c3b56a243f370b1e9, type: 3}
-  m_Name: SampleMelee
+  m_Name: Cavalry
   m_EditorClassIdentifier:
-  id: sample-melee
-  displayName: Salvager
-  type: 0
-  health: 100
-  damage: 10
-  speed: 1
+  id: cavalry
+  displayName: Dust Rider Cavalry
+  type: 2
+  health: 120
+  damage: 12
+  speed: 2
+  basePower: 150

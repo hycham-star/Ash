@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 919563436d1e9c44ec18e8ee685cc47d, type: 3}
+  m_Name: MaraFlint
+  m_EditorClassIdentifier:
+  id: mara-flint
+  displayName: Mara Flint
+  biography: A salvage forewoman who turns scattered work crews into disciplined defenders.
+  rarity: 0
+  specialization: 0
+  abilityId: scrapline
+  abilityName: Scrapline
+  abilityDescription: Organizes infantry around a reinforced salvage line.
+  abilityTargetType: 0
+  abilityPowerBonusBasisPoints: 1500
+  cooldownSeconds: 30
+  durationSeconds: 8
+  baseCapacity: 30
+  capacityPerLevel: 5
+  baseBonusBasisPoints: 500
+  bonusPerLevelBasisPoints: 100
+  maxLevel: 50
+  baseXpRequired: 100
+  xpPerLevel: 50

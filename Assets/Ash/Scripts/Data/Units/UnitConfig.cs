@@ -7,10 +7,11 @@ namespace Ash
     {
         [SerializeField] private string id;
         [SerializeField] private string displayName;
-        [SerializeField] private UnitType type;
+        [SerializeField] private FighterType type;
         [SerializeField, Min(1)] private int health = 100;
         [SerializeField, Min(0)] private int damage = 10;
         [SerializeField, Min(0.01f)] private float speed = 1;
-        public UnitDefinition CreateDefinition() => new UnitDefinition(id, displayName, type, health, damage, speed);
+        [SerializeField, Min(1)] private int basePower = 100;
+        public UnitDefinition CreateDefinition() => new UnitDefinition(id, displayName, type, health, damage, speed, basePower);
     }
 }

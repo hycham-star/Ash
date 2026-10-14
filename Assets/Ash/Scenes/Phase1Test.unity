@@ -56,8 +56,16 @@ MonoBehaviour:
     Amount: 20
   - Type: 4
     Amount: 5
+  initialReservePerType: 100
   heroDefinitions:
-  - {fileID: 11400000, guid: 1cc10f3cb46f9b502fc43b677b058e84, type: 2}
+  - {fileID: 11400000, guid: ba2b672ac909f47cf0557c448ac174ac, type: 2}
+  - {fileID: 11400000, guid: b601d13b70d898deb37b7c727bd45b78, type: 2}
+  - {fileID: 11400000, guid: 4fbc4ae1dd63527dc541699f3a19ba4c, type: 2}
+  - {fileID: 11400000, guid: 46047f5d91070d677650810352ddbdf2, type: 2}
+  - {fileID: 11400000, guid: 3aa8794a28a6d9bab628440ff5ce6418, type: 2}
+  - {fileID: 11400000, guid: 8de0f6bcc6b710d0edf22cb7cc6bbd1f, type: 2}
+  - {fileID: 11400000, guid: d6b31181e73fccdd5bf54b9f291620a4, type: 2}
+  - {fileID: 11400000, guid: f6c660e79024f1ebaecfc1d9d6879189, type: 2}
   unitDefinitions:
   - {fileID: 11400000, guid: ee0dc3d7cccc264f517c35caf299e7e4, type: 2}
   - {fileID: 11400000, guid: 17d9e848665147b2bac6d65e783fa3a7, type: 2}

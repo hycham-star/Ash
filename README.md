@@ -1,20 +1,36 @@
-# Ashlands: Rise of the Remnants — Phase 1
+# Ashlands: Rise of the Remnants
 
-Portrait Android, low-poly post-apocalyptic strategy foundations. This branch implements **project architecture only**: managers, authored Hero/Unit data, runtime Hero/Unit/Army data, and a basic test scene. No combat, PvP, MMO, monetization, resource production, building progression, or training simulation is implemented.
+Portrait Android, low-poly strategy prototype. Current milestone: **Hero → Army → Fighters**. Every owned hero has an independent army, XP, level, capacity, and specialization bonus. There is no combat, PvP, backend, fake networking, monetization, training simulation, or save/load system.
 
-## Open the test scene
+## Try the Hero Army test scene
 
-1. Install **Unity 6000.0.23f1** using Unity Hub and activate an appropriate editor license.
-2. Open this checkout and let Unity resolve UGUI 2.0.0.
-3. Choose **Ashlands > Open Phase 1 Test Scene**. This opens the tracked `Assets/Ash/Scenes/Phase1Test.unity`; it does not generate a replacement scene or start systems in unrelated scenes.
-4. Choose **Ashlands > Validate Phase 1 Architecture**. This checks the scene's references and sample assets in a disposable preview scene without changing your open scene.
-5. Set Game view to **9:16 portrait** and press Play. The scene creates its camera, HQ cube, and test HUD at runtime.
+1. Open this checkout in licensed **Unity 6000.0.23f1**, and allow UGUI 2.0.0 to resolve.
+2. Choose **Ashlands > Open Hero Army Test Scene**.
+3. Outside Play mode, choose **Ashlands > Validate Hero Army System** to check authored assets and scene wiring in a disposable preview scene.
+4. Select a **9:16 portrait** Game view, then press Play.
+5. Select any of the eight hero buttons. Each hero starts level 1 with an empty army. The shared test reserve contains 100 Infantry, 100 Sharpshooters, and 100 Cavalry.
+6. Enter a positive whole-number quantity (default 5), then use **+ Assign** or **− Remove** beside a fighter type. Assignment consumes reserve fighters; removal returns them. Over-capacity and unavailable quantities are rejected without changing state.
+7. Switch heroes to verify their armies remain separate. The detail panel scrolls vertically and displays level, XP, quantity/capacity, calculated power, passive bonus, biography, and ability data.
+8. Use **+125 HERO XP (TEST)** to test progression. It affects only the selected hero. Stop/restart Play to reset all local test data.
 
-The test HUD shows all five non-premium resources, one sample hero, and three sample unit definitions. Test controls add scrap, atomically spend water and fuel, assign the sample commander, and add a sample unit to the army. These are data checks, not gameplay loops. Exiting Play mode discards runtime data.
+Abilities are **data only** in this milestone; their active bonuses are not executed or included in army power. All starting stock, stats, XP thresholds, capacities, and bonuses are configurable prototype values.
 
-Expected starting balances: Food 100, Scrap 100, Water 50, Fuel 20, Survivors 5. The army starts empty, with no assigned hero.
+The older Phase1Test scene remains available and now uses the same updated catalogue and view. Its architecture validator menu remains supported.
 
-## Checks available in the cloud
+## Eight original heroes
+
+| Rarity | Hero | Specialization |
+| --- | --- | --- |
+| Ordinary | Mara Flint | Infantry |
+| Ordinary | Jonas Reed | Sharpshooter |
+| Rare | Sera Vale | Cavalry |
+| Rare | Bram Holt | Infantry |
+| Epic | Ilyra Voss | Sharpshooter |
+| Epic | Kade Rook | Cavalry |
+| Legendary | Asha Sol | Infantry |
+| Legendary | Orin Ashcroft | Sharpshooter |
+
+## Automated checks
 
 From the repository root, with .NET 8 and Python 3:
 
@@ -23,24 +39,24 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-The console suite runs **44 Phase 1 architecture checks** for resource transaction atomicity, notifications, invalid input and overflow, Hero/Unit definitions and runtime instances, commander assignment, and army stack integrity. It compiles the actual pure C# domain files, not copies. Asset checks verify GUID uniqueness, references, and scene object links.
+**78 checks passed**: resources, all eight authored heroes and three fighter assets, independent armies, capacity and reserve conservation, quantity changes, passive power calculation, XP thresholds, overflow/invalid input, and detached serializable state. The .NET suite compiles the actual pure C# domain sources and reads the authored assets' flat data fields; it is not a Unity YAML importer.
 
-These checks do **not** validate Unity compilation, asset import, rendering, or input. Unity Editor is not installed in the current cloud environment; its menu validator and Play-mode smoke test remain unrun.
+GUID/scene reference checks also passed. Unity Editor is not installed in this cloud environment, so **Unity compilation/import, menu validation, Play mode, and Android export remain unverified**.
 
-With a licensed editor, the Unity-specific validator can also run in batch mode:
+Unity-specific validation can be run in batch mode with a licensed editor:
 
 ```sh
-Unity -batchmode -nographics -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.PhaseOneValidation.Run -logFile /tmp/ash-phase1-validation.log
+Unity -batchmode -nographics -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.PhaseOneValidation.RunHeroArmy -logFile /tmp/ash-hero-army-validation.log
 ```
 
-## Android (optional after Unity validation)
+## Android (after Editor validation)
 
-Install Android Build Support, SDK/NDK, and OpenJDK through Unity Hub. Use **Ashlands > Prepare Project** to apply portrait orientation and register the test scene, then select Android in Build Profiles. The test scene can be exported with:
+Install Android Build Support, SDK/NDK, and OpenJDK through Unity Hub, then select Android in Build Profiles. The build helper exports the HeroArmyTest scene:
 
 ```sh
 Unity -batchmode -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.PrepareProject.BuildAndroid -logFile /tmp/ash-android-build.log
 ```
 
-Output: `Builds/Ashlands.apk`. Signing/store configuration is not part of Phase 1. Keep the existing `com.ash.afterthefall` identifier until an intentional release configuration change.
+Output: `Builds/Ashlands.apk`; signing/store configuration is not included. The application identifier remains `com.ash.afterthefall`.
 
-See [Phase 1 architecture](Docs/Phase1Architecture.md) for folder ownership, document reconciliation, and verification status.
+See [Hero Army architecture](Docs/HeroArmySystem.md) for formulas, ownership, command contracts, and future integration boundaries. Phase 1 documents are historical records; current behavior is described here.

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 919563436d1e9c44ec18e8ee685cc47d, type: 3}
+  m_Name: SeraVale
+  m_EditorClassIdentifier:
+  id: sera-vale
+  displayName: Sera Vale
+  biography: A convoy pathfinder who knows every dry riverbed across the southern wastes.
+  rarity: 1
+  specialization: 2
+  abilityId: dust-route
+  abilityName: Dust Route
+  abilityDescription: Directs cavalry through hidden paths in the dust.
+  abilityTargetType: 2
+  abilityPowerBonusBasisPoints: 2000
+  cooldownSeconds: 35
+  durationSeconds: 10
+  baseCapacity: 40
+  capacityPerLevel: 5
+  baseBonusBasisPoints: 800
+  bonusPerLevelBasisPoints: 100
+  maxLevel: 50
+  baseXpRequired: 100
+  xpPerLevel: 50

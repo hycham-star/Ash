@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1001}
+  - component: {fileID: 1002}
+  - component: {fileID: 1003}
+  m_Layer: 0
+  m_Name: Hero Army Test Systems
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a436af1986de3add7089bc7ae6377dd9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  initialResources:
+  - Type: 0
+    Amount: 100
+  - Type: 1
+    Amount: 100
+  - Type: 2
+    Amount: 50
+  - Type: 3
+    Amount: 20
+  - Type: 4
+    Amount: 5
+  initialReservePerType: 100
+  heroDefinitions:
+  - {fileID: 11400000, guid: ba2b672ac909f47cf0557c448ac174ac, type: 2}
+  - {fileID: 11400000, guid: b601d13b70d898deb37b7c727bd45b78, type: 2}
+  - {fileID: 11400000, guid: 4fbc4ae1dd63527dc541699f3a19ba4c, type: 2}
+  - {fileID: 11400000, guid: 46047f5d91070d677650810352ddbdf2, type: 2}
+  - {fileID: 11400000, guid: 3aa8794a28a6d9bab628440ff5ce6418, type: 2}
+  - {fileID: 11400000, guid: 8de0f6bcc6b710d0edf22cb7cc6bbd1f, type: 2}
+  - {fileID: 11400000, guid: d6b31181e73fccdd5bf54b9f291620a4, type: 2}
+  - {fileID: 11400000, guid: f6c660e79024f1ebaecfc1d9d6879189, type: 2}
+  unitDefinitions:
+  - {fileID: 11400000, guid: ee0dc3d7cccc264f517c35caf299e7e4, type: 2}
+  - {fileID: 11400000, guid: 17d9e848665147b2bac6d65e783fa3a7, type: 2}
+  - {fileID: 11400000, guid: 01b10622218461959351d16259911f18, type: 2}
+--- !u!114 &1003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86d3992ef47b41548d08b36ce5bdcf0c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  gameManager: {fileID: 1002}
+--- !u!1660057539 &9223372036854775807
+SceneRoots:
+  m_ObjectHideFlags: 0
+  m_Roots:
+  - {fileID: 1001}
