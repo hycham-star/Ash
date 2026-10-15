@@ -231,10 +231,11 @@ namespace Ash
                 text.Append("\n").Append(status==BuildingCommandResult.HeadquartersRequired ? "Upgrade Headquarters first." : status==BuildingCommandResult.InsufficientResources ? "Gather more resources to upgrade." : "Ready — upgrade completes instantly.");
             }
             buildingStats.text=text.ToString();
+            // The panel starts inactive. Read the known button parent directly: ancestor searches skip inactive objects.
             upgradeBuilding.text=status==BuildingCommandResult.MaximumLevel ? "MAX LEVEL" : "UPGRADE";
-            upgradeBuilding.GetComponentInParent<UnityEngine.UI.Button>().interactable=status==BuildingCommandResult.Success;
+            upgradeBuilding.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=status==BuildingCommandResult.Success;
             collectBuilding.text=kind==BuildingKind.Headquarters ? "NO PRODUCTION" : "COLLECT "+buildings.Stored(kind);
-            collectBuilding.GetComponentInParent<UnityEngine.UI.Button>().interactable=kind!=BuildingKind.Headquarters && buildings.Stored(kind)>0;
+            collectBuilding.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=kind!=BuildingKind.Headquarters && buildings.Stored(kind)>0;
         }
         private void UpgradeBuilding()
         {

@@ -36,3 +36,7 @@ Created: `Assets/Ash/Scripts/Buildings.meta`, `Assets/Ash/Scripts/Buildings/Buil
 Modified: GameManager.cs; ProgressState.cs; ProgressPersistence.cs; SettlementBuilding.cs; SettlementView.cs; ProgressValidation.cs; Tests/Rules/Rules.csproj, Program.cs, PersistenceChecks.cs; README.md; Docs/LocalPersistence.md. No scenes, app identity, combat rules, shader, camera, or initial resource fixtures changed.
 
 Next step: run Unity validators and the manual Android upgrade/collect/restart checks above before expanding to construction queues, offline time or more buildings.
+
+## Startup UI correction
+
+A user Editor screenshot identified NullReferenceException in RefreshBuilding during Start. The building panel is initially inactive, so GetComponentInParent<Button>() skips its inactive parent and returns null. Both button-state lookups now use the exact parent created by the UI builder with transform.parent.GetComponent<Button>(), which works regardless of hierarchy activation. No domain rules, save schema or player data changed. Static asset and C# syntax checks pass; an actual Unity startup/hide/show check is still required. The 283 domain checks above predate this UI-only correction.
