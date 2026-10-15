@@ -26,7 +26,7 @@ namespace Ash
             if(route==null || route.Length==0)return;
             var delta=route[waypoint]-transform.localPosition;
             if(delta.magnitude<.08f) { waypoint=(waypoint+1)%route.Length; return; }
-            transform.localPosition=Vector3.MoveTowards(transform.localPosition,route[waypoint],Time.deltaTime*.8f);
+            transform.localPosition=Vector3.MoveTowards(transform.localPosition,route[waypoint],Time.deltaTime*.5f);
             var rotation=Quaternion.LookRotation(delta);
             transform.localRotation=Quaternion.Slerp(transform.localRotation,rotation,Time.deltaTime*6);
         }

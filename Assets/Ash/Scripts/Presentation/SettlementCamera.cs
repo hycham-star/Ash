@@ -47,7 +47,7 @@ namespace Ash
         }
         public void FocusOn(Vector3 target,float zoom)
         {
-            view.orthographicSize=Mathf.Clamp(zoom,7,maximumZoom);
+            view.orthographicSize=Mathf.Clamp(zoom,4,maximumZoom);
             float size=view.orthographicSize;
             panOrigin=target-transform.forward*45
                 -transform.right*((OverviewArea.center.x-.5f)*2*size*view.aspect)
@@ -65,7 +65,7 @@ namespace Ash
                 if (OverUI(a.fingerId) || OverUI(b.fingerId)) return;
                 float before = Vector2.Distance(a.position-a.deltaPosition, b.position-b.deltaPosition);
                 float now = Vector2.Distance(a.position,b.position);
-                view.orthographicSize = Mathf.Clamp(view.orthographicSize * (before / Mathf.Max(1, now)), 7, maximumZoom); return;
+                view.orthographicSize = Mathf.Clamp(view.orthographicSize * (before / Mathf.Max(1, now)), 4, maximumZoom); return;
             }
             if (Input.touchCount == 1)
             {
@@ -76,7 +76,7 @@ namespace Ash
                 else if (touch.phase == TouchPhase.Canceled) dragging = false;
                 return;
             }
-            if (!OverUI()) view.orthographicSize = Mathf.Clamp(view.orthographicSize - Input.mouseScrollDelta.y, 7, maximumZoom);
+            if (!OverUI()) view.orthographicSize = Mathf.Clamp(view.orthographicSize - Input.mouseScrollDelta.y, 4, maximumZoom);
             if (Input.GetMouseButtonDown(0)) Begin(Input.mousePosition, OverUI());
             if (Input.GetMouseButton(0)) Move(Input.mousePosition);
             if (Input.GetMouseButtonUp(0)) End(Input.mousePosition);

@@ -1,36 +1,50 @@
-# First visual slice toward concept B
+# HQ section: visual review pass 2
 
-This update replaces the Headquarters mesh and one settlement supply runner with original textured meshes. Other buildings, hero portraits, and NPCs retain the prototype art. This is a first representative asset pass, not the finished realistic style shown in concept B.
+This update refines the original HQ and one animated settlement scavenger and adds a textured surrounding apron with props. It is a review pass toward concept B. It does **not** yet match the finished art quality of The Walking Dead: Survivors. Other buildings, hero portraits and NPCs retain their existing prototype art. Review the actual assets before expanding this treatment to the rest of the game.
 
-The Headquarters has a concrete base/frame, weathered brick, corrugated metal roof, porch, window frames, steps, chimney, aerial, and drainpipe. The scavenger has rounded body shapes, clothing, backpack, boots, and an 11-bone looping walk animation. The patrol is presentation only; it does not represent a particular assigned scavenging expedition.
+## What changed
+
+- HQ: brickwork mapped in real wall directions, visible roof corrugations, security bars, air conditioning unit and grille, gutters, exposed roof fasteners, repaired roof sheet and command-post sign.
+- Surroundings: cracked concrete apron, approach paving, sandbag stack, rolled-seam drums, pallet, slatted crate, stones and dry grass. These are visual props; they are not new resource nodes or gameplay interactions.
+- Scavenger: continuous tailored jacket, sleeves and trouser surfaces, blended knee/elbow weights, smaller boots and facial details. The existing walk now deforms continuous surfaces rather than rotating separate limb spheres. The NPC patrol remains presentation only, separate from assigned gathering workers.
+- Close-up: VIEW HQ frames the section, and manual zoom permits a closer inspection. HOME still restores the overview.
 
 ## Open and inspect
 
-1. Extract the complete new ZIP into a separate folder. Keep the working previous project as a backup. Do not extract it into another Unity project's Assets folder.
-2. Open that extracted project in Unity 6.3 LTS (6000.3.23f1). Wait for imports. The real built-in Animation module is included in Packages/manifest.json.
+1. Extract the complete new ZIP into a separate folder. Keep the previous working project. Do not extract it into another Unity project's Assets folder.
+2. Open the extracted project in Unity 6.3 LTS (6000.3.23f1) and wait for model/texture imports.
 3. Outside Play mode, choose **Ashlands > Validate Realistic Visuals**. Copy any red error in full before proceeding.
 4. Choose **Ashlands > Open Settlement Scene**, then Play. Keep the Game view at **9:16**.
-5. Choose **BUILDINGS > HQ > VIEW HQ** for the closer camera. The detailed scavenger patrols near the HQ. **HOME** restores the overview.
-6. Check walking, textures, camera framing and ordinary hero/raid/scavenging/save actions. Test on Android after it works in the Editor. Build a new APK into Builds/Android; the older installed APK will not update itself.
+5. Choose **BUILDINGS > HQ > VIEW HQ**. Inspect the building, surrounding props and walking NPC. Drag/zoom to examine details; **HOME** restores the overview.
+6. Check walking, textures, framing and ordinary hero/raid/scavenging/save actions. Test on Android after it works in the Editor. Build a new APK into Builds/Android; the older installed APK will not update itself.
 
-## Preview and validation limits
+## Preview and evidence
 
-[Actual model preview PDF](Concepts/Realistic_Visual_Slice.pdf) is a Blender render of these assets. It is not a Unity screenshot or a promise of Android rendering quality. The character is enlarged 1.4x for this presentation image; the exported game character is approximately 1.79m tall.
+[Preview PDF](Concepts/Realistic_Visual_Slice.pdf) shows Blender renders of the actual exported source meshes and baked textures. These are **not Unity or Android screenshots**. The section preview uses the character's actual 1.77m scale; the second page is a camera close-up of the same character and walk pose.
 
-Verified here: exported FBX files imported back into Blender with UVs, 8,064 HQ triangles, 8,228 character triangles, skin weights on every character vertex, 11 bones and a walk action. Four 1024x1024 atlases provide albedo/occlusion and tangent normals. Each detailed model uses one material; contact grounding adds a separate quad. Actual player draw calls and frame times need profiling on the target phone.
+Verified with Blender FBX export/reimport:
 
-The asset reference checker resolves material texture/shader references as well as scenes/data. The existing 403 gameplay/persistence checks passed, and all C# files passed syntax parsing. Unity is unavailable in this cloud workspace: Unity API compilation, model import, shader compilation, animation playback, camera framing and Android performance still require the native validation and device checks above. The validation command checks imports and bindings, not playback quality.
+| Model | Triangles | Materials |
+| --- | ---: | ---: |
+| HQ | 11,568 | 1 |
+| Scavenger | 7,000 | 1 |
+| HQ surroundings | 6,292 | 1 |
 
-## Editing and reproducibility
+The character has 11 bones, normalized weights on every vertex, blended joints and a walk cycle with measurable mesh deformation and matching start/end poses. Six 1024x1024 textures provide albedo/occlusion and tangent normals. Each detailed mesh uses one atlas material; contact grounding adds separate quads. Actual draw calls, texture memory and frame times need device profiling.
 
-All models, textures and animation were authored procedurally for Ashlands; no purchased or copied game assets are included. Runtime files live under Assets/Ash/Resources/Art, with explicit bundled shaders under Resources. The scoped importer sets normals/tangents, legacy animation and texture import settings. Resources inclusion avoids relying on runtime Shader.Find for Android stripping.
+The asset checker resolves material texture/shader references as well as scenes/data. The 403 gameplay/persistence checks passed, and all 46 C# files passed syntax parsing. Unity is unavailable in this cloud workspace: Unity API compilation, FBX/texture import, shader compilation, animation playback, framing and Android performance still require the native validation and device checks above. The native validator checks bindings/imports, not animation quality or commercial art quality.
 
-Source: Tools/Art/build_visual_slice.py and Tools/Art/VisualSlice.blend (outside Assets, so Unity does not need Blender installed). Regenerate using Blender 4.3.2:
+## Source and reproducibility
+
+All included models, textures and animation were authored procedurally for Ashlands. No purchased or copied game assets are included. Runtime files are in Assets/Ash/Resources/Art, with bundled shaders in Resources. The scoped importer sets normals/tangents, legacy animation and texture settings. The previous offline scavenging update remains included, and this visual pass changes no save schema, resources, army state or gathering calculations.
+
+Editable sources: Tools/Art/build_visual_slice.py and Tools/Art/VisualSlice.blend. Sources live outside Assets, so Unity does not need Blender installed. Regenerate with Blender 4.3.2:
 
 ```sh
-blender -b --threads 4 --python Tools/Art/build_visual_slice.py -- /absolute/path/to/Ash
+blender -b --threads 4 --python-exit-code 1 --python Tools/Art/build_visual_slice.py -- /absolute/path/to/Ash
+blender -b --threads 4 --python-exit-code 1 --python Tools/Art/verify_exports.py -- /absolute/path/to/Ash
 ```
 
-The generator also produces Tools/Art/VisualSlice_Render.png. The PDF is a copy of that render, not automatically regenerated by the Blender script.
+The generator produces Tools/Art/VisualSlice_Render.png and Survivor_Closeup.png. The preview PDF lays out those images with captions and is not automatically regenerated by the Blender script.
 
-Gameplay resource/hero/army state and save schema are unchanged by the visual slice. The previous offline scavenging update remains included. The next art work should follow feedback from this close-up and Android test before extending the treatment to the other buildings and heroes.
+Further work toward the reference quality includes authored character anatomy/face and deformation refinement, richer building silhouettes, terrain blending, final hero portraits and interface art, lighting work and phone profiling. This pass should be reviewed before replacing other art.

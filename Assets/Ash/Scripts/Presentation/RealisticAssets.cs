@@ -10,15 +10,17 @@ namespace Ash
         {
             var model=Create("Headquarters","HeadquartersMaterial",parent);
             model.name="Weathered Headquarters — original detailed mesh";
-            Grounding(model.transform,new Vector3(0,.105f,0),new Vector2(4.3f,4.1f));
+            Create("HeadquartersSurroundings","HeadquartersSurroundingsMaterial",parent);
+            Grounding(model.transform,new Vector3(0,.17f,0),new Vector2(4.3f,4.1f));
             return model;
         }
         public static GameObject Scavenger(Transform parent,Vector3 position,Vector3[] patrol)
         {
             var root=new GameObject("Detailed scavenger — visual patrol"); root.transform.SetParent(parent,false); root.transform.localPosition=position;
             var model=Create("Scavenger","ScavengerMaterial",root.transform);
+            model.transform.localPosition=Vector3.up*.10f;
             var motion=root.AddComponent<DetailedScavenger>(); motion.Configure(model,patrol);
-            Grounding(root.transform,new Vector3(0,.125f,0),new Vector2(.7f,.55f));
+            Grounding(root.transform,new Vector3(0,.105f,0),new Vector2(.7f,.55f));
             return root;
         }
         private static GameObject Create(string modelName,string materialName,Transform parent)

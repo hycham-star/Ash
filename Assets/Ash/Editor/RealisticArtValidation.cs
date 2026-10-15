@@ -19,7 +19,7 @@ namespace Ash.Editor
                     var shader=Resources.Load<Shader>(name);
                     Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Missing or invalid shader: "+name);
                 }
-                foreach(var name in new[]{"Headquarters","Scavenger"})
+                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings"})
                 {
                     var model=Resources.Load<GameObject>("Art/"+name);
                     Require(model!=null,"Missing imported FBX: "+name);
