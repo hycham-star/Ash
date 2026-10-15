@@ -54,7 +54,7 @@ internal static class MigrationCodecChecks
             var migrated=codec.Decode(json);
             C(migrated.Scavenging==null && (version!=1 || migrated.Buildings==null),"legacy decode excludes fields outside its declared schema");
             context.Progress.Restore(migrated);
-            C(context.Progress.Capture().Version==3 && context.Scavenging.FreeWorkers==10 && context.Resources.Get(ResourceType.Lumber)==0,"legacy upgrade creates complete valid current snapshot");
+            C(context.Progress.Capture().Version==ProgressPersistence.Version && context.Scavenging.FreeWorkers==10 && context.Resources.Get(ResourceType.Lumber)==0,"legacy upgrade creates complete valid current snapshot");
         }
         string exact=codec.Encode(current);
         C(codec.Encode(codec.Decode(exact))==exact,"current schema round trip retains every field");
@@ -62,7 +62,7 @@ internal static class MigrationCodecChecks
         Reject(()=>context.Progress.Validate(codec.Decode(codec.Encode(malformed))),"missing current map is not repaired or silently reset");
         malformed=codec.Decode(exact); malformed.Scavenging.Sites[0].Workers=99;
         Reject(()=>context.Progress.Validate(codec.Decode(codec.Encode(malformed))),"corrupt current workers remain invalid");
-        malformed=codec.Decode(exact); malformed.Version=4; bool unsupported=false;
+        malformed=codec.Decode(exact); malformed.Version=ProgressPersistence.Version+1; bool unsupported=false;
         try { context.Progress.Validate(codec.Decode(codec.Encode(malformed))); }catch(UnsupportedSaveVersionException) { unsupported=true; }
         C(unsupported,"future versions retain overwrite protection");
         return passed;
@@ -87,7 +87,7 @@ internal static class MigrationCodecChecks
             var restart=new Context(heroes,units); restart.Progress.Restore(upgraded.Load().State);
             if(restart.Scavenging.Seed!=context.Scavenging.Seed || restart.Scavenging.Site(node.Id).Workers!=1)throw new Exception("Migrated map restart lost allocation.");
         } finally { if(Directory.Exists(temporary))Directory.Delete(temporary,true); }
-        Console.WriteLine("PASS uploaded save "+Path.GetFileName(path)+": checksum/load, complete legacy progress, v3 write and worker/map restart; original untouched (emulated Unity defaults, .NET JSON).");
+        Console.WriteLine("PASS uploaded save "+Path.GetFileName(path)+": checksum/load, complete legacy progress, current-schema write and worker/map restart; original untouched (emulated Unity defaults, .NET JSON).");
         return 1;
     }
 }

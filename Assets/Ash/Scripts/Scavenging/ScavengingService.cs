@@ -26,6 +26,7 @@ namespace Ash
         private readonly ResourceManager resources;
         private ScavengingState state;
         private bool commanding;
+        internal bool IsCommanding => commanding;
         public event Action Changed;
         public string[] NotificationErrors { get; private set; } = Array.Empty<string>();
         public int Seed => state.Seed;

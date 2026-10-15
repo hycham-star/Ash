@@ -38,6 +38,7 @@ namespace Ash.Editor
                 {
                     var scene=EditorSceneManager.OpenPreviewScene(PrepareProject.SettlementScene); scenes.Add(scene);
                     var manager=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GameManager>(true)).Single();
+                    typeof(GameManager).GetField("utcNow",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(manager,new Func<long>(()=>1700000000L));
                     manager.Initialize(); Require(!manager.PersistenceActive,"Preview unexpectedly opened real saves.");
                     // Exercise the production coordinator, with only its storage directory redirected.
                     var begin=typeof(GameManager).GetMethod("BeginLocalPersistence",BindingFlags.NonPublic|BindingFlags.Instance);

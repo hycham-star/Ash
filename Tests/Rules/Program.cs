@@ -133,5 +133,6 @@ passed += PersistenceChecks.Run(definitions,fighterDefinitions);
 passed += BuildingChecks.Run(definitions,fighterDefinitions);
 passed += ScavengingChecks.Run(definitions,fighterDefinitions);
 passed += MigrationCodecChecks.Run(definitions,fighterDefinitions);
+passed += OfflineChecks.Run(definitions,fighterDefinitions);
 foreach(var savePath in args)passed += MigrationCodecChecks.ValidateFile(savePath,definitions,fighterDefinitions);
 Console.WriteLine($"{passed} total checks passed (hero armies, resources, PvE, persistence, buildings, and scavenging).");

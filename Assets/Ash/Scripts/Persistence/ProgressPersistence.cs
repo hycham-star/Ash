@@ -6,21 +6,23 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 3;
+        public const int Version = 4;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
         private readonly HeroFragmentWallet fragments;
         private readonly BuildingService buildings;
         private readonly ScavengingService scavenging;
+        private readonly OfflineScavenging offline;
 
-        public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments, BuildingService buildings = null, ScavengingService scavenging = null)
+        public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments, BuildingService buildings = null, ScavengingService scavenging = null, OfflineScavenging offline = null)
         {
             this.armies = armies ?? throw new ArgumentNullException(nameof(armies));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.fragments = fragments ?? throw new ArgumentNullException(nameof(fragments));
             this.buildings = buildings ?? new BuildingService(resources);
             this.scavenging = scavenging ?? new ScavengingService(resources);
+            this.offline = offline ?? new OfflineScavenging(this.scavenging);
         }
         public ProgressState Capture()
         {
@@ -31,7 +33,7 @@ namespace Ash
             foreach(var id in fragments.DefinitionIds) ids.Add(id);
             var stock = new List<FragmentState>();
             foreach(var id in ids) stock.Add(new FragmentState { DefinitionId=id, Quantity=fragments.Get(id) });
-            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture() };
+            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture(), ScavengingUtcSeconds=offline.LastUtcSeconds };
         }
         public void Validate(ProgressState state) { Prepare(state); }
         public void Restore(ProgressState state)
@@ -43,6 +45,7 @@ namespace Ash
             fragments.RestoreValidatedFrom(candidate.Fragments);
             buildings.RestoreValidated(candidate.Buildings);
             scavenging.RestoreValidated(candidate.Scavenging);
+            offline.RestoreValidated(candidate.ScavengingUtcSeconds);
         }
         public string[] NotifyRestored()
         {
@@ -58,6 +61,7 @@ namespace Ash
             public HeroFragmentWallet Fragments;
             public BuildingState[] Buildings;
             public ScavengingState Scavenging;
+            public long ScavengingUtcSeconds;
         }
         private Candidate Prepare(ProgressState state)
         {
@@ -80,6 +84,8 @@ namespace Ash
                 savedScavenging=ScavengingService.Generate(scavenging.Seed);
             } else savedScavenging=state.Scavenging;
             scavenging.Validate(savedScavenging);
+            long timestamp=state.Version<4 ? 0 : state.ScavengingUtcSeconds;
+            OfflineScavenging.ValidateTimestamp(timestamp);
             var expectedHeroes=new Dictionary<string,HeroData>(StringComparer.Ordinal);
             var expectedFighters=new Dictionary<string,UnitData>(StringComparer.Ordinal);
             var fragmentIds=new HashSet<string>(fragments.DefinitionIds,StringComparer.Ordinal);
@@ -134,7 +140,7 @@ namespace Ash
                     throw new ArgumentException("Invalid or duplicate fragment balance.");
                 fragmentBalances.Add(stock.DefinitionId,stock.Quantity);
             }
-            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging };
+            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging, ScavengingUtcSeconds=timestamp };
         }
     }
 }

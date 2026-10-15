@@ -1,3 +1,5 @@
+> Current offline milestone writes schema4 and adds timestamp-based catch-up for assigned map workers, up to8hours with storage/deposit caps. See OfflineScavenging.md for current behavior and403checks. Earlier milestone details below are historical.
+
 > Latest correction: screenshot showed saving was blocked, and supplied slots are unchanged valid version2 documents. See LegacySaveMigrationFix.md for the version-aware Unity decoder correction,370 regular checks plus2 uploaded-file checks, and native validation steps.
 
 # Local world-map scavenging

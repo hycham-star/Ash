@@ -49,14 +49,14 @@ namespace Ash
             oldAmbient = RenderSettings.ambientLight; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,65); RenderSettings.ambientLight = new Color(.58f,.59f,.55f);
             BuildWorld(); BuildUI(); BuildPortrait();
             gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh; gameManager.Buildings.Changed += Refresh;
-            gameManager.SaveStatusChanged += UpdateSaveStatus; UpdateSaveStatus();
-            Refresh(); selection.text = "THE EMBER OUTPOST\nTap a building to inspect • Drag to explore";
+            gameManager.SaveStatusChanged += UpdateSaveStatus; gameManager.OfflineProgressChanged += ShowOfflineSummary; UpdateSaveStatus();
+            Refresh(); selection.text = "THE EMBER OUTPOST\nTap a building to inspect • Drag to explore"; ShowOfflineSummary();
         }
         private void OnDestroy()
         {
             if (gameManager != null && gameManager.IsInitialized)
             { gameManager.Resources.Changed -= Refresh; gameManager.HeroArmies.Changed -= Refresh; gameManager.Fragments.Changed -= Refresh; gameManager.Buildings.Changed -= Refresh; }
-            if (gameManager != null) gameManager.SaveStatusChanged -= UpdateSaveStatus;
+            if (gameManager != null) { gameManager.SaveStatusChanged -= UpdateSaveStatus; gameManager.OfflineProgressChanged -= ShowOfflineSummary; }
             if (controls != null) controls.BuildingSelected -= Inspect;
             if (portraitCamera != null) portraitCamera.targetTexture = null;
             if (portrait != null) { portrait.Release(); Destroy(portrait); }
@@ -68,6 +68,7 @@ namespace Ash
         {
             if(resetDeadline>0 && Time.unscaledTime>resetDeadline) { CancelReset(); toast.text="Reset cancelled."; }
         }
+        private void ShowOfflineSummary() { if(gameManager.OfflineSummary.Length==0)return; if(toast!=null)toast.text=gameManager.OfflineSummary; if(scavengingMap!=null)scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); }
         private void UpdateSaveStatus() { if(saveStatus!=null)saveStatus.text=gameManager.SaveStatus; }
         private void CancelReset() { resetDeadline=0; if(resetButton!=null)resetButton.text="RESET"; }
         private void SaveProgress()
@@ -295,7 +296,7 @@ namespace Ash
         private void ShowMap()
         {
             CancelReset(); heroPanel.SetActive(false); raidPanel.SetActive(false); buildingPanel.SetActive(false); portraitCamera.enabled=false;
-            scavengingMap.Show(); scavengingMap.transform.SetAsLastSibling();
+            scavengingMap.Show(); scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); scavengingMap.transform.SetAsLastSibling();
         }
         private void ShowHeroes(bool visible) { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
         private void ShowRaid() { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
@@ -387,6 +388,7 @@ namespace Ash
             buildingPanel.SetActive(false);
             scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font,gameManager.SaveProgress,()=>gameManager.SaveStatus);
             toast=TextPanel(ui,0,0,1,0,12,244,-12,282,15,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
+            toast.resizeTextForBestFit=true; toast.resizeTextMinSize=9; toast.resizeTextMaxSize=15;
         }
         private RectTransform Panel(Transform parent,string name,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)
         {

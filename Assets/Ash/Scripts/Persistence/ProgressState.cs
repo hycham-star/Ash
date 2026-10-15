@@ -13,6 +13,7 @@ namespace Ash
         public FragmentState[] Fragments;
         public BuildingState[] Buildings;
         public ScavengingState Scavenging;
+        public long ScavengingUtcSeconds;
     }
     [Serializable]
     public sealed class FragmentState

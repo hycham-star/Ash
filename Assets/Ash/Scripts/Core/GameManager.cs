@@ -21,6 +21,11 @@ namespace Ash
         public BattleManager Battles { get; private set; }
         public BuildingService Buildings { get; private set; }
         public ScavengingService Scavenging { get; private set; }
+        public OfflineScavenging OfflineScavenging { get; private set; }
+        public string OfflineSummary { get; private set; } = "";
+        public event Action OfflineProgressChanged;
+        private Func<long> utcNow = () => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        private bool applicationPaused, applicationFocused=true, skipProductionFrame;
         private float productionSeconds, productionCheckpoint;
         private bool productionPaused;
         [SerializeField] private bool enableLocalPersistence;
@@ -42,7 +47,7 @@ namespace Ash
 
         private void BeginLocalPersistence(string directory = null)
         {
-            progress=new ProgressPersistence(HeroArmies,Resources,Fragments,Buildings,Scavenging);
+            progress=new ProgressPersistence(HeroArmies,Resources,Fragments,Buildings,Scavenging,OfflineScavenging);
             saveStore=new LocalSaveStore(directory ?? Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
             TryLoadProgress();
             HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
@@ -52,7 +57,8 @@ namespace Ash
         private void Update()
         {
             if(!enableLocalPersistence || !IsInitialized || productionPaused)return;
-            // Active play only: a suspended app never receives catch-up production.
+            // Foreground production is separate from UTC catch-up on resume.
+            if(skipProductionFrame) { skipProductionFrame=false; return; }
             float elapsed=Mathf.Min(Time.unscaledDeltaTime,1f);
             productionSeconds+=elapsed; productionCheckpoint+=elapsed;
             if(productionSeconds>=1) {
@@ -67,9 +73,29 @@ namespace Ash
         private void MarkProductionDirty() { if(!restoring)unsaved=true; }
         private void MarkDirty() { if(!restoring) { dirty=true; unsaved=true; } }
         private void LateUpdate() { if(dirty) { dirty=false; if(!saveBlocked)SaveProgress(); } }
-        private void OnApplicationPause(bool paused) { productionPaused=paused; productionSeconds=0; if(paused && unsaved && !saveBlocked)SaveProgress(); }
-        private void OnApplicationQuit() { if(unsaved && !saveBlocked)SaveProgress(); }
-        private void OnDisable() { if(unsaved && !saveBlocked)SaveProgress(); }
+        private void OnApplicationPause(bool paused) { applicationPaused=paused; UpdateSuspension(); }
+        private void OnApplicationFocus(bool focused) { applicationFocused=focused; UpdateSuspension(); }
+        private void UpdateSuspension()
+        {
+            bool suspended=applicationPaused || !applicationFocused;
+            if(suspended==productionPaused)return;
+            productionPaused=suspended; productionSeconds=0; skipProductionFrame=true;
+            if(!PersistenceActive || saveBlocked)return;
+            if(!suspended)CatchUpOffline();
+            // Always checkpoint departure, even when no resources changed this frame.
+            SaveProgress();
+        }
+        private void CatchUpOffline()
+        {
+            advancingScavenging=true;
+            try { OfflineSummary=OfflineScavenging.Resume(utcNow()).Summary; }
+            finally { advancingScavenging=false; }
+            if(OfflineSummary.Length>0 && OfflineProgressChanged!=null)
+                foreach(Action callback in OfflineProgressChanged.GetInvocationList())
+                    try { callback(); } catch(Exception error) { Debug.LogWarning("Offline observer: "+error.Message,this); }
+        }
+        private void OnApplicationQuit() { if(PersistenceActive && !saveBlocked)SaveProgress(); }
+        private void OnDisable() { if(PersistenceActive && !saveBlocked)SaveProgress(); }
         private void OnDestroy()
         {
             if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; }
@@ -81,6 +107,7 @@ namespace Ash
             if(Battles.IsRunning) { Status("Wait for the battle to finish"); return false; }
             try
             {
+                OfflineScavenging.Checkpoint(utcNow());
                 saveStore.Save(progress.Capture()); dirty=unsaved=false; Status("Saved locally • autosave on"); return true;
             }
             catch(Exception error)
@@ -104,7 +131,7 @@ namespace Ash
                     Status(loaded.Status==ProgressLoadStatus.Unsupported ? "Newer save version — file protected" : "Save unreadable — file protected");
                     Debug.LogWarning(loaded.Detail,this); return false;
                 }
-                Restore(loaded.State); dirty=unsaved=loaded.State.Version<ProgressPersistence.Version; saveBlocked=false;
+                Restore(loaded.State); CatchUpOffline(); dirty=unsaved=true; saveBlocked=false;
                 Status(loaded.Status==ProgressLoadStatus.Backup ? "Recovered backup • autosave on" : "Loaded local progress • autosave on");
                 if(loaded.Status==ProgressLoadStatus.Backup)Debug.LogWarning("Recovered local progress from backup. "+loaded.Detail,this);
                 return true;
@@ -124,6 +151,7 @@ namespace Ash
                 foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
                 fresh.Buildings=new BuildingService(new ResourceManager()).Capture();
                 fresh.Scavenging=ScavengingService.Generate(NewMapSeed());
+                fresh.ScavengingUtcSeconds=utcNow(); OfflineSummary="";
                 saveStore.Reset(fresh); Restore(fresh); dirty=unsaved=saveBlocked=false;
                 Status("Progress reset • autosave on"); return true;
             }
@@ -179,6 +207,7 @@ namespace Ash
             var battles = new BattleManager(service, resources, fragments);
             Buildings = new BuildingService(resources);
             Scavenging = new ScavengingService(resources,NewMapSeed());
+            OfflineScavenging = new OfflineScavenging(Scavenging);
             Resources = resources; HeroArmies = service; Fragments = fragments; Battles = battles;
             Heroes = service.Heroes; Units = service.Fighters;
             IsInitialized = true;

@@ -44,6 +44,7 @@ namespace Ash
         }
         public void Hide() { gameObject.SetActive(false); }
         private void OnDestroy() { if(service!=null)service.Changed-=Refresh; }
+        public void ShowOfflineSummary(string message) { if(!string.IsNullOrEmpty(message))feedback.text=message; }
         private RectTransform Rect(Transform parent,string title,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)
         {
             var obj=new GameObject(title,typeof(RectTransform),typeof(Image)); obj.transform.SetParent(parent,false);
@@ -84,6 +85,7 @@ namespace Ash
             var card=Rect(transform,"Site details",Vector2.zero,new Vector2(1,0),new Vector2(8,70),new Vector2(-8,220),ink);
             stats=Label(card,"",16); stats.alignment=TextAnchor.MiddleLeft; stats.resizeTextForBestFit=true; stats.resizeTextMinSize=12; stats.resizeTextMaxSize=16;
             var status=Rect(transform,"Scavenging status",Vector2.zero,new Vector2(1,0),new Vector2(8,43),new Vector2(-8,68),ink); feedback=Label(status,"Drag to explore • Tap a resource site",12);
+            feedback.resizeTextForBestFit=true; feedback.resizeTextMinSize=9; feedback.resizeTextMaxSize=12;
             assign=Control(transform,"+1 WORKER",Vector2.zero,new Vector2(.33f,0),new Vector2(8,5),new Vector2(-3,41),()=>Command(()=>service.Assign(selected)));
             recall=Control(transform,"RECALL 1",new Vector2(.33f,0),new Vector2(.66f,0),new Vector2(3,5),new Vector2(-3,41),()=>Command(()=>service.Recall(selected)));
             collect=Control(transform,"COLLECT",new Vector2(.66f,0),new Vector2(1,0),new Vector2(3,5),new Vector2(-8,41),()=>Command(()=>service.Collect(selected)));
@@ -127,7 +129,7 @@ namespace Ash
             stats.text=node.Resource.ToString().ToUpperInvariant()+" CENTER • "+node.Id+" • ("+node.X+", "+node.Z+")"
                 +"\nWorkers "+node.Workers+"/"+ScavengingService.MaximumWorkersPerSite+" • Output "+(node.Workers*ScavengingService.Rate(node.Resource))+" / active minute"
                 +"\nStored "+node.Stored+"/"+ScavengingService.SiteCapacity+" • Deposit remaining "+node.Remaining
-                +"\n"+(node.Remaining==0 ? "Exhausted — recall workers and choose another site." : node.Stored==ScavengingService.SiteCapacity ? "Storage full — collect to continue." : node.Workers==0 ? "Assign scavengers to begin gathering." : "Scavenging while the game is open.");
+                +"\n"+(node.Remaining==0 ? "Exhausted — recall workers and choose another site." : node.Stored==ScavengingService.SiteCapacity ? "Storage full — collect to continue." : node.Workers==0 ? "Assign scavengers to begin gathering." : "Scavenging continues offline (up to 8 hours).");
             assign.interactable=service.FreeWorkers>0 && node.Workers<ScavengingService.MaximumWorkersPerSite && node.Remaining>0;
             recall.interactable=node.Workers>0; collect.interactable=node.Stored>0;
             foreach(var item in markers) item.Value.GetComponent<Image>().color=item.Key==selected ? new Color32(188,141,62,255) : ColorFor(service.Site(item.Key).Resource);
