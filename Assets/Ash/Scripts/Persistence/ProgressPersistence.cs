@@ -6,17 +6,19 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 1;
+        public const int Version = 2;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
         private readonly HeroFragmentWallet fragments;
+        private readonly BuildingService buildings;
 
-        public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments)
+        public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments, BuildingService buildings = null)
         {
             this.armies = armies ?? throw new ArgumentNullException(nameof(armies));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.fragments = fragments ?? throw new ArgumentNullException(nameof(fragments));
+            this.buildings = buildings ?? new BuildingService(resources);
         }
         public ProgressState Capture()
         {
@@ -27,7 +29,7 @@ namespace Ash
             foreach(var id in fragments.DefinitionIds) ids.Add(id);
             var stock = new List<FragmentState>();
             foreach(var id in ids) stock.Add(new FragmentState { DefinitionId=id, Quantity=fragments.Get(id) });
-            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray() };
+            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture() };
         }
         public void Validate(ProgressState state) { Prepare(state); }
         public void Restore(ProgressState state)
@@ -37,11 +39,12 @@ namespace Ash
             armies.RestoreValidatedFrom(candidate.Armies);
             resources.RestoreValidatedFrom(candidate.Resources);
             fragments.RestoreValidatedFrom(candidate.Fragments);
+            buildings.RestoreValidated(candidate.Buildings);
         }
         public string[] NotifyRestored()
         {
             var errors=new List<string>();
-            foreach(var action in new Action[] { armies.NotifyChanged, resources.NotifyChanged, fragments.NotifyChanged })
+            foreach(var action in new Action[] { armies.NotifyChanged, resources.NotifyChanged, fragments.NotifyChanged, buildings.NotifyChanged })
                 try { action(); } catch(Exception error) { errors.Add(error.Message); }
             return errors.ToArray();
         }
@@ -50,16 +53,23 @@ namespace Ash
             public HeroArmyService Armies;
             public ResourceManager Resources;
             public HeroFragmentWallet Fragments;
+            public BuildingState[] Buildings;
         }
         private Candidate Prepare(ProgressState state)
         {
             if(state==null) throw new ArgumentException("Missing progress document.");
             if(state.Version>Version) throw new UnsupportedSaveVersionException(state.Version);
-            if(state.Version!=Version) throw new ArgumentException("Missing or invalid progress version.");
+            if(state.Version!=1 && state.Version!=Version) throw new ArgumentException("Missing or invalid progress version.");
             if(state.Format!=Format || state.Armies==null || state.Armies.SchemaVersion!=1)
                 throw new ArgumentException("Invalid progress format or army schema.");
             if(state.Armies.Heroes==null || state.Armies.Reserve==null || state.Resources==null || state.Fragments==null)
                 throw new ArgumentException("Incomplete progress document.");
+            BuildingState[] savedBuildings;
+            if(state.Version==1) {
+                if(state.Buildings!=null)throw new ArgumentException("Unexpected buildings in legacy save.");
+                savedBuildings=new BuildingService(new ResourceManager()).Capture();
+            } else savedBuildings=state.Buildings;
+            buildings.Validate(savedBuildings);
             var expectedHeroes=new Dictionary<string,HeroData>(StringComparer.Ordinal);
             var expectedFighters=new Dictionary<string,UnitData>(StringComparer.Ordinal);
             var fragmentIds=new HashSet<string>(fragments.DefinitionIds,StringComparer.Ordinal);
@@ -114,7 +124,7 @@ namespace Ash
                     throw new ArgumentException("Invalid or duplicate fragment balance.");
                 fragmentBalances.Add(stock.DefinitionId,stock.Quantity);
             }
-            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances) };
+            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings };
         }
     }
 }

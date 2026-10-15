@@ -14,7 +14,7 @@ namespace Ash
         [SerializeField] private EncounterConfig[] encounters = Array.Empty<EncounterConfig>();
         private readonly List<NpcEncounter> camps = new List<NpcEncounter>();
         private SettlementArt art;
-        private GameObject presentation, heroPanel, raidPanel, portraitStage;
+        private GameObject presentation, heroPanel, raidPanel, buildingPanel, portraitStage;
         private Transform world, leader;
         private RectTransform ui;
         private SettlementCamera controls;
@@ -23,6 +23,8 @@ namespace Ash
         private Font font;
         private Text resources, selection, heroStats, raidHeader, campButton, toast, leaderLabel, saveStatus, resetButton;
         private float resetDeadline;
+        private BuildingKind selectedBuilding;
+        private Text buildingStats, upgradeBuilding, collectBuilding;
         private CombatResultsUI results;
         private int selectedHero, selectedCamp, renderedHero = -1;
         private Color oldAmbient;
@@ -45,14 +47,14 @@ namespace Ash
             world = new GameObject("Settlement World").transform; world.SetParent(presentation.transform,false);
             oldAmbient = RenderSettings.ambientLight; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,65); RenderSettings.ambientLight = new Color(.58f,.59f,.55f);
             BuildWorld(); BuildUI(); BuildPortrait();
-            gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh;
+            gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh; gameManager.Buildings.Changed += Refresh;
             gameManager.SaveStatusChanged += UpdateSaveStatus; UpdateSaveStatus();
             Refresh(); selection.text = "THE EMBER OUTPOST\nTap a building to inspect • Drag to explore";
         }
         private void OnDestroy()
         {
             if (gameManager != null && gameManager.IsInitialized)
-            { gameManager.Resources.Changed -= Refresh; gameManager.HeroArmies.Changed -= Refresh; gameManager.Fragments.Changed -= Refresh; }
+            { gameManager.Resources.Changed -= Refresh; gameManager.HeroArmies.Changed -= Refresh; gameManager.Fragments.Changed -= Refresh; gameManager.Buildings.Changed -= Refresh; }
             if (gameManager != null) gameManager.SaveStatusChanged -= UpdateSaveStatus;
             if (controls != null) controls.BuildingSelected -= Inspect;
             if (portraitCamera != null) portraitCamera.targetTexture = null;
@@ -105,17 +107,17 @@ namespace Ash
             art.Box(world,"North south road",new Vector3(0,.08f,0),new Vector3(1.8f,.03f,16),new Color32(96,100,93,255));
             art.Box(world,"Crossing road",new Vector3(0,.08f,-1),new Vector3(13,.03f,1.5f),new Color32(96,100,93,255));
             for (int i = 0; i < 12; i++) art.Box(world,"Road marking",new Vector3(0,.11f,-7+i*1.2f),new Vector3(.09f,.012f,.45f),SettlementArt.Amber);
-            Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),SettlementArt.Concrete);
+            Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),SettlementArt.Concrete,BuildingKind.Headquarters);
             Building("WORKSHOP","A salvaged warehouse of tools, spare parts, and forgotten machines.",new Vector3(3,0,2.5f),new Vector3(3,1.7f,2.8f),SettlementArt.Metal);
             Building("BARRACKS","Open HEROES to assign reserve fighters to your chosen survivor.",new Vector3(-3.3f,0,-4),new Vector3(3,1.5f,2.6f),new Color32(134,108,79,255));
-            var pump = Marker("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f));
+            var pump = Marker("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f),BuildingKind.WaterStation);
             for (int i = 0; i < 2; i++)
             {
                 art.Box(pump,"Water tank",new Vector3(-.7f+i*1.4f,1.4f,0),new Vector3(1,1.1f,1),new Color32(96,142,148,255),true,PrimitiveType.Cylinder);
                 for (int leg = 0; leg < 4; leg++) art.Box(pump,"Tank supports",new Vector3(-.7f+i*1.4f+(leg%2-.5f)*.7f,.5f,(leg/2-.5f)*.7f),new Vector3(.1f,1,.1f),SettlementArt.Metal);
             }
             art.Box(pump,"Pump housing",new Vector3(0,.35f,-1),new Vector3(.6f,.7f,.45f),SettlementArt.Rust);
-            var farm = Marker("GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.7f,2.5f));
+            var farm = Marker("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.7f,2.5f),BuildingKind.FoodGarden);
             for (int row = 0; row < 3; row++)
             {
                 art.Box(farm,"Raised soil bed",new Vector3(0,.2f,-.8f+row*.8f),new Vector3(2.8f,.25f,.52f),SettlementArt.Timber);
@@ -163,16 +165,16 @@ namespace Ash
             SurvivorView.Create(art,world,"Workshop engineer",3,new Vector3(3,0,-1),new[] { new Vector3(3,0,-1),new Vector3(-3,0,-1) });
             SurvivorView.Create(art,world,"Gate sentry",1,new Vector3(-1.2f,0,-6));
         }
-        private Transform Marker(string title,string description,Vector3 position,Vector3 size)
+        private Transform Marker(string title,string description,Vector3 position,Vector3 size,BuildingKind? kind=null)
         {
             var root = new GameObject(title).transform; root.SetParent(world,false); root.localPosition = position;
-            root.gameObject.AddComponent<SettlementBuilding>().Configure(title,description);
+            root.gameObject.AddComponent<SettlementBuilding>().Configure(title,description,kind);
             var collider = root.gameObject.AddComponent<BoxCollider>(); collider.center = new Vector3(0,size.y/2,0); collider.size = size;
             return root;
         }
-        private void Building(string title,string description,Vector3 position,Vector3 size,Color color)
+        private void Building(string title,string description,Vector3 position,Vector3 size,Color color,BuildingKind? kind=null)
         {
-            var root = Marker(title,description,position,size+new Vector3(0,.8f,0));
+            var root = Marker(title,description,position,size+new Vector3(0,.8f,0),kind);
             art.Box(root,"Foundation",new Vector3(0,.16f,0),new Vector3(size.x+.3f,.3f,size.z+.3f),SettlementArt.Concrete);
             art.Box(root,"Walls",new Vector3(0,size.y/2+.2f,0),size,color);
             art.Roof(root,new Vector3(0,size.y+.2f,0),new Vector3(size.x+.4f,.75f,size.z+.4f));
@@ -198,7 +200,55 @@ namespace Ash
             art.Box(world,"Lookout shelter",position+new Vector3(0,3.55f,0),new Vector3(1.3f,.75f,1.3f),SettlementArt.Metal);
             art.Roof(world,position+new Vector3(0,4,0),new Vector3(1.8f,.4f,1.8f));
         }
-        private void Inspect(SettlementBuilding building) { selection.text = building.DisplayName+"\n"+building.Description; }
+        private void Inspect(SettlementBuilding building)
+        {
+            selection.text = building.DisplayName+"\n"+building.Description;
+            if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
+        }
+        private void ShowBuilding(BuildingKind kind)
+        {
+            CancelReset(); selectedBuilding=kind; heroPanel.SetActive(false); raidPanel.SetActive(false);
+            portraitCamera.enabled=false; buildingPanel.SetActive(true); RefreshBuilding();
+        }
+        private void RefreshBuilding()
+        {
+            if(buildingStats==null)return;
+            var buildings=gameManager.Buildings; var kind=selectedBuilding;
+            var text=new StringBuilder(BuildingService.Name(kind).ToUpperInvariant());
+            text.Append("  LV ").Append(buildings.Level(kind)).Append('/').Append(BuildingService.MaximumLevel(kind));
+            if(kind==BuildingKind.Headquarters)text.Append("\n\nGoverns the maximum level of the Garden and Water Station.");
+            else {
+                text.Append("\n\nProduction: ").Append(buildings.Rate(kind)).Append(' ').Append(BuildingService.Product(kind)).Append(" / minute")
+                    .Append("\nStored: ").Append(buildings.Stored(kind)).Append('/').Append(buildings.Capacity(kind))
+                    .Append("\n").Append(buildings.Stored(kind)==buildings.Capacity(kind) ? "Storage full — collect to resume." : "Next batch in "+(60-buildings.Seconds(kind))+"s")
+                    .Append("\nProduces while the game is open.");
+            }
+            var status=buildings.CanUpgrade(kind);
+            if(status==BuildingCommandResult.MaximumLevel)text.Append("\n\nMaximum level reached.");
+            else {
+                text.Append("\n\nNext level cost:");
+                foreach(var cost in buildings.UpgradeCost(kind))text.Append("\n").Append(cost.Type).Append(' ').Append(cost.Amount).Append(" / have ").Append(gameManager.Resources.Get(cost.Type));
+                text.Append("\n").Append(status==BuildingCommandResult.HeadquartersRequired ? "Upgrade Headquarters first." : status==BuildingCommandResult.InsufficientResources ? "Gather more resources to upgrade." : "Ready — upgrade completes instantly.");
+            }
+            buildingStats.text=text.ToString();
+            upgradeBuilding.text=status==BuildingCommandResult.MaximumLevel ? "MAX LEVEL" : "UPGRADE";
+            upgradeBuilding.GetComponentInParent<UnityEngine.UI.Button>().interactable=status==BuildingCommandResult.Success;
+            collectBuilding.text=kind==BuildingKind.Headquarters ? "NO PRODUCTION" : "COLLECT "+buildings.Stored(kind);
+            collectBuilding.GetComponentInParent<UnityEngine.UI.Button>().interactable=kind!=BuildingKind.Headquarters && buildings.Stored(kind)>0;
+        }
+        private void UpgradeBuilding()
+        {
+            CancelReset(); var result=gameManager.Buildings.Upgrade(selectedBuilding);
+            toast.text=result==BuildingCommandResult.Success ? BuildingService.Name(selectedBuilding)+" upgraded to level "+gameManager.Buildings.Level(selectedBuilding)+"." : result.ToString();
+            RefreshBuilding();
+        }
+        private void CollectBuilding()
+        {
+            CancelReset(); int amount=gameManager.Buildings.Stored(selectedBuilding);
+            var result=gameManager.Buildings.Collect(selectedBuilding);
+            toast.text=result==BuildingCommandResult.Success ? "Collected "+amount+" "+BuildingService.Product(selectedBuilding)+"." : result==BuildingCommandResult.ResourceLimit ? "Resource balance is full. Spend resources first." : "Nothing ready to collect.";
+            RefreshBuilding();
+        }
         private void BuildPortrait()
         {
             portrait = new RenderTexture(256,384,16) { name = "Original hero portrait", antiAliasing = 2 }; portrait.Create();
@@ -236,9 +286,10 @@ namespace Ash
             raidHeader.text = "WASTELAND RAID\n"+hero.Definition.DisplayName+" • "+hero.Army.TotalUnits+" fighters";
             if (camps.Count>0) campButton.text = camps[selectedCamp].Name.ToUpperInvariant();
             if (portraitStage != null) UpdateLeader();
+            RefreshBuilding();
         }
-        private void ShowHeroes(bool visible) { heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
-        private void ShowRaid() { heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
+        private void ShowHeroes(bool visible) { buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
+        private void ShowRaid() { buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
         private void Assign(int type)
         {
             CancelReset();
@@ -277,7 +328,8 @@ namespace Ash
             Button(ui,"SAVE",0,1,.26f,1,12,-150,-4,-112,SaveProgress);
             Button(ui,"LOAD",.26f,1,.52f,1,4,-150,-4,-112,LoadProgress);
             resetButton=Button(ui,"RESET",.52f,1,.78f,1,4,-150,-4,-112,RequestReset);
-            selection=TextPanel(ui,0,0,1,0,12,144,-12,239,18,"",ink);
+            selection=TextPanel(ui,0,0,.72f,0,12,144,-4,239,16,"",ink);
+            Button(ui,"BUILDINGS",.72f,0,1,0,4,144,-12,239,16,()=>ShowBuilding(BuildingKind.Headquarters));
             leaderLabel=TextPanel(ui,0,0,.55f,0,12,88,-4,136,18,"",new Color32(41,57,59,246));
             Button(ui,"VIEW HERO",.55f,0,1,0,4,88,-12,136,()=>ShowHeroes(true));
             Button(ui,"HEROES",0,0,.5f,0,12,14,-4,76,22,()=>ShowHeroes(true));
@@ -310,6 +362,18 @@ namespace Ash
             Button(raidRoot,"PREVIEW",0,0,.5f,0,18,14,-4,65,19,()=>Raid(false));
             Button(raidRoot,"RAID",.5f,0,1,0,4,14,-18,65,19,()=>Raid(true));
             raidPanel.SetActive(false);
+            buildingPanel=Panel(ui,"Building management",new Vector2(.04f,.30f),new Vector2(.96f,.82f),Vector2.zero,Vector2.zero,ink).gameObject;
+            var buildingRoot=buildingPanel.GetComponent<RectTransform>();
+            TextPanel(buildingRoot,0,1,.8f,1,12,-62,-4,-8,23,"OUTPOST BUILDINGS",Color.clear).color=SettlementArt.Amber;
+            Button(buildingRoot,"X",.8f,1,1,1,4,-62,-12,-8,()=>buildingPanel.SetActive(false));
+            Button(buildingRoot,"HQ",0,1,.33f,1,12,-111,-4,-68,()=>ShowBuilding(BuildingKind.Headquarters));
+            Button(buildingRoot,"GARDEN",.33f,1,.66f,1,4,-111,-4,-68,()=>ShowBuilding(BuildingKind.FoodGarden));
+            Button(buildingRoot,"WATER",.66f,1,1,1,4,-111,-12,-68,()=>ShowBuilding(BuildingKind.WaterStation));
+            buildingStats=TextPanel(buildingRoot,0,0,1,1,12,80,-12,-117,18,"",Color.clear);
+            buildingStats.resizeTextForBestFit=true; buildingStats.resizeTextMinSize=12; buildingStats.resizeTextMaxSize=18;
+            upgradeBuilding=Button(buildingRoot,"UPGRADE",0,0,.5f,0,12,14,-4,70,18,UpgradeBuilding);
+            collectBuilding=Button(buildingRoot,"COLLECT",.5f,0,1,0,4,14,-12,70,18,CollectBuilding);
+            buildingPanel.SetActive(false);
             toast=TextPanel(ui,0,0,1,0,12,244,-12,282,15,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
         }
         private RectTransform Panel(Transform parent,string name,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)

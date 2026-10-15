@@ -19,6 +19,9 @@ namespace Ash
         public HeroArmyService HeroArmies { get; private set; }
         public HeroFragmentWallet Fragments { get; private set; }
         public BattleManager Battles { get; private set; }
+        public BuildingService Buildings { get; private set; }
+        private float productionSeconds, productionCheckpoint;
+        private bool productionPaused;
         [SerializeField] private bool enableLocalPersistence;
         private ProgressPersistence progress;
         private LocalSaveStore saveStore;
@@ -37,20 +40,33 @@ namespace Ash
 
         private void BeginLocalPersistence()
         {
-            progress=new ProgressPersistence(HeroArmies,Resources,Fragments);
+            progress=new ProgressPersistence(HeroArmies,Resources,Fragments,Buildings);
             saveStore=new LocalSaveStore(Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
             TryLoadProgress();
             HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
+            Buildings.Changed+=MarkProductionDirty;
             Debug.Log("Local progress file: "+saveStore.SavePath,this);
         }
+        private void Update()
+        {
+            if(!enableLocalPersistence || !IsInitialized || productionPaused)return;
+            // Active play only: a suspended app never receives catch-up production.
+            float elapsed=Mathf.Min(Time.unscaledDeltaTime,1f);
+            productionSeconds+=elapsed; productionCheckpoint+=elapsed;
+            if(productionSeconds>=1) {
+                int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds);
+            }
+            if(productionCheckpoint>=10) { productionCheckpoint=0; if(unsaved && !saveBlocked)dirty=true; }
+        }
+        private void MarkProductionDirty() { if(!restoring)unsaved=true; }
         private void MarkDirty() { if(!restoring) { dirty=true; unsaved=true; } }
         private void LateUpdate() { if(dirty) { dirty=false; if(!saveBlocked)SaveProgress(); } }
-        private void OnApplicationPause(bool paused) { if(paused && unsaved && !saveBlocked)SaveProgress(); }
+        private void OnApplicationPause(bool paused) { productionPaused=paused; productionSeconds=0; if(paused && unsaved && !saveBlocked)SaveProgress(); }
         private void OnApplicationQuit() { if(unsaved && !saveBlocked)SaveProgress(); }
         private void OnDisable() { if(unsaved && !saveBlocked)SaveProgress(); }
         private void OnDestroy()
         {
-            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; }
+            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; }
         }
         public bool SaveProgress()
         {
@@ -100,6 +116,7 @@ namespace Ash
                 var starting=new ResourceManager(initialResources);
                 for(int i=0;i<fresh.Resources.Length;i++)fresh.Resources[i]=new ResourceAmount(fresh.Resources[i].Type,starting.Get(fresh.Resources[i].Type));
                 foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
+                fresh.Buildings=new BuildingService(new ResourceManager()).Capture();
                 saveStore.Reset(fresh); Restore(fresh); dirty=unsaved=saveBlocked=false;
                 Status("Progress reset • autosave on"); return true;
             }
@@ -110,7 +127,7 @@ namespace Ash
             restoring=true;
             try
             {
-                progress.Restore(state); Battles.ClearResultAfterLoad();
+                progress.Restore(state); productionSeconds=productionCheckpoint=0; Battles.ClearResultAfterLoad();
                 foreach(var error in progress.NotifyRestored())Debug.LogWarning("Progress observer: "+error,this);
             }
             finally { restoring=false; }
@@ -151,6 +168,7 @@ namespace Ash
             foreach (var hero in heroes) fragmentIds.Add(hero.Definition.Id);
             var fragments = new HeroFragmentWallet(fragmentIds);
             var battles = new BattleManager(service, resources, fragments);
+            Buildings = new BuildingService(resources);
             Resources = resources; HeroArmies = service; Fragments = fragments; Battles = battles;
             Heroes = service.Heroes; Units = service.Fighters;
             IsInitialized = true;

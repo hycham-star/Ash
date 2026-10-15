@@ -130,4 +130,5 @@ Check(fullService.Available("infantry") == 1000 && fullRoster.All(h => h.Army.To
 Check(fullRoster.All(h => h.Army.Power == 0), "empty armies have zero power regardless of rarity");
 passed += CombatChecks.Run(definitions, fighterDefinitions);
 passed += PersistenceChecks.Run(definitions,fighterDefinitions);
-Console.WriteLine($"{passed} total checks passed (hero armies, resources, PvE, and persistence).");
+passed += BuildingChecks.Run(definitions,fighterDefinitions);
+Console.WriteLine($"{passed} total checks passed (hero armies, resources, PvE, persistence, and buildings).");

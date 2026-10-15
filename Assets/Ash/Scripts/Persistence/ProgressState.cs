@@ -11,6 +11,7 @@ namespace Ash
         public HeroArmyState Armies;
         public ResourceAmount[] Resources;
         public FragmentState[] Fragments;
+        public BuildingState[] Buildings;
     }
     [Serializable]
     public sealed class FragmentState

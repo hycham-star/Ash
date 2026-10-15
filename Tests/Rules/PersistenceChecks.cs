@@ -56,7 +56,7 @@ internal static class PersistenceChecks
         var patrol=AssetFixtures.Encounter(Path.Combine(AssetFixtures.Root,"Assets/Ash/Data/Encounters/RaiderPatrol.asset"));
         source.Battles.RunBattle(source.Mara.InstanceId,patrol);
         var captured=source.Progress.Capture();
-        C(captured.Version==1 && captured.Resources.Length==5 && captured.Armies.Heroes.Length==8 && captured.Fragments.Length==8,"capture includes all domains and schema");
+        C(captured.Version==ProgressPersistence.Version && captured.Resources.Length==5 && captured.Armies.Heroes.Length==8 && captured.Fragments.Length==8,"capture includes all domains and schema");
         var target=new Context(heroes,fighters); var originalService=target.Armies; var originalHero=target.Mara; var originalArmy=target.Mara.Army;
         target.Progress.Restore(codec.Decode(codec.Encode(captured)));
         C(Snapshot(target)==codec.Encode(captured),"complete save/restore JSON round trip");
@@ -96,7 +96,7 @@ internal static class PersistenceChecks
             Reject<ArgumentException>(()=>target.Progress.Restore(state),"reject "+invalid.Item1);
             C(Snapshot(target)==before,"no partial live changes for "+invalid.Item1);
         }
-        var future=Copy(captured); future.Version=2;
+        var future=Copy(captured); future.Version=ProgressPersistence.Version+1;
         Reject<UnsupportedSaveVersionException>(()=>target.Progress.Restore(future),"future schema protected");
         target.Progress.Restore(captured);
         var observed=false; target.Armies.Changed+=()=>observed=target.Resources.Get(ResourceType.Scrap)==140 && target.Fragments.Get("mara-flint")==2;

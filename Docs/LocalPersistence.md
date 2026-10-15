@@ -1,3 +1,5 @@
+> Updated building milestone: ProgressPersistence now writes schema **2**, including building levels, stored output, and partial seconds. Version **1** is accepted and migrated with level-one buildings while preserving all old domains. The envelope remains version 1. See BuildingProgression.md for active-play timing and current validation; statements below describe the original save milestone where indicated.
+
 # Local progress persistence v1
 
 ## Scope

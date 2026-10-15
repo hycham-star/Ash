@@ -1,6 +1,19 @@
 # Ashlands: Rise of the Remnants
 
-Portrait Android, low-poly strategy prototype. Current milestone: **local save/load**, preserving the original portrait settlement's hero progression, independent armies, reserves, resources, and hero fragments. No PvP, networking, monetization, or training simulation is implemented.
+Portrait Android, low-poly strategy prototype. Current milestone: **building upgrades and resource production**, using the existing portrait settlement, resource ledger, and local saves. No PvP, networking, monetization, or training simulation is implemented.
+
+## Building progression
+
+Open the updated project in Unity **6000.3.23f1**. Outside Play run **Ashlands > Validate Building Progression**, then the existing save/settlement validators. Open Settlement Scene in 9:16 portrait and press Play. Use **BUILDINGS** or tap Headquarters, Food Garden, or Water Station.
+
+- All three start at level 1. Upgrade HQ first to unlock higher producer levels. GDD caps: HQ 25; producers 20.
+- Upgrades are instant in this prototype and spend the displayed Scrap/Food/Water from the same ledger used by raids. Unaffordable upgrades stay disabled.
+- Garden produces **10 × level Food per minute**; Water Station produces **6 × level Water per minute**, while the app is actively running. Production pauses in the background and while closed; **no offline catch-up** yet.
+- Each producer holds five minutes of output. Use **COLLECT** to transfer stored output to the resource HUD; full storage stops production until collected. The next level increases output/storage without erasing existing stock.
+- Levels, stored output, and partial production seconds are saved. Production checkpoints autosave every 10 active seconds; resource commands save at frame end; manual SAVE and normal pause/quit also flush. A forced termination can lose the latest partial interval.
+- Existing version-one saves migrate to version two, preserving all previous progression and adding level-one buildings. Keep the same application identity and update Android without uninstalling to retain the on-device save. Older app versions cannot read new version-two saves.
+
+Costs/rates are provisional local prototype balance, not numbers specified by the attached GDD. Construction queues, build times, visual building tiers, extra resource buildings, and offline production remain future work. See [building progression](Docs/BuildingProgression.md).
 
 ## Local save/load
 
@@ -16,7 +29,7 @@ Reset writes starting balances/empty armies and removes the old backup so it can
 
 Saved data is local to this OS user/device and application identity. Opening an updated checkout with the same Company/Product/application identifier uses the same slot. Do not rename those settings casually. No account, encryption, cloud synchronization, persistent camera position, or saved battle history is provided.
 
-**The new Unity persistence controls, lifecycle, and native codec still need testing in your installed Editor.** The cloud tests use the actual domain/storage code with a .NET JSON codec; they do not substitute for the Unity menu validator or Android device tests.
+**The user confirmed local saving in the Editor and on Android before this building milestone. New building UI, lifecycle and version migration still need testing in the installed Editor/device.** The cloud tests use the actual domain/storage code with a .NET JSON codec; they do not substitute for the Unity menu validator or Android device tests.
 
 ## Android settlement rendering and zoom fix
 
@@ -37,9 +50,9 @@ Outside Play, run **Ashlands > Validate Settlement Presentation**, then rebuild 
 
 The environment uses original procedural pitched-roof buildings, water tanks, gardens, a salvaged truck, fences, watchtowers, rocks, and dead trees. Survivor characters have jackets, hair, eyes, bandanas, backpacks, boots, and animated patrols. Static geometry is combined by material; portraits render on demand while the hero panel is open.
 
-This is the first visual pass, not final commissioned art. Buildings are inspectable visual landmarks with no production/upgrade system. Patrols are visual only. There are no illustrated portraits, persistent world simulation, or animated battlefield yet. All art is original; no artwork/models from The Walking Dead: Survivors are included.
+This is the first visual pass, not final commissioned art. Headquarters, Garden and Water Station now have functional levels/production controls; their models remain the same. Workshop and Barracks remain inspectable visual landmarks. Patrols are visual only. There are no illustrated portraits, persistent world simulation, or animated battlefield yet. All art is original; no artwork/models from The Walking Dead: Survivors are included.
 
-**The user has confirmed settlement rendering, hero portraits, independent armies, assignment, and settlement raids in Unity 6.3.** The cloud machine still lacks Unity; newly added save controls and lifecycle behavior remain to be verified in the installed Editor.
+**The user has confirmed settlement rendering, hero portraits, independent armies, assignment, and settlement raids in Unity 6.3.** The cloud machine still lacks Unity; newly added building controls and production lifecycle remain to be verified in the installed Editor.
 
 ## Test PvE combat
 
@@ -81,9 +94,9 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**222 checks passed**, including 95 persistence checks and the prior 127 resource/hero/army/PvE checks. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**283 checks passed**, including 61 building/migration checks, 95 persistence checks, and the prior 127 resource/hero/army/PvE checks. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
-GUID/scene reference checks passed. **New persistence compilation/import, native codec, automatic startup/shutdown saving, UI controls, and Android export are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
+GUID/scene reference checks passed. **New building compilation/import, native migration, timed lifecycle behavior, UI controls, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 
 With a licensed editor, run the Unity-specific validator in batch mode:
 
