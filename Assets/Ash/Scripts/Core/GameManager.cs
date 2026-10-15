@@ -27,6 +27,7 @@ namespace Ash
         private ProgressPersistence progress;
         private LocalSaveStore saveStore;
         private bool dirty, unsaved, restoring, saveBlocked;
+        private string saveBlockReason;
         public bool PersistenceActive => saveStore!=null;
         public string SaveStatus { get; private set; } = "Debug session • not saved";
         public string SavePath => saveStore?.SavePath;
@@ -76,7 +77,7 @@ namespace Ash
         public bool SaveProgress()
         {
             if(!PersistenceActive) { Status("Saving disabled in this test scene"); return false; }
-            if(saveBlocked) { Status("Save protected — use Reset to start over"); return false; }
+            if(saveBlocked) { Status("Save protected — existing files kept"); Debug.LogWarning("Save blocked: "+saveBlockReason,this); return false; }
             if(Battles.IsRunning) { Status("Wait for the battle to finish"); return false; }
             try
             {
@@ -84,7 +85,7 @@ namespace Ash
             }
             catch(Exception error)
             {
-                if(error is UnsupportedSaveVersionException) { saveBlocked=true; Status("Newer save version — file protected"); }
+                if(error is UnsupportedSaveVersionException) { saveBlocked=true; saveBlockReason=error.Message; Status("Newer save version — file protected"); }
                 else Status("Save failed — progress is not on disk");
                 Debug.LogWarning(error.Message,this); return false;
             }
@@ -99,7 +100,7 @@ namespace Ash
                 if(!loaded.Loaded)
                 {
                     if(loaded.Status==ProgressLoadStatus.Missing) { saveBlocked=false; dirty=unsaved=true; Status("New world • autosave on"); return false; }
-                    saveBlocked=true;
+                    saveBlocked=true; saveBlockReason=loaded.Detail;
                     Status(loaded.Status==ProgressLoadStatus.Unsupported ? "Newer save version — file protected" : "Save unreadable — file protected");
                     Debug.LogWarning(loaded.Detail,this); return false;
                 }
@@ -108,7 +109,7 @@ namespace Ash
                 if(loaded.Status==ProgressLoadStatus.Backup)Debug.LogWarning("Recovered local progress from backup. "+loaded.Detail,this);
                 return true;
             }
-            catch(Exception error) { saveBlocked=true; Status("Load failed — save files protected"); Debug.LogWarning(error.Message,this); return false; }
+            catch(Exception error) { saveBlocked=true; saveBlockReason=error.Message; Status("Load failed — save files protected"); Debug.LogWarning(error.Message,this); return false; }
         }
         public bool ResetProgress()
         {

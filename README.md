@@ -2,6 +2,10 @@
 
 Portrait Android, low-poly strategy prototype. Current milestone: **world-map scavenging**, with dedicated workers gathering Food, Water, Scrap, and Lumber alongside settlement production. No PvP, networking, monetization, or training simulation is implemented.
 
+## Legacy-save migration fix
+
+If the map resets on restart and the status says **Save protected**, update the full project to this correction and run **Ashlands > Validate Map Restart** outside Play. Version1/2 saves are now decoded using their original field sets, avoiding Unity's creation of an empty object for the missing Scavenging field. Current schema3 corruption and future-version protections remain strict. **Do not RESET or delete old saves.** Existing legacy armies/resources/buildings are migrated; worker allocations made while saving was blocked must be assigned again once. See [migration correction and verification](Docs/LegacySaveMigrationFix.md). Native Unity verification remains necessary.
+
 ## Scavenging map
 
 Open in **Unity 6000.3.23f1** and, outside Play, run **Ashlands > Validate Map Scavenging** and **Ashlands > Validate Map Restart**. Then open Settlement Scene, press Play, and tap **MAP** beside BUILDINGS.
@@ -108,7 +112,7 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**360 checks passed**, including 77 scavenging/migration checks and all prior 283 checks. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**370 regular checks passed**, including ten version-decoder regression checks and all prior 360 checks. Two additional checks using the uploaded legacy slots also passed, without modifying or committing those files. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
 GUID/scene reference checks passed. **New map compilation/import, native migration, timed lifecycle behavior, UI controls, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 

@@ -1,3 +1,5 @@
+> Latest correction: screenshot showed saving was blocked, and supplied slots are unchanged valid version2 documents. See LegacySaveMigrationFix.md for the version-aware Unity decoder correction,370 regular checks plus2 uploaded-file checks, and native validation steps.
+
 # Local world-map scavenging
 
 The user requested scattered Food, Water, Scrap and Lumber centers on a large map with allocated dedicated scavengers, and explicitly chose to retain settlement producers and keep scavengers separate from army fighters. These newer requirements take precedence over the GDD's narrower resource list. The GDD describes gathering deposits on a world map; its unrelated MMO/PvP sections do not authorize implementing networking here.

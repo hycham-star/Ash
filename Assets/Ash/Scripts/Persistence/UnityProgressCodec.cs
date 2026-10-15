@@ -8,7 +8,7 @@ namespace Ash
         public string Encode(ProgressState state) => JsonUtility.ToJson(state);
         public ProgressState Decode(string json)
         {
-            try { return JsonUtility.FromJson<ProgressState>(json); }
+            try { return ProgressJsonDecoder.Decode(json,(text,type)=>JsonUtility.FromJson(text,type)); }
             catch(Exception error) { throw new ArgumentException("Progress JSON could not be decoded.",error); }
         }
     }
