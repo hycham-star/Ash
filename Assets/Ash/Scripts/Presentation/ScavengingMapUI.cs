@@ -10,6 +10,9 @@ namespace Ash
     {
         private ScavengingService service;
         private Font font;
+        private Func<bool> save;
+        private Func<string> saveStatus;
+        private bool opened;
         private RectTransform map,viewport,markerRoot;
         private ScrollRect scroll;
         private Text stats,feedback,workforce;
@@ -20,16 +23,25 @@ namespace Ash
         private readonly Dictionary<string,RectTransform> markers=new Dictionary<string,RectTransform>();
         private readonly Dictionary<string,Text> labels=new Dictionary<string,Text>();
         private readonly Color ink=new Color32(24,32,35,255);
-        public static ScavengingMapUI Create(Transform parent,ScavengingService service,Font font)
+        public static ScavengingMapUI Create(Transform parent,ScavengingService service,Font font,Func<bool> save = null,Func<string> saveStatus = null)
         {
             var root=new GameObject("Wasteland scavenging map",typeof(RectTransform),typeof(Image),typeof(ScavengingMapUI));
             root.transform.SetParent(parent,false);
             var rect=(RectTransform)root.transform; rect.anchorMin=new Vector2(.025f,.025f); rect.anchorMax=new Vector2(.975f,.84f); rect.offsetMin=rect.offsetMax=Vector2.zero;
             root.GetComponent<Image>().color=new Color32(24,32,35,255);
-            var view=root.GetComponent<ScavengingMapUI>(); view.service=service; view.font=font; view.Build();
+            var view=root.GetComponent<ScavengingMapUI>(); view.service=service; view.font=font; view.save=save; view.saveStatus=saveStatus; view.Build();
             service.Changed+=view.Refresh; root.SetActive(false); return view;
         }
-        public void Show() { gameObject.SetActive(true); Canvas.ForceUpdateCanvases(); Refresh(); Fit(); Locate(); }
+        public void Show()
+        {
+            gameObject.SetActive(true); Canvas.ForceUpdateCanvases();
+            if(!opened) {
+                // Start at an existing assignment rather than implying every worker returned home.
+                foreach(var site in service.Capture().Sites)if(site.Workers>0) { selected=site.Id; break; }
+            }
+            Refresh();
+            if(!opened) { Fit(); Locate(); opened=true; }
+        }
         public void Hide() { gameObject.SetActive(false); }
         private void OnDestroy() { if(service!=null)service.Changed-=Refresh; }
         private RectTransform Rect(Transform parent,string title,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)
@@ -78,7 +90,13 @@ namespace Ash
         }
         private void Command(Func<ScavengingResult> action)
         {
-            var result=action(); feedback.text=result==ScavengingResult.Success ? "Updated • saves automatically" : result.ToString(); Refresh();
+            var result=action();
+            if(result==ScavengingResult.Success) {
+                // Checkpoint assignments now, not at the next production tick or teardown callback.
+                if(save!=null)feedback.text=save() ? "Saved map and workers" : "NOT SAVED — "+(saveStatus?.Invoke() ?? "See Console");
+                else feedback.text="Updated";
+            } else feedback.text=result.ToString();
+            Refresh();
         }
         private static Color ColorFor(ResourceType type)
         {
@@ -105,7 +123,7 @@ namespace Ash
             }
             foreach(var site in service.Capture().Sites)labels[site.Id].text=site.Resource+"\n"+site.Workers+" workers"+(site.Remaining==0 ? " • EMPTY" : "");
             var node=service.Site(selected);
-            workforce.text="Dedicated scavengers: "+service.FreeWorkers+" free / "+ScavengingService.TotalWorkers+" total • Separate from army fighters";
+            workforce.text="World "+service.Seed+" • Scavengers "+service.FreeWorkers+" free / "+ScavengingService.TotalWorkers+" total";
             stats.text=node.Resource.ToString().ToUpperInvariant()+" CENTER • "+node.Id+" • ("+node.X+", "+node.Z+")"
                 +"\nWorkers "+node.Workers+"/"+ScavengingService.MaximumWorkersPerSite+" • Output "+(node.Workers*ScavengingService.Rate(node.Resource))+" / active minute"
                 +"\nStored "+node.Stored+"/"+ScavengingService.SiteCapacity+" • Deposit remaining "+node.Remaining
@@ -114,6 +132,8 @@ namespace Ash
             recall.interactable=node.Workers>0; collect.interactable=node.Stored>0;
             foreach(var item in markers) item.Value.GetComponent<Image>().color=item.Key==selected ? new Color32(188,141,62,255) : ColorFor(service.Site(item.Key).Resource);
         }
+        public string SelectedSiteId => selected;
+        public int DisplayedWorkerCount => service.Site(selected).Workers;
         private void PositionMarkers()
         {
             foreach(var node in service.Capture().Sites)markers[node.Id].anchoredPosition=new Vector2(node.X,node.Z)*(side-100)/200;

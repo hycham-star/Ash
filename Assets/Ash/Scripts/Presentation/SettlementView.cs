@@ -385,7 +385,7 @@ namespace Ash
             upgradeBuilding=Button(buildingRoot,"UPGRADE",0,0,.5f,0,12,14,-4,70,18,UpgradeBuilding);
             collectBuilding=Button(buildingRoot,"COLLECT",.5f,0,1,0,4,14,-12,70,18,CollectBuilding);
             buildingPanel.SetActive(false);
-            scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font);
+            scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font,gameManager.SaveProgress,()=>gameManager.SaveStatus);
             toast=TextPanel(ui,0,0,1,0,12,244,-12,282,15,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
         }
         private RectTransform Panel(Transform parent,string name,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)

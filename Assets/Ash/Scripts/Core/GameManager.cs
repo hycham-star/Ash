@@ -39,10 +39,10 @@ namespace Ash
             catch (Exception error) { Debug.LogError("Game initialization failed: " + error, this); enabled = false; }
         }
 
-        private void BeginLocalPersistence()
+        private void BeginLocalPersistence(string directory = null)
         {
             progress=new ProgressPersistence(HeroArmies,Resources,Fragments,Buildings,Scavenging);
-            saveStore=new LocalSaveStore(Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
+            saveStore=new LocalSaveStore(directory ?? Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
             TryLoadProgress();
             HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
             Buildings.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;

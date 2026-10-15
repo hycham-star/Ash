@@ -4,13 +4,14 @@ Portrait Android, low-poly strategy prototype. Current milestone: **world-map sc
 
 ## Scavenging map
 
-Open in **Unity 6000.3.23f1** and, outside Play, run **Ashlands > Validate Map Scavenging**. Then open Settlement Scene, press Play, and tap **MAP** beside BUILDINGS.
+Open in **Unity 6000.3.23f1** and, outside Play, run **Ashlands > Validate Map Scavenging** and **Ashlands > Validate Map Restart**. Then open Settlement Scene, press Play, and tap **MAP** beside BUILDINGS.
 
 - A saved local tactical map has **16 scattered centers**: four each for Food, Water, Scrap, and Lumber. Each new game chooses a random seed; positions stay fixed in saves. The map is a scrollable 2D overview of a 200×200 local area, with colored resource markers and a central HOME marker.
 - Drag to explore, **+/−** to zoom, **FIT** for the overview and **LOCATE** for the selected site. Tap a site to inspect it.
 - You start with **10 dedicated scavengers**, separate from all army fighters and the Survivors resource. **+1 WORKER** assigns one free worker; **RECALL 1** returns one. Maximum five per site.
 - Gathering requires workers and active play. Per worker/minute: Food10, Water8, Scrap6, Lumber8. **COLLECT** moves site stock into the shared resource HUD. Storage100 pauses gathering when full; each finite deposit holds1000. Recall workers from an exhausted site. No travel delay, recruitment, respawn, offline collection or combat is modeled yet.
 - Garden/Water Station production continues as requested. Existing upgrade costs remain unchanged; Lumber is now a gatherable/saved resource.
+- Worker commands now checkpoint immediately and report **Saved map and workers** or **NOT SAVED**. On first opening, the map selects a currently assigned site; reopening retains its viewport. The header shows the world seed to distinguish actual coordinate changes from pan/zoom.
 - Save schema **3** persists map positions, allocations, stock/deposits and partial work. Versions1/2 migrate with their existing progression retained, Lumber0 and an unassigned map. New/migrated maps checkpoint automatically at frame end; production checkpoints every10 active seconds. Normal SAVE/pause/quit flush progress.
 
 Test: select Lumber, assign one worker, keep app active60seconds, collect8 Lumber, SAVE and restart. Confirm identical site coordinates, assigned workers, Lumber and prior army/buildings. Keep the Android app installed when updating. New map UI, native migration and Android behavior still require Unity/device validation; cloud checks are below. See [scavenging architecture/report](Docs/ScavengingMap.md).

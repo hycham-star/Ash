@@ -42,3 +42,14 @@ Ashlands > Validate Map Scavenging creates a disposable preview and temporary di
 Created: Scripts/Scavenging folder/meta; ScavengingService.cs/meta; Presentation/ScavengingMapUI.cs/meta; Editor/ScavengingValidation.cs/meta; Tests/Rules/ScavengingChecks.cs; this report.
 
 Modified: ResourceManager.cs (append Lumber); GameManager.cs; ProgressState.cs; ProgressPersistence.cs; SettlementView.cs; BuildingValidation.cs; ProgressValidation.cs; Rules.csproj; Program.cs; PersistenceChecks.cs; BuildingChecks.cs; README.md; LocalPersistence.md; BuildingProgression.md. No combat rules, armies, camera, shaders, app identity, scene assets or initial resource fixtures changed.
+
+
+## Restart investigation and UI correction
+
+A user reported moving sites and cancelled assignments after restarting. No reproduction/logs from that save are available in cloud yet; the root cause of actual lost persistent state remains unconfirmed. Source inspection found the map always selected site-01 and reset its viewport on every open, even when the actual assignment was elsewhere. It now initially focuses an assigned site and retains the viewport across opens in the same session. The header shows the world seed and total free-worker count so persistent coordinates can be distinguished from pan/zoom or selecting another center.
+
+Assign/recall/collect now immediately call the existing GameManager.SaveProgress through a UI callback. The card reports Saved map and workers only on confirmed success, or NOT SAVED plus the actual status; it no longer claims automatic saving succeeded without checking. Save payload, locations, schema and existing user files are unchanged by this correction. No reset/deletion or generation-rule change is used as a workaround.
+
+Ashlands > Validate Map Restart adds actual GameManager initialization/coordinator startup, save, close and fresh-start restore over three sequential temporary preview sessions, plus opening/reopening the assigned-site UI. It verifies exact seed/coordinates, worker allocations, stock/work and recalled workers. Its sole override is a private optional persistence-directory parameter redirected by reflection to a unique temporary directory. Normal Awake still uses Application.persistentDataPath. Existing validators tested the native codec/domain storage but did not exercise this complete coordinator startup path.
+
+Cloud checks:83GUIDs/81references and39C# files without syntax errors. The prior360 domain checks predate this UI/coordinator-test correction; domain code is unchanged. New Unity validator/lifecycle/UI are unrun here because Unity is unavailable. Next: run Validate Map Restart outside Play, then assign a worker, confirm Saved map and workers, note World seed/site ID/coordinates, SAVE and restart; compare the same site. If saving is blocked or fails, retain the existing save and Console warnings for diagnosis; do not Reset.
