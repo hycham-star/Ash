@@ -12,12 +12,43 @@ namespace Ash
         private Vector2 previous, origin;
         private bool dragging;
         private Vector3 home;
-        private const float HomeZoom = 20;
-        private void Awake() { view = GetComponent<Camera>(); home = transform.position; }
-        public void ResetView() { transform.position = home; view.orthographicSize = HomeZoom; }
+        private float homeZoom, maximumZoom;
+        private int width, height;
+        private Rect safeArea;
+        public Rect OverviewArea { get; private set; }
+        private void Awake() { view = GetComponent<Camera>(); ResetView(); }
+        public void ResetView()
+        {
+            view = GetComponent<Camera>();
+            width = Screen.width; height = Screen.height; safeArea = Screen.safeArea;
+            // Match the HUD CanvasScaler (540x960, equal width/height match).
+            float scale = Mathf.Sqrt(width / 540f * height / 960f);
+            var area = new Rect((safeArea.xMin + 12 * scale) / width,
+                (safeArea.yMin + 247 * scale) / height,
+                Mathf.Max(1, safeArea.width - 24 * scale) / width,
+                Mathf.Max(1, safeArea.height - 405 * scale) / height);
+            OverviewArea = area;
+            // Enclose the settlement walls, roofs and towers, excluding distant scenery.
+            var bounds = new Bounds(new Vector3(0, 1.5f, 0), new Vector3(16, 6, 19));
+            float horizontal = 0, vertical = 0;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                var offset = Vector3.Scale(bounds.extents, new Vector3((corner & 1) == 0 ? -1 : 1,
+                    (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1));
+                horizontal = Mathf.Max(horizontal, Mathf.Abs(Vector3.Dot(offset, transform.right)));
+                vertical = Mathf.Max(vertical, Mathf.Abs(Vector3.Dot(offset, transform.up)));
+            }
+            homeZoom = Mathf.Max(10, 1.08f * Mathf.Max(horizontal / (view.aspect * area.width), vertical / area.height));
+            maximumZoom = Mathf.Max(80, homeZoom * 3.5f);
+            home = bounds.center - transform.forward * 45
+                - transform.right * ((area.center.x - .5f) * 2 * homeZoom * view.aspect)
+                - transform.up * ((area.center.y - .5f) * 2 * homeZoom);
+            transform.position = home; view.orthographicSize = homeZoom; dragging = false;
+        }
         private bool OverUI(int finger = -1) => EventSystem.current != null && (finger < 0 ? EventSystem.current.IsPointerOverGameObject() : EventSystem.current.IsPointerOverGameObject(finger));
         private void Update()
         {
+            if (Screen.width != width || Screen.height != height || Screen.safeArea != safeArea) ResetView();
             if (Input.touchCount >= 2)
             {
                 dragging = false;
@@ -25,7 +56,7 @@ namespace Ash
                 if (OverUI(a.fingerId) || OverUI(b.fingerId)) return;
                 float before = Vector2.Distance(a.position-a.deltaPosition, b.position-b.deltaPosition);
                 float now = Vector2.Distance(a.position,b.position);
-                view.orthographicSize = Mathf.Clamp(view.orthographicSize + (before-now)*.025f, 10, 23); return;
+                view.orthographicSize = Mathf.Clamp(view.orthographicSize * (before / Mathf.Max(1, now)), 7, maximumZoom); return;
             }
             if (Input.touchCount == 1)
             {
@@ -36,7 +67,7 @@ namespace Ash
                 else if (touch.phase == TouchPhase.Canceled) dragging = false;
                 return;
             }
-            if (!OverUI()) view.orthographicSize = Mathf.Clamp(view.orthographicSize - Input.mouseScrollDelta.y, 10, 23);
+            if (!OverUI()) view.orthographicSize = Mathf.Clamp(view.orthographicSize - Input.mouseScrollDelta.y, 7, maximumZoom);
             if (Input.GetMouseButtonDown(0)) Begin(Input.mousePosition, OverUI());
             if (Input.GetMouseButton(0)) Move(Input.mousePosition);
             if (Input.GetMouseButtonUp(0)) End(Input.mousePosition);

@@ -33,6 +33,21 @@ namespace Ash.Editor
                 }
                 var modelRoot=new GameObject("Disposable procedural art check"); SceneManager.MoveGameObjectToScene(modelRoot,scene);
                 art=new SettlementArt();
+                var shader=UnityEngine.Resources.Load<Shader>("AshSettlement");
+                Require(shader!=null && shader.isSupported,"Bundled mobile shader is missing or unsupported.");
+                Require(!ShaderUtil.ShaderHasError(shader),"Bundled mobile shader has import/compile errors.");
+                Require(art.Material(SettlementArt.Concrete).shader.isSupported,"Settlement material shader unsupported.");
+                var cameraRoot=new GameObject("Disposable overview camera",typeof(Camera));
+                SceneManager.MoveGameObjectToScene(cameraRoot,scene);
+                var camera=cameraRoot.GetComponent<Camera>(); camera.orthographic=true;
+                camera.transform.rotation=Quaternion.LookRotation(new Vector3(-24,-30,24));
+                var controls=cameraRoot.AddComponent<SettlementCamera>(); controls.ResetView();
+                for(int corner=0;corner<8;corner++)
+                {
+                    var point=new Vector3((corner&1)==0?-8:8, (corner&2)==0?-1.5f:4.5f, (corner&4)==0?-9.5f:9.5f);
+                    var screen=camera.WorldToViewportPoint(point);
+                    Require(screen.z>0 && controls.OverviewArea.Contains(new Vector2(screen.x,screen.y)),"Overview clips settlement bounds behind HUD.");
+                }
                 var survivor=SurvivorView.Create(art,modelRoot.transform,"Original survivor",0,Vector3.zero);
                 Require(survivor.GetComponentsInChildren<MeshRenderer>().Length>=18,"Original survivor geometry is incomplete.");
                 art.Box(modelRoot.transform,"Static facade",new Vector3(3,0,0),Vector3.one,SettlementArt.Concrete);
@@ -41,7 +56,7 @@ namespace Ash.Editor
                 art.Combine(modelRoot.transform);
                 Require(modelRoot.GetComponentsInChildren<MeshFilter>().All(filter=>filter.sharedMesh!=null),"Generated mesh reference is missing.");
                 Require(manager.Resources.Get(ResourceType.Food)==100 && manager.Heroes.All(hero=>hero.Army.TotalUnits==0),"Presentation validation changed game state.");
-                Debug.Log("PASS Unity settlement wiring, original survivor geometry, static mesh combining, hero and encounter references. Validate camera, touch, portraits, and layout in Play mode.");
+                Debug.Log("PASS Unity settlement wiring, bundled mobile shader, overview framing, original survivor geometry, static mesh combining, hero and encounter references. Validate camera, touch, portraits, and layout in Play mode.");
             }
             catch(Exception error)
             {

@@ -18,6 +18,14 @@ Saved data is local to this OS user/device and application identity. Opening an 
 
 **The new Unity persistence controls, lifecycle, and native codec still need testing in your installed Editor.** The cloud tests use the actual domain/storage code with a .NET JSON codec; they do not substitute for the Unity menu validator or Android device tests.
 
+## Android settlement rendering and zoom fix
+
+If an older APK shows pink settlement geometry, update to this revision and rebuild it: procedural materials now use the explicitly bundled `Assets/Ash/Resources/AshSettlement.shader` in the built-in render pipeline. It supplies lightweight ambient/directional lighting and fog, without Standard's dynamic shadows or specular effects. Keep the shader and its metadata. This avoids relying on runtime-only `Shader.Find` references being retained in a player build.
+
+HOME now frames the settlement walls/towers in the space between the HUD panels using the current screen/safe area. Pinch two fingers together over the world to zoom out; the maximum allows a wider terrain overview. Spread fingers to zoom in. The preview updates when screen dimensions/safe area change.
+
+Outside Play, run **Ashlands > Validate Settlement Presentation**, then rebuild with **Build And Run**. The validator now checks shader import/support and projects settlement bounds into the overview area. Shader compilation/rendering on Android and actual touch behavior still require the phone; the cloud has no Unity Editor or Android GPU. Preserve the same application identifier and update the installed app without uninstalling to retain its local saves.
+
 ## Explore the settlement
 
 1. Open the updated checkout in **Unity 6000.3.23f1** (the version already used successfully in your local smoke tests).

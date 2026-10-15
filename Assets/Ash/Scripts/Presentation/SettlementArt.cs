@@ -49,10 +49,10 @@ namespace Ash
         {
             if (materials.TryGetValue(color, out var found)) return found;
             bool srp = GraphicsSettings.currentRenderPipeline != null;
-            var shader = Shader.Find(srp ? "Universal Render Pipeline/Lit" : "Standard");
-            if (shader == null) shader = Shader.Find("Unlit/Color");
-            if (shader == null) throw new InvalidOperationException("No supported settlement material shader available.");
-            var material = new Material(shader) { color = color, enableInstancing = true };
+            // Resources assets are included in players even when all materials are generated at runtime.
+            var shader = srp ? Shader.Find("Universal Render Pipeline/Lit") : UnityEngine.Resources.Load<Shader>("AshSettlement");
+            if (shader == null || !shader.isSupported) throw new InvalidOperationException("Settlement shader missing or unsupported. Keep Assets/Ash/Resources/AshSettlement.shader in the build.");
+            var material = new Material(shader) { color = color };
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
             if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", .12f);
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", .12f);

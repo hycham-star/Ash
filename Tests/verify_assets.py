@@ -55,6 +55,7 @@ for scene_name in ("BattleScene", "HeroArmyTest", "Phase1Test"):
     assert "  enableLocalPersistence: 1" not in (assets / f"Ash/Scenes/{scene_name}.unity").read_text(), "Debug scenes must not overwrite real progress"
 assert "RuntimeInitializeOnLoadMethod" not in "\n".join(p.read_text() for p in assets.rglob("*.cs")), "Global automatic launcher remains"
 assert not (assets / "Ash/Scripts/Settlement.cs").exists(), "Duplicate legacy resource/combat system remains"
+assert (assets / "Ash/Resources/AshSettlement.shader").exists(), "Missing bundled settlement shader for player builds"
 manifest = json.loads((root / "Packages/manifest.json").read_text())
 assert manifest["dependencies"]["com.unity.ugui"] == "2.0.0", "Unexpected UI dependency"
 assert manifest["dependencies"]["com.unity.modules.jsonserialize"] == "1.0.0", "Missing native JSON serialization module"
