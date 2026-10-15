@@ -163,7 +163,7 @@ namespace Ash
             art.Box(world,"Truck windshield",new Vector3(-5,1.15f,-2.17f),new Vector3(1.05f,.35f,.03f),SettlementArt.Glass);
             for (int wheel = 0; wheel < 4; wheel++) art.Box(world,"Truck tire",new Vector3(-5+(wheel%2-.5f)*1.4f,.35f,-1.6f+wheel/2*1.5f),new Vector3(.5f,.18f,.5f),new Color32(43,45,43,255),true,PrimitiveType.Cylinder).localRotation = Quaternion.Euler(0,0,90);
             art.Combine(world);
-            SurvivorView.Create(art,world,"Supply runner",2,new Vector3(0,0,-5),new[] { new Vector3(0,0,-5),new Vector3(0,0,4),new Vector3(1,0,4),new Vector3(1,0,-5) });
+            RealisticAssets.Scavenger(world,new Vector3(-.8f,0,0),new[] { new Vector3(-.8f,0,0),new Vector3(-.8f,0,4),new Vector3(-1.2f,0,4),new Vector3(-1.2f,0,0) });
             SurvivorView.Create(art,world,"Workshop engineer",3,new Vector3(3,0,-1),new[] { new Vector3(3,0,-1),new Vector3(-3,0,-1) });
             SurvivorView.Create(art,world,"Gate sentry",1,new Vector3(-1.2f,0,-6));
         }
@@ -177,6 +177,7 @@ namespace Ash
         private void Building(string title,string description,Vector3 position,Vector3 size,Color color,BuildingKind? kind=null)
         {
             var root = Marker(title,description,position,size+new Vector3(0,.8f,0),kind);
+            if(kind==BuildingKind.Headquarters) { RealisticAssets.Headquarters(root); return; }
             art.Box(root,"Foundation",new Vector3(0,.16f,0),new Vector3(size.x+.3f,.3f,size.z+.3f),SettlementArt.Concrete);
             art.Box(root,"Walls",new Vector3(0,size.y/2+.2f,0),size,color);
             art.Roof(root,new Vector3(0,size.y+.2f,0),new Vector3(size.x+.4f,.75f,size.z+.4f));
@@ -188,12 +189,7 @@ namespace Ash
                 art.Box(root,"Window glass",new Vector3(x,1.25f,-size.z/2-.1f),new Vector3(.55f,.42f,.03f),SettlementArt.Glass);
             }
             art.Box(root,"Chimney",new Vector3(size.x*.3f,size.y+.85f,.55f),new Vector3(.28f,1,.3f),SettlementArt.Metal);
-            if (title=="HEADQUARTERS")
-            {
-                art.Box(root,"Radio mast",new Vector3(-.8f,size.y+1.5f,.5f),new Vector3(.09f,2.5f,.09f),SettlementArt.Metal);
-                art.Box(root,"Radio crossbar",new Vector3(-.8f,size.y+2,.5f),new Vector3(1,.06f,.06f),SettlementArt.Metal);
-                art.Box(root,"Faction flag",new Vector3(-.35f,size.y+1.5f,.5f),new Vector3(.85f,.55f,.03f),SettlementArt.Amber);
-            }
+
         }
         private void Tower(Vector3 position)
         {
@@ -237,8 +233,8 @@ namespace Ash
             // The panel starts inactive. Read the known button parent directly: ancestor searches skip inactive objects.
             upgradeBuilding.text=status==BuildingCommandResult.MaximumLevel ? "MAX LEVEL" : "UPGRADE";
             upgradeBuilding.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=status==BuildingCommandResult.Success;
-            collectBuilding.text=kind==BuildingKind.Headquarters ? "NO PRODUCTION" : "COLLECT "+buildings.Stored(kind);
-            collectBuilding.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=kind!=BuildingKind.Headquarters && buildings.Stored(kind)>0;
+            collectBuilding.text=kind==BuildingKind.Headquarters ? "VIEW HQ" : "COLLECT "+buildings.Stored(kind);
+            collectBuilding.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=kind==BuildingKind.Headquarters || buildings.Stored(kind)>0;
         }
         private void UpgradeBuilding()
         {
@@ -248,7 +244,12 @@ namespace Ash
         }
         private void CollectBuilding()
         {
-            CancelReset(); int amount=gameManager.Buildings.Stored(selectedBuilding);
+            CancelReset();
+            if(selectedBuilding==BuildingKind.Headquarters) {
+                buildingPanel.SetActive(false); controls.FocusOn(new Vector3(-1.6f,1.5f,2.5f),7);
+                toast.text="Detailed HQ and animated scavenger. HOME returns to the overview."; return;
+            }
+            int amount=gameManager.Buildings.Stored(selectedBuilding);
             var result=gameManager.Buildings.Collect(selectedBuilding);
             toast.text=result==BuildingCommandResult.Success ? "Collected "+amount+" "+BuildingService.Product(selectedBuilding)+"." : result==BuildingCommandResult.ResourceLimit ? "Resource balance is full. Spend resources first." : "Nothing ready to collect.";
             RefreshBuilding();

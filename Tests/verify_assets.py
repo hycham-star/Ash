@@ -21,7 +21,7 @@ for target in assets.rglob("*"):
     assert Path(str(target) + ".meta").exists(), f"Missing metadata: {target}"
 
 references = 0
-for target in list(assets.rglob("*.asset")) + list(assets.rglob("*.unity")):
+for target in list(assets.rglob("*.asset")) + list(assets.rglob("*.unity")) + list(assets.rglob("*.mat")):
     text = target.read_text()
     for guid in re.findall(r"guid: ([0-9a-f]{32})", text):
         assert guid in index, f"Broken GUID reference in {target}: {guid}"

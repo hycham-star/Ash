@@ -11,7 +11,7 @@ namespace Ash
         private Camera view;
         private Vector2 previous, origin;
         private bool dragging;
-        private Vector3 home;
+        private Vector3 home, panOrigin;
         private float homeZoom, maximumZoom;
         private int width, height;
         private Rect safeArea;
@@ -43,7 +43,16 @@ namespace Ash
             home = bounds.center - transform.forward * 45
                 - transform.right * ((area.center.x - .5f) * 2 * homeZoom * view.aspect)
                 - transform.up * ((area.center.y - .5f) * 2 * homeZoom);
-            transform.position = home; view.orthographicSize = homeZoom; dragging = false;
+            panOrigin=home; transform.position = home; view.orthographicSize = homeZoom; dragging = false;
+        }
+        public void FocusOn(Vector3 target,float zoom)
+        {
+            view.orthographicSize=Mathf.Clamp(zoom,7,maximumZoom);
+            float size=view.orthographicSize;
+            panOrigin=target-transform.forward*45
+                -transform.right*((OverviewArea.center.x-.5f)*2*size*view.aspect)
+                -transform.up*((OverviewArea.center.y-.5f)*2*size);
+            transform.position=panOrigin; dragging=false;
         }
         private bool OverUI(int finger = -1) => EventSystem.current != null && (finger < 0 ? EventSystem.current.IsPointerOverGameObject() : EventSystem.current.IsPointerOverGameObject(finger));
         private void Update()
@@ -82,8 +91,8 @@ namespace Ash
             {
                 var delta = before.GetPoint(first)-after.GetPoint(second);
                 transform.position += delta;
-                var offset = transform.position-home;
-                transform.position = home + new Vector3(Mathf.Clamp(offset.x,-6,6),0,Mathf.Clamp(offset.z,-6,6));
+                var offset = transform.position-panOrigin;
+                transform.position = panOrigin + new Vector3(Mathf.Clamp(offset.x,-6,6),0,Mathf.Clamp(offset.z,-6,6));
             }
             previous = point;
         }
