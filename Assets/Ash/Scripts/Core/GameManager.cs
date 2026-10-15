@@ -20,6 +20,7 @@ namespace Ash
         public HeroFragmentWallet Fragments { get; private set; }
         public BattleManager Battles { get; private set; }
         public BuildingService Buildings { get; private set; }
+        public ScavengingService Scavenging { get; private set; }
         private float productionSeconds, productionCheckpoint;
         private bool productionPaused;
         [SerializeField] private bool enableLocalPersistence;
@@ -40,11 +41,11 @@ namespace Ash
 
         private void BeginLocalPersistence()
         {
-            progress=new ProgressPersistence(HeroArmies,Resources,Fragments,Buildings);
+            progress=new ProgressPersistence(HeroArmies,Resources,Fragments,Buildings,Scavenging);
             saveStore=new LocalSaveStore(Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
             TryLoadProgress();
             HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
-            Buildings.Changed+=MarkProductionDirty;
+            Buildings.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;
             Debug.Log("Local progress file: "+saveStore.SavePath,this);
         }
         private void Update()
@@ -55,9 +56,13 @@ namespace Ash
             productionSeconds+=elapsed; productionCheckpoint+=elapsed;
             if(productionSeconds>=1) {
                 int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds);
+                advancingScavenging=true;
+                try { Scavenging.Advance(seconds); } finally { advancingScavenging=false; }
             }
             if(productionCheckpoint>=10) { productionCheckpoint=0; if(unsaved && !saveBlocked)dirty=true; }
         }
+        private bool advancingScavenging;
+        private void MarkScavengingDirty() { if(restoring)return; if(advancingScavenging)unsaved=true; else MarkDirty(); }
         private void MarkProductionDirty() { if(!restoring)unsaved=true; }
         private void MarkDirty() { if(!restoring) { dirty=true; unsaved=true; } }
         private void LateUpdate() { if(dirty) { dirty=false; if(!saveBlocked)SaveProgress(); } }
@@ -66,7 +71,7 @@ namespace Ash
         private void OnDisable() { if(unsaved && !saveBlocked)SaveProgress(); }
         private void OnDestroy()
         {
-            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; }
+            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; }
         }
         public bool SaveProgress()
         {
@@ -93,12 +98,12 @@ namespace Ash
                 var loaded=saveStore.Load();
                 if(!loaded.Loaded)
                 {
-                    if(loaded.Status==ProgressLoadStatus.Missing) { saveBlocked=false; Status("No save yet • autosave on"); return false; }
+                    if(loaded.Status==ProgressLoadStatus.Missing) { saveBlocked=false; dirty=unsaved=true; Status("New world • autosave on"); return false; }
                     saveBlocked=true;
                     Status(loaded.Status==ProgressLoadStatus.Unsupported ? "Newer save version — file protected" : "Save unreadable — file protected");
                     Debug.LogWarning(loaded.Detail,this); return false;
                 }
-                Restore(loaded.State); dirty=unsaved=false; saveBlocked=false;
+                Restore(loaded.State); dirty=unsaved=loaded.State.Version<ProgressPersistence.Version; saveBlocked=false;
                 Status(loaded.Status==ProgressLoadStatus.Backup ? "Recovered backup • autosave on" : "Loaded local progress • autosave on");
                 if(loaded.Status==ProgressLoadStatus.Backup)Debug.LogWarning("Recovered local progress from backup. "+loaded.Detail,this);
                 return true;
@@ -117,6 +122,7 @@ namespace Ash
                 for(int i=0;i<fresh.Resources.Length;i++)fresh.Resources[i]=new ResourceAmount(fresh.Resources[i].Type,starting.Get(fresh.Resources[i].Type));
                 foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
                 fresh.Buildings=new BuildingService(new ResourceManager()).Capture();
+                fresh.Scavenging=ScavengingService.Generate(NewMapSeed());
                 saveStore.Reset(fresh); Restore(fresh); dirty=unsaved=saveBlocked=false;
                 Status("Progress reset • autosave on"); return true;
             }
@@ -139,6 +145,8 @@ namespace Ash
                 foreach(Action callback in SaveStatusChanged.GetInvocationList())
                     try { callback(); } catch(Exception error) { Debug.LogWarning("Save-status observer: "+error.Message,this); }
         }
+
+        private static int NewMapSeed() => (int)((uint)Guid.NewGuid().GetHashCode() % int.MaxValue)+1;
 
         // Scene ownership and explicit references instead of a global singleton or automatic spawning.
         public void Initialize()
@@ -169,6 +177,7 @@ namespace Ash
             var fragments = new HeroFragmentWallet(fragmentIds);
             var battles = new BattleManager(service, resources, fragments);
             Buildings = new BuildingService(resources);
+            Scavenging = new ScavengingService(resources,NewMapSeed());
             Resources = resources; HeroArmies = service; Fragments = fragments; Battles = battles;
             Heroes = service.Heroes; Units = service.Fighters;
             IsInitialized = true;

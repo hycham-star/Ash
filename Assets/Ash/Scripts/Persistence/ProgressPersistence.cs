@@ -6,19 +6,21 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 2;
+        public const int Version = 3;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
         private readonly HeroFragmentWallet fragments;
         private readonly BuildingService buildings;
+        private readonly ScavengingService scavenging;
 
-        public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments, BuildingService buildings = null)
+        public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments, BuildingService buildings = null, ScavengingService scavenging = null)
         {
             this.armies = armies ?? throw new ArgumentNullException(nameof(armies));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.fragments = fragments ?? throw new ArgumentNullException(nameof(fragments));
             this.buildings = buildings ?? new BuildingService(resources);
+            this.scavenging = scavenging ?? new ScavengingService(resources);
         }
         public ProgressState Capture()
         {
@@ -29,7 +31,7 @@ namespace Ash
             foreach(var id in fragments.DefinitionIds) ids.Add(id);
             var stock = new List<FragmentState>();
             foreach(var id in ids) stock.Add(new FragmentState { DefinitionId=id, Quantity=fragments.Get(id) });
-            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture() };
+            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture() };
         }
         public void Validate(ProgressState state) { Prepare(state); }
         public void Restore(ProgressState state)
@@ -40,11 +42,12 @@ namespace Ash
             resources.RestoreValidatedFrom(candidate.Resources);
             fragments.RestoreValidatedFrom(candidate.Fragments);
             buildings.RestoreValidated(candidate.Buildings);
+            scavenging.RestoreValidated(candidate.Scavenging);
         }
         public string[] NotifyRestored()
         {
             var errors=new List<string>();
-            foreach(var action in new Action[] { armies.NotifyChanged, resources.NotifyChanged, fragments.NotifyChanged, buildings.NotifyChanged })
+            foreach(var action in new Action[] { armies.NotifyChanged, resources.NotifyChanged, fragments.NotifyChanged, buildings.NotifyChanged, scavenging.NotifyChanged })
                 try { action(); } catch(Exception error) { errors.Add(error.Message); }
             return errors.ToArray();
         }
@@ -54,12 +57,13 @@ namespace Ash
             public ResourceManager Resources;
             public HeroFragmentWallet Fragments;
             public BuildingState[] Buildings;
+            public ScavengingState Scavenging;
         }
         private Candidate Prepare(ProgressState state)
         {
             if(state==null) throw new ArgumentException("Missing progress document.");
             if(state.Version>Version) throw new UnsupportedSaveVersionException(state.Version);
-            if(state.Version!=1 && state.Version!=Version) throw new ArgumentException("Missing or invalid progress version.");
+            if(state.Version<1 || state.Version>Version) throw new ArgumentException("Missing or invalid progress version.");
             if(state.Format!=Format || state.Armies==null || state.Armies.SchemaVersion!=1)
                 throw new ArgumentException("Invalid progress format or army schema.");
             if(state.Armies.Heroes==null || state.Armies.Reserve==null || state.Resources==null || state.Fragments==null)
@@ -70,6 +74,12 @@ namespace Ash
                 savedBuildings=new BuildingService(new ResourceManager()).Capture();
             } else savedBuildings=state.Buildings;
             buildings.Validate(savedBuildings);
+            ScavengingState savedScavenging;
+            if(state.Version<3) {
+                if(state.Scavenging!=null)throw new ArgumentException("Unexpected scavenging in legacy save.");
+                savedScavenging=ScavengingService.Generate(scavenging.Seed);
+            } else savedScavenging=state.Scavenging;
+            scavenging.Validate(savedScavenging);
             var expectedHeroes=new Dictionary<string,HeroData>(StringComparer.Ordinal);
             var expectedFighters=new Dictionary<string,UnitData>(StringComparer.Ordinal);
             var fragmentIds=new HashSet<string>(fragments.DefinitionIds,StringComparer.Ordinal);
@@ -111,11 +121,11 @@ namespace Ash
                 }
             }
             foreach(var total in totals.Values) if(total>int.MaxValue) throw new ArgumentException("Saved fighter total overflows the reserve.");
-            int resourceCount=Enum.GetValues(typeof(ResourceType)).Length;
+            int resourceCount=state.Version<3 ? 5 : Enum.GetValues(typeof(ResourceType)).Length;
             if(state.Resources.Length!=resourceCount) throw new ArgumentException("Incomplete resource ledger.");
             var seenResources=new HashSet<ResourceType>();
             foreach(var resource in state.Resources)
-                if(!Enum.IsDefined(typeof(ResourceType),resource.Type) || resource.Amount<0 || !seenResources.Add(resource.Type))
+                if(!Enum.IsDefined(typeof(ResourceType),resource.Type) || (state.Version<3 && resource.Type==ResourceType.Lumber) || resource.Amount<0 || !seenResources.Add(resource.Type))
                     throw new ArgumentException("Invalid or duplicate resource balance.");
             var fragmentBalances=new Dictionary<string,int>(StringComparer.Ordinal);
             foreach(var stock in state.Fragments)
@@ -124,7 +134,7 @@ namespace Ash
                     throw new ArgumentException("Invalid or duplicate fragment balance.");
                 fragmentBalances.Add(stock.DefinitionId,stock.Quantity);
             }
-            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings };
+            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging };
         }
     }
 }

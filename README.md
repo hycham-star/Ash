@@ -1,6 +1,19 @@
 # Ashlands: Rise of the Remnants
 
-Portrait Android, low-poly strategy prototype. Current milestone: **building upgrades and resource production**, using the existing portrait settlement, resource ledger, and local saves. No PvP, networking, monetization, or training simulation is implemented.
+Portrait Android, low-poly strategy prototype. Current milestone: **world-map scavenging**, with dedicated workers gathering Food, Water, Scrap, and Lumber alongside settlement production. No PvP, networking, monetization, or training simulation is implemented.
+
+## Scavenging map
+
+Open in **Unity 6000.3.23f1** and, outside Play, run **Ashlands > Validate Map Scavenging**. Then open Settlement Scene, press Play, and tap **MAP** beside BUILDINGS.
+
+- A saved local tactical map has **16 scattered centers**: four each for Food, Water, Scrap, and Lumber. Each new game chooses a random seed; positions stay fixed in saves. The map is a scrollable 2D overview of a 200×200 local area, with colored resource markers and a central HOME marker.
+- Drag to explore, **+/−** to zoom, **FIT** for the overview and **LOCATE** for the selected site. Tap a site to inspect it.
+- You start with **10 dedicated scavengers**, separate from all army fighters and the Survivors resource. **+1 WORKER** assigns one free worker; **RECALL 1** returns one. Maximum five per site.
+- Gathering requires workers and active play. Per worker/minute: Food10, Water8, Scrap6, Lumber8. **COLLECT** moves site stock into the shared resource HUD. Storage100 pauses gathering when full; each finite deposit holds1000. Recall workers from an exhausted site. No travel delay, recruitment, respawn, offline collection or combat is modeled yet.
+- Garden/Water Station production continues as requested. Existing upgrade costs remain unchanged; Lumber is now a gatherable/saved resource.
+- Save schema **3** persists map positions, allocations, stock/deposits and partial work. Versions1/2 migrate with their existing progression retained, Lumber0 and an unassigned map. New/migrated maps checkpoint automatically at frame end; production checkpoints every10 active seconds. Normal SAVE/pause/quit flush progress.
+
+Test: select Lumber, assign one worker, keep app active60seconds, collect8 Lumber, SAVE and restart. Confirm identical site coordinates, assigned workers, Lumber and prior army/buildings. Keep the Android app installed when updating. New map UI, native migration and Android behavior still require Unity/device validation; cloud checks are below. See [scavenging architecture/report](Docs/ScavengingMap.md).
 
 ## Building progression
 
@@ -11,7 +24,7 @@ Open the updated project in Unity **6000.3.23f1**. Outside Play run **Ashlands >
 - Garden produces **10 × level Food per minute**; Water Station produces **6 × level Water per minute**, while the app is actively running. Production pauses in the background and while closed; **no offline catch-up** yet.
 - Each producer holds five minutes of output. Use **COLLECT** to transfer stored output to the resource HUD; full storage stops production until collected. The next level increases output/storage without erasing existing stock.
 - Levels, stored output, and partial production seconds are saved. Production checkpoints autosave every 10 active seconds; resource commands save at frame end; manual SAVE and normal pause/quit also flush. A forced termination can lose the latest partial interval.
-- Existing version-one saves migrate to version two, preserving all previous progression and adding level-one buildings. Keep the same application identity and update Android without uninstalling to retain the on-device save. Older app versions cannot read new version-two saves.
+- Existing version-one saves migrate to version three, preserving all previous progression and adding level-one buildings and an unassigned map; version-two saves also preserve building progression. Keep the same application identity and update Android without uninstalling to retain the on-device save. Older app versions cannot read new version-three saves.
 
 Costs/rates are provisional local prototype balance, not numbers specified by the attached GDD. Construction queues, build times, visual building tiers, extra resource buildings, and offline production remain future work. See [building progression](Docs/BuildingProgression.md).
 
@@ -29,7 +42,7 @@ Reset writes starting balances/empty armies and removes the old backup so it can
 
 Saved data is local to this OS user/device and application identity. Opening an updated checkout with the same Company/Product/application identifier uses the same slot. Do not rename those settings casually. No account, encryption, cloud synchronization, persistent camera position, or saved battle history is provided.
 
-**The user confirmed local saving in the Editor and on Android before this building milestone. New building UI, lifecycle and version migration still need testing in the installed Editor/device.** The cloud tests use the actual domain/storage code with a .NET JSON codec; they do not substitute for the Unity menu validator or Android device tests.
+**The user confirmed local saving in the Editor and on Android before this building milestone. New map UI, lifecycle and version migration still need testing in the installed Editor/device.** The cloud tests use the actual domain/storage code with a .NET JSON codec; they do not substitute for the Unity menu validator or Android device tests.
 
 ## Android settlement rendering and zoom fix
 
@@ -52,7 +65,7 @@ The environment uses original procedural pitched-roof buildings, water tanks, ga
 
 This is the first visual pass, not final commissioned art. Headquarters, Garden and Water Station now have functional levels/production controls; their models remain the same. Workshop and Barracks remain inspectable visual landmarks. Patrols are visual only. There are no illustrated portraits, persistent world simulation, or animated battlefield yet. All art is original; no artwork/models from The Walking Dead: Survivors are included.
 
-**The user has confirmed settlement rendering, hero portraits, independent armies, assignment, and settlement raids in Unity 6.3.** The cloud machine still lacks Unity; newly added building controls and production lifecycle remain to be verified in the installed Editor.
+**The user has confirmed settlement rendering, hero portraits, independent armies, assignment, and settlement raids in Unity 6.3.** The cloud machine still lacks Unity; newly added map controls and scavenging lifecycle remain to be verified in the installed Editor.
 
 ## Test PvE combat
 
@@ -94,9 +107,9 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**283 checks passed**, including 61 building/migration checks, 95 persistence checks, and the prior 127 resource/hero/army/PvE checks. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**360 checks passed**, including 77 scavenging/migration checks and all prior 283 checks. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
-GUID/scene reference checks passed. **New building compilation/import, native migration, timed lifecycle behavior, UI controls, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
+GUID/scene reference checks passed. **New map compilation/import, native migration, timed lifecycle behavior, UI controls, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 
 With a licensed editor, run the Unity-specific validator in batch mode:
 

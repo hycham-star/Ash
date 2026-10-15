@@ -46,7 +46,7 @@ namespace Ash.Editor
                 Require(buildings.Collect(BuildingKind.FoodGarden)==BuildingCommandResult.NothingToCollect,"Collection duplicated rewards.");
                 progress.Restore(store.Load().State);
                 Require(buildings.Level(BuildingKind.Headquarters)==2 && buildings.Level(BuildingKind.FoodGarden)==2 && buildings.Stored(BuildingKind.FoodGarden)==20 && buildings.Seconds(BuildingKind.FoodGarden)==5 && manager.Resources.Get(ResourceType.Food)==food,"Native building disk round trip failed.");
-                string legacyJson=JsonUtility.ToJson(new LegacyProgress { Version=1, Format=initial.Format, Armies=initial.Armies, Resources=initial.Resources, Fragments=initial.Fragments });
+                string legacyJson=JsonUtility.ToJson(new LegacyProgress { Version=1, Format=initial.Format, Armies=initial.Armies, Resources=initial.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray(), Fragments=initial.Fragments });
                 progress.Restore(codec.Decode(legacyJson));
                 Require(buildings.Capture().All(b=>b.Level==1 && b.Stored==0 && b.Seconds==0) && manager.Resources.Get(ResourceType.Food)==100,"Legacy save migration failed.");
                 store.Reset(progress.Capture()); Require(!File.Exists(store.BackupPath),"Reset retained old backup.");

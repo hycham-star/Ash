@@ -23,7 +23,7 @@ namespace Ash.Editor
                 manager.Initialize();
                 Require(!manager.PersistenceActive,"Editor validation must not open the player's real progress slot.");
                 Require(new SerializedObject(manager).FindProperty("enableLocalPersistence").boolValue,"Settlement must opt into persistence.");
-                var progress=new ProgressPersistence(manager.HeroArmies,manager.Resources,manager.Fragments,manager.Buildings);
+                var progress=new ProgressPersistence(manager.HeroArmies,manager.Resources,manager.Fragments,manager.Buildings,manager.Scavenging);
                 var store=new LocalSaveStore(directory,new UnityProgressCodec(),progress.Validate);
                 var fresh=progress.Capture(); store.Save(fresh);
                 var hero=manager.Heroes.Single(h=>h.Definition.Id=="mara-flint");

@@ -75,10 +75,10 @@ internal static class BuildingChecks
         ProgressState Copy(ProgressState s)=>codec.Decode(codec.Encode(s));
         armies.AssignFighters(armies.Heroes[0].InstanceId,"infantry",5); armies.GrantHeroXp(armies.Heroes[0].InstanceId,125);
         var saved=progress.Capture(); string exact=codec.Encode(saved);
-        C(saved.Version==2 && saved.Buildings.Length==3,"version two includes building ledger");
+        C(saved.Version==ProgressPersistence.Version && saved.Buildings.Length==3,"current schema includes building ledger");
         buildings.Collect(BuildingKind.FoodGarden); progress.Restore(Copy(saved));
         C(codec.Encode(progress.Capture())==exact,"restore preserves all domains, stored production and partial timers");
-        var legacy=Copy(saved); legacy.Version=1; legacy.Buildings=null;
+        var legacy=Copy(saved); legacy.Version=1; legacy.Buildings=null; legacy.Scavenging=null; legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray();
         progress.Restore(codec.Decode(codec.Encode(legacy)));
         C(buildings.Capture().All(b=>b.Level==1 && b.Stored==0 && b.Seconds==0),"version-one migration initializes buildings");
         var migrated=progress.Capture(); var expected=Copy(saved); expected.Buildings=migrated.Buildings;
@@ -100,7 +100,7 @@ internal static class BuildingChecks
         try {
             var store=new LocalSaveStore(directory,codec,progress.Validate); store.Save(legacy);
             progress.Restore(store.Load().State); store.Save(progress.Capture());
-            C(store.Load().State.Version==2 && File.Exists(store.BackupPath),"legacy disk slot upgrades to v2 with old backup");
+            C(store.Load().State.Version==ProgressPersistence.Version && File.Exists(store.BackupPath),"legacy disk slot upgrades to current schema with old backup");
             progress.Restore(saved); store.Save(progress.Capture());
             buildings.Collect(BuildingKind.FoodGarden); progress.Restore(store.Load().State);
             C(codec.Encode(progress.Capture())==exact,"building balances and collection survive actual disk round trip");

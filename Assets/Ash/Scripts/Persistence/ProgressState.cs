@@ -12,6 +12,7 @@ namespace Ash
         public ResourceAmount[] Resources;
         public FragmentState[] Fragments;
         public BuildingState[] Buildings;
+        public ScavengingState Scavenging;
     }
     [Serializable]
     public sealed class FragmentState

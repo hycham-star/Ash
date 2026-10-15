@@ -1,0 +1,152 @@
+using System;
+using System.Collections.Generic;
+
+namespace Ash
+{
+    [Serializable]
+    public sealed class ScavengingSiteState
+    {
+        public string Id;
+        public ResourceType Resource;
+        public int X, Z, Remaining, Stored, Workers, Work;
+    }
+    [Serializable]
+    public sealed class ScavengingState
+    {
+        public int Seed;
+        public ScavengingSiteState[] Sites;
+    }
+    public enum ScavengingResult { Success, NoFreeWorkers, SiteFull, NoWorkers, NothingToCollect, ResourceLimit, Exhausted }
+
+    /// <summary>Seeded local map and dedicated worker allocations. Time is supplied by the caller.</summary>
+    public sealed class ScavengingService
+    {
+        public const int TotalWorkers=10, MaximumWorkersPerSite=5, SiteCapacity=100, InitialDeposit=1000;
+        public const int MapHalfSize=100;
+        private readonly ResourceManager resources;
+        private ScavengingState state;
+        private bool commanding;
+        public event Action Changed;
+        public string[] NotificationErrors { get; private set; } = Array.Empty<string>();
+        public int Seed => state.Seed;
+        public int AssignedWorkers { get { int total=0; foreach(var site in state.Sites)total+=site.Workers; return total; } }
+        public int FreeWorkers => TotalWorkers-AssignedWorkers;
+        public ScavengingService(ResourceManager resources,int seed=1)
+        {
+            this.resources=resources ?? throw new ArgumentNullException(nameof(resources)); state=Generate(seed);
+        }
+        public static int Rate(ResourceType type)
+        {
+            switch(type) {
+                case ResourceType.Food: return 10;
+                case ResourceType.Water: return 8;
+                case ResourceType.Scrap: return 6;
+                case ResourceType.Lumber: return 8;
+                default: throw new ArgumentOutOfRangeException(nameof(type));
+            }
+        }
+        public static ScavengingState Generate(int seed)
+        {
+            if(seed<=0)throw new ArgumentOutOfRangeException(nameof(seed));
+            uint random=(uint)seed;
+            int Next(int count) { unchecked { random^=random<<13; random^=random>>17; random^=random<<5; } return (int)(random%(uint)count); }
+            var cells=new List<int>();
+            for(int cell=0;cell<100;cell++) {
+                int x=-90+(cell%10)*20,z=-90+(cell/10)*20;
+                if(x*x+z*z>=900)cells.Add(cell);
+            }
+            for(int i=cells.Count-1;i>0;i--) { int j=Next(i+1); int t=cells[i]; cells[i]=cells[j]; cells[j]=t; }
+            var types=new[] { ResourceType.Food,ResourceType.Water,ResourceType.Scrap,ResourceType.Lumber };
+            var sites=new ScavengingSiteState[16];
+            for(int i=0;i<sites.Length;i++)sites[i]=new ScavengingSiteState {
+                Id="site-"+(i+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture), Resource=types[i%types.Length],
+                X=-90+cells[i]%10*20+Next(9)-4, Z=-90+cells[i]/10*20+Next(9)-4, Remaining=InitialDeposit
+            };
+            return new ScavengingState { Seed=seed,Sites=sites };
+        }
+        private ScavengingSiteState Find(string id)
+        {
+            foreach(var site in state.Sites)if(site.Id==id)return site;
+            throw new ArgumentException("Unknown scavenging site.",nameof(id));
+        }
+        private static ScavengingSiteState Copy(ScavengingSiteState s) => new ScavengingSiteState { Id=s.Id,Resource=s.Resource,X=s.X,Z=s.Z,Remaining=s.Remaining,Stored=s.Stored,Workers=s.Workers,Work=s.Work };
+        public ScavengingSiteState Site(string id)=>Copy(Find(id));
+        public ScavengingState Capture()
+        {
+            var sites=new ScavengingSiteState[state.Sites.Length];
+            for(int i=0;i<sites.Length;i++)sites[i]=Copy(state.Sites[i]);
+            return new ScavengingState { Seed=Seed,Sites=sites };
+        }
+        public ScavengingResult Assign(string id)
+        {
+            Guard(); var site=Find(id);
+            if(site.Remaining==0)return ScavengingResult.Exhausted;
+            if(site.Workers==MaximumWorkersPerSite)return ScavengingResult.SiteFull;
+            if(FreeWorkers==0)return ScavengingResult.NoFreeWorkers;
+            site.Workers++; Notify(false); return ScavengingResult.Success;
+        }
+        public ScavengingResult Recall(string id)
+        {
+            Guard(); var site=Find(id); if(site.Workers==0)return ScavengingResult.NoWorkers;
+            site.Workers--; Notify(false); return ScavengingResult.Success;
+        }
+        public ScavengingResult Collect(string id)
+        {
+            Guard(); var site=Find(id); if(site.Stored==0)return ScavengingResult.NothingToCollect;
+            if(resources.Get(site.Resource)>int.MaxValue-site.Stored)return ScavengingResult.ResourceLimit;
+            var plan=resources.PrepareAddition(new[] { new ResourceAmount(site.Resource,site.Stored) });
+            resources.CommitAdditionSilently(plan); site.Stored=0;
+            Notify(true); return ScavengingResult.Success;
+        }
+        public void Advance(int seconds)
+        {
+            Guard(); if(seconds<0)throw new ArgumentOutOfRangeException(nameof(seconds));
+            if(seconds==0)return; bool changed=false;
+            foreach(var site in state.Sites) {
+                if(site.Workers==0 || site.Remaining==0 || site.Stored==SiteCapacity)continue;
+                long work=site.Work+(long)seconds*site.Workers*Rate(site.Resource);
+                int collected=(int)Math.Min(Math.Min(site.Remaining,SiteCapacity-site.Stored),work/60);
+                site.Stored+=collected; site.Remaining-=collected;
+                site.Work=site.Remaining==0 || site.Stored==SiteCapacity ? 0 : (int)(work%60); changed=true;
+            }
+            if(changed)Notify(false);
+        }
+        public void Validate(ScavengingState saved)
+        {
+            if(saved==null || saved.Sites==null)throw new ArgumentException("Missing scavenging map.");
+            var expected=Generate(saved.Seed); if(saved.Sites.Length!=expected.Sites.Length)throw new ArgumentException("Incomplete map.");
+            var known=new Dictionary<string,ScavengingSiteState>(StringComparer.Ordinal);
+            foreach(var site in expected.Sites)known.Add(site.Id,site);
+            int workers=0;
+            foreach(var site in saved.Sites) {
+                if(site==null || site.Id==null || !known.TryGetValue(site.Id,out var original))throw new ArgumentException("Unknown or duplicate map site.");
+                known.Remove(site.Id);
+                if(site.Resource!=original.Resource || site.X!=original.X || site.Z!=original.Z || site.Remaining<0 || site.Stored<0
+                    || site.Stored>SiteCapacity || site.Remaining>InitialDeposit-site.Stored || site.Workers<0 || site.Workers>MaximumWorkersPerSite
+                    || site.Work<0 || site.Work>=60 || ((site.Remaining==0 || site.Stored==SiteCapacity) && site.Work!=0))
+                    throw new ArgumentException("Invalid scavenging site state.");
+                workers+=site.Workers;
+            }
+            if(workers>TotalWorkers)throw new ArgumentException("Workers allocated more than once.");
+        }
+        internal void RestoreValidated(ScavengingState saved)
+        {
+            var ordered=Generate(saved.Seed);
+            foreach(var target in ordered.Sites)foreach(var source in saved.Sites)if(target.Id==source.Id) {
+                target.Remaining=source.Remaining; target.Stored=source.Stored; target.Workers=source.Workers; target.Work=source.Work;
+            }
+            state=ordered;
+        }
+        internal void NotifyChanged() => Changed?.Invoke();
+        private void Guard() { if(commanding)throw new InvalidOperationException("Scavenging command already running."); }
+        private void Notify(bool resourceChanged)
+        {
+            commanding=true; var errors=new List<string>();
+            try {
+                if(resourceChanged)try { resources.NotifyChanged(); }catch(Exception e) { errors.Add(e.Message); }
+                if(Changed!=null)foreach(Action observer in Changed.GetInvocationList())
+                    try { observer(); }catch(Exception e) { errors.Add(e.Message); }
+            } finally { commanding=false; NotificationErrors=errors.ToArray(); }
+        }
+    }
+}

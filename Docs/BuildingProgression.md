@@ -1,3 +1,5 @@
+> Later scavenging milestone: current save schema is **3**, accepting both old versions; Garden/Water production remains enabled. See ScavengingMap.md for current behavior and tests.
+
 # Building progression
 
 This milestone makes three existing settlement landmarks functional: Headquarters, Food Garden (GDD Farm), and Water Station (GDD Water Pump). The attached GDD section 3.1 specifies HQ as the level gate, max HQ 25, max producer 20. The Prototype Implementation Guide describes upgrade buttons/resource deductions but supplies no numerical production balance. The current user authorized this small local progression loop; unrelated document sections on networking, PvP, training, alliances and monetization are not instructions to implement them here.

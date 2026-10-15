@@ -5,6 +5,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Assets/Ash/Scripts/Scavenging/ScavengingService.cs" Link="ScavengingService.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Buildings/BuildingService.cs" Link="BuildingService.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Resources/ResourceManager.cs" Link="ResourceManager.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Data/Heroes/HeroData.cs" Link="HeroData.cs" />

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Ash
 {
-    public enum ResourceType { Food, Scrap, Water, Fuel, Survivors }
+    public enum ResourceType { Food, Scrap, Water, Fuel, Survivors, Lumber }
 
     [Serializable]
     public struct ResourceAmount

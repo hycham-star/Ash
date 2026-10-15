@@ -131,4 +131,5 @@ Check(fullRoster.All(h => h.Army.Power == 0), "empty armies have zero power rega
 passed += CombatChecks.Run(definitions, fighterDefinitions);
 passed += PersistenceChecks.Run(definitions,fighterDefinitions);
 passed += BuildingChecks.Run(definitions,fighterDefinitions);
-Console.WriteLine($"{passed} total checks passed (hero armies, resources, PvE, persistence, and buildings).");
+passed += ScavengingChecks.Run(definitions,fighterDefinitions);
+Console.WriteLine($"{passed} total checks passed (hero armies, resources, PvE, persistence, buildings, and scavenging).");

@@ -26,6 +26,7 @@ namespace Ash
         private BuildingKind selectedBuilding;
         private Text buildingStats, upgradeBuilding, collectBuilding;
         private CombatResultsUI results;
+        private ScavengingMapUI scavengingMap;
         private int selectedHero, selectedCamp, renderedHero = -1;
         private Color oldAmbient;
         private float oldShadowDistance;
@@ -207,6 +208,7 @@ namespace Ash
         }
         private void ShowBuilding(BuildingKind kind)
         {
+            scavengingMap.Hide();
             CancelReset(); selectedBuilding=kind; heroPanel.SetActive(false); raidPanel.SetActive(false);
             portraitCamera.enabled=false; buildingPanel.SetActive(true); RefreshBuilding();
         }
@@ -277,6 +279,7 @@ namespace Ash
             var hero = gameManager.Heroes[selectedHero];
             resources.text = "FOOD  "+gameManager.Resources.Get(ResourceType.Food)+"      SCRAP  "+gameManager.Resources.Get(ResourceType.Scrap)
                 +"\nWATER  "+gameManager.Resources.Get(ResourceType.Water)+"      FUEL  "+gameManager.Resources.Get(ResourceType.Fuel);
+            resources.text += "\nLUMBER  "+gameManager.Resources.Get(ResourceType.Lumber);
             leaderLabel.text = hero.Definition.DisplayName.ToUpperInvariant()+"\nLv "+hero.Level+"  •  Army "+hero.Army.TotalUnits+"/"+hero.Army.Capacity;
             var text = new StringBuilder(hero.Definition.DisplayName+"\n"+hero.Definition.Rarity+" • "+hero.Definition.Specialization+"\n\n");
             text.Append("LEVEL ").Append(hero.Level).Append("    XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
@@ -289,8 +292,13 @@ namespace Ash
             if (portraitStage != null) UpdateLeader();
             RefreshBuilding();
         }
-        private void ShowHeroes(bool visible) { buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
-        private void ShowRaid() { buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
+        private void ShowMap()
+        {
+            CancelReset(); heroPanel.SetActive(false); raidPanel.SetActive(false); buildingPanel.SetActive(false); portraitCamera.enabled=false;
+            scavengingMap.Show(); scavengingMap.transform.SetAsLastSibling();
+        }
+        private void ShowHeroes(bool visible) { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
+        private void ShowRaid() { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
         private void Assign(int type)
         {
             CancelReset();
@@ -322,15 +330,17 @@ namespace Ash
             resources=TextPanel(ui,0,1,1,1,12,-104,-12,-12,23,"",ink);
             Button(ui,"HOME",.79f,1,1,1,4,-150,-12,-112,()=>controls.ResetView());
             var resourceRect=resources.GetComponent<RectTransform>(); resourceRect.anchorMin=new Vector2(0,1); resourceRect.anchorMax=Vector2.one;
-            resourceRect.offsetMin=new Vector2(12,-66); resourceRect.offsetMax=new Vector2(-12,-6);
+            resourceRect.offsetMin=new Vector2(12,-77); resourceRect.offsetMax=new Vector2(-12,-4);
+            resources.fontSize=19;
             var statusObject=new GameObject("Local save status",typeof(RectTransform),typeof(Text)); statusObject.transform.SetParent(resources.transform.parent,false);
             var statusRect=statusObject.GetComponent<RectTransform>(); statusRect.anchorMin=Vector2.zero; statusRect.anchorMax=new Vector2(1,0); statusRect.offsetMin=new Vector2(12,4); statusRect.offsetMax=new Vector2(-12,24);
             saveStatus=statusObject.GetComponent<Text>(); saveStatus.font=font; saveStatus.fontSize=13; saveStatus.color=SettlementArt.Amber; saveStatus.raycastTarget=false; saveStatus.alignment=TextAnchor.MiddleLeft;
             Button(ui,"SAVE",0,1,.26f,1,12,-150,-4,-112,SaveProgress);
             Button(ui,"LOAD",.26f,1,.52f,1,4,-150,-4,-112,LoadProgress);
             resetButton=Button(ui,"RESET",.52f,1,.78f,1,4,-150,-4,-112,RequestReset);
-            selection=TextPanel(ui,0,0,.72f,0,12,144,-4,239,16,"",ink);
-            Button(ui,"BUILDINGS",.72f,0,1,0,4,144,-12,239,16,()=>ShowBuilding(BuildingKind.Headquarters));
+            selection=TextPanel(ui,0,0,.56f,0,12,144,-4,239,15,"",ink);
+            Button(ui,"BUILDINGS",.56f,0,.78f,0,4,144,-4,239,13,()=>ShowBuilding(BuildingKind.Headquarters));
+            Button(ui,"MAP",.78f,0,1,0,4,144,-12,239,16,ShowMap);
             leaderLabel=TextPanel(ui,0,0,.55f,0,12,88,-4,136,18,"",new Color32(41,57,59,246));
             Button(ui,"VIEW HERO",.55f,0,1,0,4,88,-12,136,()=>ShowHeroes(true));
             Button(ui,"HEROES",0,0,.5f,0,12,14,-4,76,22,()=>ShowHeroes(true));
@@ -375,6 +385,7 @@ namespace Ash
             upgradeBuilding=Button(buildingRoot,"UPGRADE",0,0,.5f,0,12,14,-4,70,18,UpgradeBuilding);
             collectBuilding=Button(buildingRoot,"COLLECT",.5f,0,1,0,4,14,-12,70,18,CollectBuilding);
             buildingPanel.SetActive(false);
+            scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font);
             toast=TextPanel(ui,0,0,1,0,12,244,-12,282,15,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
         }
         private RectTransform Panel(Transform parent,string name,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)

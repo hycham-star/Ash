@@ -1,4 +1,4 @@
-> Updated building milestone: ProgressPersistence now writes schema **2**, including building levels, stored output, and partial seconds. Version **1** is accepted and migrated with level-one buildings while preserving all old domains. The envelope remains version 1. See BuildingProgression.md for active-play timing and current validation; statements below describe the original save milestone where indicated.
+> Current scavenging milestone: writes payload schema **3** with six resources (Lumber appended) and a saved scavenging map. Version1/2 five-resource saves migrate, preserving their old progression and gaining Lumber0 plus an unassigned map. Version1 also gains level-one buildings. New/migrated world checkpointing is handled by GameManager at frame end; LocalSaveStore.Load itself stays read-only. See ScavengingMap.md for current validation; the document below records the original persistence milestone.
 
 # Local progress persistence v1
 
