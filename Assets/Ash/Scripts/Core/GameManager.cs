@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using UnityEngine;
 
 namespace Ash
@@ -18,12 +19,108 @@ namespace Ash
         public HeroArmyService HeroArmies { get; private set; }
         public HeroFragmentWallet Fragments { get; private set; }
         public BattleManager Battles { get; private set; }
+        [SerializeField] private bool enableLocalPersistence;
+        private ProgressPersistence progress;
+        private LocalSaveStore saveStore;
+        private bool dirty, unsaved, restoring, saveBlocked;
+        public bool PersistenceActive => saveStore!=null;
+        public string SaveStatus { get; private set; } = "Debug session • not saved";
+        public string SavePath => saveStore?.SavePath;
+        public event Action SaveStatusChanged;
         public bool IsInitialized { get; private set; }
 
         private void Awake()
         {
-            try { Initialize(); }
+            try { Initialize(); if(Application.isPlaying && enableLocalPersistence)BeginLocalPersistence(); }
             catch (Exception error) { Debug.LogError("Game initialization failed: " + error, this); enabled = false; }
+        }
+
+        private void BeginLocalPersistence()
+        {
+            progress=new ProgressPersistence(HeroArmies,Resources,Fragments);
+            saveStore=new LocalSaveStore(Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
+            TryLoadProgress();
+            HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
+            Debug.Log("Local progress file: "+saveStore.SavePath,this);
+        }
+        private void MarkDirty() { if(!restoring) { dirty=true; unsaved=true; } }
+        private void LateUpdate() { if(dirty) { dirty=false; if(!saveBlocked)SaveProgress(); } }
+        private void OnApplicationPause(bool paused) { if(paused && unsaved && !saveBlocked)SaveProgress(); }
+        private void OnApplicationQuit() { if(unsaved && !saveBlocked)SaveProgress(); }
+        private void OnDisable() { if(unsaved && !saveBlocked)SaveProgress(); }
+        private void OnDestroy()
+        {
+            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; }
+        }
+        public bool SaveProgress()
+        {
+            if(!PersistenceActive) { Status("Saving disabled in this test scene"); return false; }
+            if(saveBlocked) { Status("Save protected — use Reset to start over"); return false; }
+            if(Battles.IsRunning) { Status("Wait for the battle to finish"); return false; }
+            try
+            {
+                saveStore.Save(progress.Capture()); dirty=unsaved=false; Status("Saved locally • autosave on"); return true;
+            }
+            catch(Exception error)
+            {
+                if(error is UnsupportedSaveVersionException) { saveBlocked=true; Status("Newer save version — file protected"); }
+                else Status("Save failed — progress is not on disk");
+                Debug.LogWarning(error.Message,this); return false;
+            }
+        }
+        public bool TryLoadProgress()
+        {
+            if(!PersistenceActive) { Status("Loading disabled in this test scene"); return false; }
+            if(Battles.IsRunning) { Status("Wait for the battle to finish"); return false; }
+            try
+            {
+                var loaded=saveStore.Load();
+                if(!loaded.Loaded)
+                {
+                    if(loaded.Status==ProgressLoadStatus.Missing) { saveBlocked=false; Status("No save yet • autosave on"); return false; }
+                    saveBlocked=true;
+                    Status(loaded.Status==ProgressLoadStatus.Unsupported ? "Newer save version — file protected" : "Save unreadable — file protected");
+                    Debug.LogWarning(loaded.Detail,this); return false;
+                }
+                Restore(loaded.State); dirty=unsaved=false; saveBlocked=false;
+                Status(loaded.Status==ProgressLoadStatus.Backup ? "Recovered backup • autosave on" : "Loaded local progress • autosave on");
+                if(loaded.Status==ProgressLoadStatus.Backup)Debug.LogWarning("Recovered local progress from backup. "+loaded.Detail,this);
+                return true;
+            }
+            catch(Exception error) { saveBlocked=true; Status("Load failed — save files protected"); Debug.LogWarning(error.Message,this); return false; }
+        }
+        public bool ResetProgress()
+        {
+            if(!PersistenceActive || Battles.IsRunning) { Status("Reset unavailable right now"); return false; }
+            try
+            {
+                var fresh=progress.Capture();
+                foreach(var hero in fresh.Armies.Heroes) { hero.Level=1; hero.Xp=0; hero.Fighters=Array.Empty<FighterState>(); }
+                foreach(var fighter in fresh.Armies.Reserve)fighter.Quantity=initialReservePerType;
+                var starting=new ResourceManager(initialResources);
+                for(int i=0;i<fresh.Resources.Length;i++)fresh.Resources[i]=new ResourceAmount(fresh.Resources[i].Type,starting.Get(fresh.Resources[i].Type));
+                foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
+                saveStore.Reset(fresh); Restore(fresh); dirty=unsaved=saveBlocked=false;
+                Status("Progress reset • autosave on"); return true;
+            }
+            catch(Exception error) { Status("Reset failed — current progress retained"); Debug.LogWarning(error.Message,this); return false; }
+        }
+        private void Restore(ProgressState state)
+        {
+            restoring=true;
+            try
+            {
+                progress.Restore(state); Battles.ClearResultAfterLoad();
+                foreach(var error in progress.NotifyRestored())Debug.LogWarning("Progress observer: "+error,this);
+            }
+            finally { restoring=false; }
+        }
+        private void Status(string message)
+        {
+            SaveStatus=message;
+            if(SaveStatusChanged!=null)
+                foreach(Action callback in SaveStatusChanged.GetInvocationList())
+                    try { callback(); } catch(Exception error) { Debug.LogWarning("Save-status observer: "+error.Message,this); }
         }
 
         // Scene ownership and explicit references instead of a global singleton or automatic spawning.

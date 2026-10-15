@@ -21,7 +21,8 @@ namespace Ash
         private Camera portraitCamera;
         private RenderTexture portrait;
         private Font font;
-        private Text resources, selection, heroStats, raidHeader, campButton, toast, leaderLabel;
+        private Text resources, selection, heroStats, raidHeader, campButton, toast, leaderLabel, saveStatus, resetButton;
+        private float resetDeadline;
         private CombatResultsUI results;
         private int selectedHero, selectedCamp, renderedHero = -1;
         private Color oldAmbient;
@@ -45,12 +46,14 @@ namespace Ash
             oldAmbient = RenderSettings.ambientLight; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,65); RenderSettings.ambientLight = new Color(.58f,.59f,.55f);
             BuildWorld(); BuildUI(); BuildPortrait();
             gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh;
+            gameManager.SaveStatusChanged += UpdateSaveStatus; UpdateSaveStatus();
             Refresh(); selection.text = "THE EMBER OUTPOST\nTap a building to inspect • Drag to explore";
         }
         private void OnDestroy()
         {
             if (gameManager != null && gameManager.IsInitialized)
             { gameManager.Resources.Changed -= Refresh; gameManager.HeroArmies.Changed -= Refresh; gameManager.Fragments.Changed -= Refresh; }
+            if (gameManager != null) gameManager.SaveStatusChanged -= UpdateSaveStatus;
             if (controls != null) controls.BuildingSelected -= Inspect;
             if (portraitCamera != null) portraitCamera.targetTexture = null;
             if (portrait != null) { portrait.Release(); Destroy(portrait); }
@@ -58,6 +61,34 @@ namespace Ash
             art?.Dispose();
             if (art != null) { RenderSettings.ambientLight = oldAmbient; QualitySettings.shadowDistance = oldShadowDistance; }
         }
+        private void Update()
+        {
+            if(resetDeadline>0 && Time.unscaledTime>resetDeadline) { CancelReset(); toast.text="Reset cancelled."; }
+        }
+        private void UpdateSaveStatus() { if(saveStatus!=null)saveStatus.text=gameManager.SaveStatus; }
+        private void CancelReset() { resetDeadline=0; if(resetButton!=null)resetButton.text="RESET"; }
+        private void SaveProgress()
+        {
+            CancelReset(); gameManager.SaveProgress(); toast.text=gameManager.SaveStatus;
+        }
+        private void LoadProgress()
+        {
+            CancelReset();
+            if(gameManager.TryLoadProgress()) { results.Clear(); Refresh(); }
+            toast.text=gameManager.SaveStatus;
+        }
+        private void RequestReset()
+        {
+            if(resetDeadline<=Time.unscaledTime)
+            {
+                resetDeadline=Time.unscaledTime+8; resetButton.text="CONFIRM";
+                toast.text="Erase all saved progress? Click CONFIRM again within 8 seconds."; return;
+            }
+            CancelReset();
+            if(gameManager.ResetProgress()) { results.Clear(); Refresh(); }
+            toast.text=gameManager.SaveStatus;
+        }
+
         private void BuildWorld()
         {
             var camera = new GameObject("Isometric Settlement Camera",typeof(Camera)).GetComponent<Camera>();
@@ -210,12 +241,14 @@ namespace Ash
         private void ShowRaid() { heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
         private void Assign(int type)
         {
+            CancelReset();
             var hero=gameManager.Heroes[selectedHero]; var fighter=gameManager.Units[type];
             var result=gameManager.HeroArmies.AssignFighters(hero.InstanceId,fighter.Definition.Id,5);
             toast.text=result==ArmyCommandResult.Success ? "5 "+fighter.Definition.Type+" assigned to "+hero.Definition.DisplayName : "Assignment: "+result;
         }
         private void Raid(bool apply)
         {
+            CancelReset();
             if (camps.Count==0) { toast.text="No encounters configured."; return; }
             var hero=gameManager.Heroes[selectedHero];
             try
@@ -236,13 +269,20 @@ namespace Ash
             var safe=Screen.safeArea; ui.anchorMin=new Vector2(safe.xMin/Screen.width,safe.yMin/Screen.height); ui.anchorMax=new Vector2(safe.xMax/Screen.width,safe.yMax/Screen.height); ui.offsetMin=ui.offsetMax=Vector2.zero;
             resources=TextPanel(ui,0,1,1,1,12,-104,-12,-12,23,"",ink);
             Button(ui,"HOME",.79f,1,1,1,4,-150,-12,-112,()=>controls.ResetView());
-            var identity=TextPanel(ui,0,1,.77f,1,12,-150,-4,-112,16,"EMBER OUTPOST  /  ASHLANDS",new Color32(41,57,59,230)); identity.color=SettlementArt.Amber;
+            var resourceRect=resources.GetComponent<RectTransform>(); resourceRect.anchorMin=new Vector2(0,1); resourceRect.anchorMax=Vector2.one;
+            resourceRect.offsetMin=new Vector2(12,-66); resourceRect.offsetMax=new Vector2(-12,-6);
+            var statusObject=new GameObject("Local save status",typeof(RectTransform),typeof(Text)); statusObject.transform.SetParent(resources.transform.parent,false);
+            var statusRect=statusObject.GetComponent<RectTransform>(); statusRect.anchorMin=Vector2.zero; statusRect.anchorMax=new Vector2(1,0); statusRect.offsetMin=new Vector2(12,4); statusRect.offsetMax=new Vector2(-12,24);
+            saveStatus=statusObject.GetComponent<Text>(); saveStatus.font=font; saveStatus.fontSize=13; saveStatus.color=SettlementArt.Amber; saveStatus.raycastTarget=false; saveStatus.alignment=TextAnchor.MiddleLeft;
+            Button(ui,"SAVE",0,1,.26f,1,12,-150,-4,-112,SaveProgress);
+            Button(ui,"LOAD",.26f,1,.52f,1,4,-150,-4,-112,LoadProgress);
+            resetButton=Button(ui,"RESET",.52f,1,.78f,1,4,-150,-4,-112,RequestReset);
             selection=TextPanel(ui,0,0,1,0,12,144,-12,239,18,"",ink);
             leaderLabel=TextPanel(ui,0,0,.55f,0,12,88,-4,136,18,"",new Color32(41,57,59,246));
             Button(ui,"VIEW HERO",.55f,0,1,0,4,88,-12,136,()=>ShowHeroes(true));
             Button(ui,"HEROES",0,0,.5f,0,12,14,-4,76,22,()=>ShowHeroes(true));
             Button(ui,"WASTELAND RAID",.5f,0,1,0,4,14,-12,76,20,ShowRaid);
-            heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.86f),Vector2.zero,Vector2.zero,ink).gameObject;
+            heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.82f),Vector2.zero,Vector2.zero,ink).gameObject;
             var heroRoot=heroPanel.GetComponent<RectTransform>();
             TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear).color=SettlementArt.Amber;
             Button(heroRoot,"X",.8f,1,1,1,4,-62,-12,-12,()=>ShowHeroes(false));
@@ -253,10 +293,10 @@ namespace Ash
             heroStats=TextPanel(heroRoot,.38f,0,1,1,10,142,-18,-82,18,"",Color.clear);
             Button(heroRoot,"<",0,1,.19f,1,18,-386,-4,-342,()=> { selectedHero=(selectedHero+7)%8; Refresh(); });
             Button(heroRoot,">",.19f,1,.38f,1,4,-386,-6,-342,()=> { selectedHero=(selectedHero+1)%8; Refresh(); });
-            for (int i=0;i<3;i++) { int index=i; Button(heroRoot,"+5 "+gameManager.Units[i].Definition.Type, i/3f,0,(i+1)/3f,0,12,76,-8,126,15,()=>Assign(index)); }
-            Button(heroRoot,"TAKE THIS HERO ON A RAID",0,0,1,0,18,14,-18,62,19,ShowRaid);
+            for (int i=0;i<3;i++) { int index=i; Button(heroRoot,"+5 "+gameManager.Units[i].Definition.Type, i/3f,0,(i+1)/3f,0,12,60,-8,104,15,()=>Assign(index)); }
+            Button(heroRoot,"TAKE THIS HERO ON A RAID",0,0,1,0,18,14,-18,54,19,ShowRaid);
             heroPanel.SetActive(false);
-            raidPanel=Panel(ui,"Wasteland raid",new Vector2(.04f,.30f),new Vector2(.96f,.86f),Vector2.zero,Vector2.zero,ink).gameObject;
+            raidPanel=Panel(ui,"Wasteland raid",new Vector2(.04f,.30f),new Vector2(.96f,.82f),Vector2.zero,Vector2.zero,ink).gameObject;
             var raidRoot=raidPanel.GetComponent<RectTransform>();
             raidHeader=TextPanel(raidRoot,0,1,.84f,1,18,-80,-4,-12,21,"",Color.clear);
             Button(raidRoot,"X",.84f,1,1,1,4,-62,-12,-12,()=>raidPanel.SetActive(false));

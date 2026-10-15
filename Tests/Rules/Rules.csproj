@@ -17,5 +17,8 @@
     <Compile Include="../../Assets/Ash/Scripts/Combat/AutoBattle.cs" Link="AutoBattle.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Combat/HeroFragmentWallet.cs" Link="HeroFragmentWallet.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Combat/BattleManager.cs" Link="BattleManager.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Persistence/ProgressState.cs" Link="ProgressState.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Persistence/ProgressPersistence.cs" Link="ProgressPersistence.cs" />
+    <Compile Include="../../Assets/Ash/Scripts/Persistence/LocalSaveStore.cs" Link="LocalSaveStore.cs" />
   </ItemGroup>
 </Project>

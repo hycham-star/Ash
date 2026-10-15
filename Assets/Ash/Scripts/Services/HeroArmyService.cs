@@ -90,7 +90,18 @@ namespace Ash
                 if (stack.Casualties > 0) hero.Army.TryRemoveUnits(stack.Fighter.Definition.Id, stack.Fighter.Level, stack.Casualties);
             hero.AddXp(result.Rewards.HeroXp);
         }
-        internal void NotifyCombatChanged() => Changed?.Invoke();
+        internal void NotifyChanged() => Changed?.Invoke();
+
+        internal void RestoreReserveValidated(string id,int quantity) { reserve[id]=quantity; }
+        internal void RestoreValidatedFrom(HeroArmyService source)
+        {
+            foreach(var hero in Heroes)
+            {
+                var saved=source.FindHero(hero.InstanceId);
+                hero.RestoreProgress(saved.Level,saved.Xp); hero.Army.RestoreValidatedFrom(saved.Army);
+            }
+            foreach(var fighter in Fighters)reserve[fighter.Definition.Id]=source.Available(fighter.Definition.Id);
+        }
 
         public HeroArmyState ExportState()
         {

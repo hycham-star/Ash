@@ -69,6 +69,8 @@ namespace Ash
             foreach (var entry in plan) { changed |= balances[entry.Key] != entry.Value; balances[entry.Key] = entry.Value; }
             return changed;
         }
+        internal void RestoreValidatedFrom(ResourceManager source)
+        { foreach(ResourceType type in Enum.GetValues(typeof(ResourceType)))balances[type]=source.Get(type); }
         internal void NotifyChanged() => Changed?.Invoke();
 
         // Aggregate duplicate resource entries before checking; insufficient funds never partially debit.

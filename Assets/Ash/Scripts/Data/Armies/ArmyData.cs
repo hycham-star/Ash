@@ -47,6 +47,12 @@ namespace Ash
             Id = id; Units = stacks.AsReadOnly();
         }
 
+        internal void RestoreValidatedFrom(ArmyData source)
+        {
+            stacks.Clear();
+            foreach(var stack in source.Units)stacks.Add(new UnitStack(stack.Unit,stack.Count));
+        }
+
         public int QuantityOf(string unitId, int level = 1)
         {
             foreach (var stack in stacks)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Ash
 {
@@ -7,6 +8,7 @@ namespace Ash
     {
         private readonly Dictionary<string, int> balances = new Dictionary<string, int>(StringComparer.Ordinal);
         public event Action Changed;
+        public ReadOnlyCollection<string> DefinitionIds { get; }
         public HeroFragmentWallet(IEnumerable<string> heroDefinitionIds, IDictionary<string, int> initial = null)
         {
             if (heroDefinitionIds == null) throw new ArgumentNullException(nameof(heroDefinitionIds));
@@ -15,6 +17,7 @@ namespace Ash
                 if (string.IsNullOrWhiteSpace(id) || balances.ContainsKey(id)) throw new ArgumentException("Missing or duplicate fragment hero ID.");
                 balances.Add(id, 0);
             }
+            var ids=new List<string>(balances.Keys); ids.Sort(StringComparer.Ordinal); DefinitionIds=ids.AsReadOnly();
             if (initial != null)
                 foreach (var entry in initial)
                 {
@@ -34,6 +37,8 @@ namespace Ash
             return checked(Get(id) + amount);
         }
         internal void CommitAdditionSilently(string id, int balance) { balances[id] = balance; }
+        internal void RestoreValidatedFrom(HeroFragmentWallet source)
+        { foreach(var id in new List<string>(balances.Keys))balances[id]=source.Get(id); }
         internal void NotifyChanged() => Changed?.Invoke();
     }
 }

@@ -97,6 +97,13 @@ namespace Ash
             Army = new ArmyData("army-" + instanceId, this);
         }
 
+        internal void RestoreProgress(int level,int xp)
+        {
+            int required=Definition.XpRequiredAt(level);
+            if(xp<0 || (required==0 ? xp!=0 : xp>=required))throw new ArgumentOutOfRangeException(nameof(xp));
+            Level=level; Xp=xp;
+        }
+
         internal bool AddXp(int amount)
         {
             if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));

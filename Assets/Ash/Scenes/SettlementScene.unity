@@ -56,6 +56,7 @@ MonoBehaviour:
     Amount: 20
   - Type: 4
     Amount: 5
+  enableLocalPersistence: 1
   initialReservePerType: 100
   heroDefinitions:
   - {fileID: 11400000, guid: ba2b672ac909f47cf0557c448ac174ac, type: 2}

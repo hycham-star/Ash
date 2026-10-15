@@ -129,4 +129,5 @@ for (int i = 0; i < fullRoster.Length; i++) fullService.RemoveFighters(fullRoste
 Check(fullService.Available("infantry") == 1000 && fullRoster.All(h => h.Army.TotalUnits == 0), "removing from every hero restores full reserve");
 Check(fullRoster.All(h => h.Army.Power == 0), "empty armies have zero power regardless of rarity");
 passed += CombatChecks.Run(definitions, fighterDefinitions);
-Console.WriteLine($"{passed} total domain checks passed (hero armies, resources, and PvE combat).");
+passed += PersistenceChecks.Run(definitions,fighterDefinitions);
+Console.WriteLine($"{passed} total checks passed (hero armies, resources, PvE, and persistence).");

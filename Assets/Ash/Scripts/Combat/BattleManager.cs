@@ -23,6 +23,10 @@ namespace Ash
             this.fragments = fragments ?? throw new ArgumentNullException(nameof(fragments));
         }
 
+        public bool IsRunning => running;
+        internal void ClearResultAfterLoad()
+        { LastResult=null; NotificationErrors=new List<string>().AsReadOnly(); }
+
         public CombatResult PreviewBattle(string heroInstanceId, NpcEncounter encounter, bool abilitiesEnabled = true, int maxRounds = 120)
         {
             var hero = armies.FindHero(heroInstanceId) ?? throw new ArgumentException("Unknown battle hero.");
@@ -48,7 +52,7 @@ namespace Ash
                 LastResult = result;
                 // All domains are committed before observers run. Observer errors cannot cause a partial settlement.
                 var errors = new List<string>();
-                Publish(armies.NotifyCombatChanged, errors);
+                Publish(armies.NotifyChanged, errors);
                 if (resourceChanged) Publish(resources.NotifyChanged, errors);
                 if (result.Rewards.HeroFragments > 0) Publish(fragments.NotifyChanged, errors);
                 if (BattleCompleted != null)

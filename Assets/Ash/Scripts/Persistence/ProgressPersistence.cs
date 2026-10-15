@@ -1,0 +1,120 @@
+using System;
+using System.Collections.Generic;
+
+namespace Ash
+{
+    /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
+    public sealed class ProgressPersistence
+    {
+        public const int Version = 1;
+        public const string Format = "ASHLANDS_PROGRESS";
+        private readonly HeroArmyService armies;
+        private readonly ResourceManager resources;
+        private readonly HeroFragmentWallet fragments;
+
+        public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments)
+        {
+            this.armies = armies ?? throw new ArgumentNullException(nameof(armies));
+            this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
+            this.fragments = fragments ?? throw new ArgumentNullException(nameof(fragments));
+        }
+        public ProgressState Capture()
+        {
+            var resourceTypes = (ResourceType[])Enum.GetValues(typeof(ResourceType));
+            var balances = new ResourceAmount[resourceTypes.Length];
+            for (int i=0;i<balances.Length;i++) balances[i]=new ResourceAmount(resourceTypes[i],resources.Get(resourceTypes[i]));
+            var ids = new SortedSet<string>(StringComparer.Ordinal);
+            foreach(var id in fragments.DefinitionIds) ids.Add(id);
+            var stock = new List<FragmentState>();
+            foreach(var id in ids) stock.Add(new FragmentState { DefinitionId=id, Quantity=fragments.Get(id) });
+            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray() };
+        }
+        public void Validate(ProgressState state) { Prepare(state); }
+        public void Restore(ProgressState state)
+        {
+            var candidate = Prepare(state);
+            // Prepare has validated every domain. Nothing is published or notified during these commits.
+            armies.RestoreValidatedFrom(candidate.Armies);
+            resources.RestoreValidatedFrom(candidate.Resources);
+            fragments.RestoreValidatedFrom(candidate.Fragments);
+        }
+        public string[] NotifyRestored()
+        {
+            var errors=new List<string>();
+            foreach(var action in new Action[] { armies.NotifyChanged, resources.NotifyChanged, fragments.NotifyChanged })
+                try { action(); } catch(Exception error) { errors.Add(error.Message); }
+            return errors.ToArray();
+        }
+        private sealed class Candidate
+        {
+            public HeroArmyService Armies;
+            public ResourceManager Resources;
+            public HeroFragmentWallet Fragments;
+        }
+        private Candidate Prepare(ProgressState state)
+        {
+            if(state==null) throw new ArgumentException("Missing progress document.");
+            if(state.Version>Version) throw new UnsupportedSaveVersionException(state.Version);
+            if(state.Version!=Version) throw new ArgumentException("Missing or invalid progress version.");
+            if(state.Format!=Format || state.Armies==null || state.Armies.SchemaVersion!=1)
+                throw new ArgumentException("Invalid progress format or army schema.");
+            if(state.Armies.Heroes==null || state.Armies.Reserve==null || state.Resources==null || state.Fragments==null)
+                throw new ArgumentException("Incomplete progress document.");
+            var expectedHeroes=new Dictionary<string,HeroData>(StringComparer.Ordinal);
+            var expectedFighters=new Dictionary<string,UnitData>(StringComparer.Ordinal);
+            var fragmentIds=new HashSet<string>(fragments.DefinitionIds,StringComparer.Ordinal);
+            foreach(var hero in armies.Heroes) { expectedHeroes.Add(hero.InstanceId,hero); }
+            foreach(var fighter in armies.Fighters) expectedFighters.Add(fighter.Definition.Id,fighter);
+            if(state.Armies.Heroes.Length!=expectedHeroes.Count || state.Armies.Reserve.Length!=expectedFighters.Count || state.Fragments.Length!=fragmentIds.Count)
+                throw new ArgumentException("Saved roster/catalogue does not match this game version.");
+            var owned=new Dictionary<string,HeroData>(StringComparer.Ordinal);
+            foreach(var saved in state.Armies.Heroes)
+            {
+                if(saved==null || string.IsNullOrWhiteSpace(saved.InstanceId) || !expectedHeroes.TryGetValue(saved.InstanceId,out var original)
+                    || saved.DefinitionId!=original.Definition.Id || saved.ArmyId!=original.Army.Id || saved.Fighters==null || owned.ContainsKey(saved.InstanceId))
+                    throw new ArgumentException("Missing, duplicate, or unknown saved hero/army.");
+                owned.Add(saved.InstanceId,new HeroData(saved.InstanceId,original.Definition,saved.Level,saved.Xp));
+            }
+            // Preserve authored roster order rather than trusting array order in the file.
+            var roster=new List<HeroData>(); foreach(var hero in armies.Heroes) roster.Add(owned[hero.InstanceId]);
+            var candidateArmies=new HeroArmyService(roster,armies.Fighters,0);
+            var totals=new Dictionary<string,long>(StringComparer.Ordinal);
+            foreach(var id in expectedFighters.Keys) totals[id]=0;
+            var seenReserve=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var stock in state.Armies.Reserve)
+            {
+                if(stock==null || stock.DefinitionId==null || !expectedFighters.TryGetValue(stock.DefinitionId,out var fighter)
+                    || stock.Level!=fighter.Level || stock.Quantity<0 || !seenReserve.Add(stock.DefinitionId))
+                    throw new ArgumentException("Invalid reserve entry.");
+                candidateArmies.RestoreReserveValidated(stock.DefinitionId,stock.Quantity); totals[stock.DefinitionId]=stock.Quantity;
+            }
+            foreach(var saved in state.Armies.Heroes)
+            {
+                var hero=owned[saved.InstanceId]; var seen=new HashSet<string>(StringComparer.Ordinal);
+                foreach(var stack in saved.Fighters)
+                {
+                    if(stack==null || stack.DefinitionId==null || !expectedFighters.TryGetValue(stack.DefinitionId,out var fighter)
+                        || stack.Level!=fighter.Level || stack.Quantity<=0 || !seen.Add(stack.DefinitionId))
+                        throw new ArgumentException("Invalid or duplicate army fighter stack.");
+                    if(!hero.Army.TryAddUnits(fighter,stack.Quantity)) throw new ArgumentException("Saved army exceeds hero capacity.");
+                    totals[stack.DefinitionId]+=stack.Quantity;
+                }
+            }
+            foreach(var total in totals.Values) if(total>int.MaxValue) throw new ArgumentException("Saved fighter total overflows the reserve.");
+            int resourceCount=Enum.GetValues(typeof(ResourceType)).Length;
+            if(state.Resources.Length!=resourceCount) throw new ArgumentException("Incomplete resource ledger.");
+            var seenResources=new HashSet<ResourceType>();
+            foreach(var resource in state.Resources)
+                if(!Enum.IsDefined(typeof(ResourceType),resource.Type) || resource.Amount<0 || !seenResources.Add(resource.Type))
+                    throw new ArgumentException("Invalid or duplicate resource balance.");
+            var fragmentBalances=new Dictionary<string,int>(StringComparer.Ordinal);
+            foreach(var stock in state.Fragments)
+            {
+                if(stock==null || stock.DefinitionId==null || !fragmentIds.Contains(stock.DefinitionId) || stock.Quantity<0 || fragmentBalances.ContainsKey(stock.DefinitionId))
+                    throw new ArgumentException("Invalid or duplicate fragment balance.");
+                fragmentBalances.Add(stock.DefinitionId,stock.Quantity);
+            }
+            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances) };
+        }
+    }
+}

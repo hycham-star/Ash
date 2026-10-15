@@ -50,9 +50,13 @@ assert settlement_path.exists(), "Missing original settlement scene"
 settlement = settlement_path.read_text()
 settlement_encounters = settlement.split("  encounters:\n", 1)[1].split("---", 1)[0]
 assert len(set(re.findall(r"guid: ([0-9a-f]{32})", settlement_encounters))) == 3, "Settlement must reuse three PvE encounters"
+assert "  enableLocalPersistence: 1" in settlement, "Settlement persistence must be enabled"
+for scene_name in ("BattleScene", "HeroArmyTest", "Phase1Test"):
+    assert "  enableLocalPersistence: 1" not in (assets / f"Ash/Scenes/{scene_name}.unity").read_text(), "Debug scenes must not overwrite real progress"
 assert "RuntimeInitializeOnLoadMethod" not in "\n".join(p.read_text() for p in assets.rglob("*.cs")), "Global automatic launcher remains"
 assert not (assets / "Ash/Scripts/Settlement.cs").exists(), "Duplicate legacy resource/combat system remains"
 manifest = json.loads((root / "Packages/manifest.json").read_text())
 assert manifest["dependencies"]["com.unity.ugui"] == "2.0.0", "Unexpected UI dependency"
+assert manifest["dependencies"]["com.unity.modules.jsonserialize"] == "1.0.0", "Missing native JSON serialization module"
 print(f"PASS asset metadata: {len(index)} unique GUIDs, {references} resolved references, scene object links, no legacy launcher.")
 print("Unity compilation, import, and Play mode require the Unity Editor and are not covered by this check.")
