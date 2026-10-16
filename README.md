@@ -9,9 +9,9 @@ The engineer, sentry, all eight selected-hero models and their portraits now use
 
 ## Offline scavenging
 
-This update adds offline catch-up for assigned **map scavengers**, up to **8hours per return**, limited by each site's storage and deposit. Output waits at the center until **COLLECT**. Map positions, workers, partial work and timestamps save together. Existing saves migrate to schema4 without resetting progress; the first upgraded launch starts time tracking without retroactive rewards. Garden/Water Station production remains active-play only.
+Map scavengers are ordinary dedicated workers, with **no visible travel**. Select a resource center, choose **1–5 workers**, and press **SEND TEAM**. Each worker carries **100 resources**. Full teams (or teams emptying a deposit) automatically return, deliver their cargo and wait for the player's next dispatch. **RECALL TEAM** delivers a partial load early. No automatic repeat runs.
 
-Outside Play, run **Ashlands > Validate Offline Scavenging**, then **Validate Map Restart**. Open Settlement Scene, assign a worker, SAVE, stop Play for about60seconds, restart and check the same site's stored output and While away summary. Test Android background/return and full close/reopen after Editor validation. Keep the app installed when updating. See [offline implementation and verification](Docs/OfflineScavenging.md).
+The same rules apply offline, up to **8 hours per return**. Save schema **5** preserves versions 1–4 without resetting map positions or progression. Garden/Water production remains active-play only. Outside Play run **Ashlands > Validate Map Scavenging**, **Validate Offline Scavenging** and **Validate Map Restart**. See [scavenger trips and test steps](Docs/ScavengerTrips.md).
 
 ## Legacy-save migration fix
 
@@ -23,13 +23,13 @@ Open in **Unity 6000.3.23f1** and, outside Play, run **Ashlands > Validate Map S
 
 - A saved local tactical map has **16 scattered centers**: four each for Food, Water, Scrap, and Lumber. Each new game chooses a random seed; positions stay fixed in saves. The map is a scrollable 2D overview of a 200×200 local area, with colored resource markers and a central HOME marker.
 - Drag to explore, **+/−** to zoom, **FIT** for the overview and **LOCATE** for the selected site. Tap a site to inspect it.
-- You start with **10 dedicated scavengers**, separate from all army fighters and the Survivors resource. **+1 WORKER** assigns one free worker; **RECALL 1** returns one. Maximum five per site.
-- Gathering requires workers and continues offline up to the documented cap. Per worker/minute: Food10, Water8, Scrap6, Lumber8. **COLLECT** moves site stock into the shared resource HUD. Storage100 pauses gathering when full; each finite deposit holds1000. Recall workers from an exhausted site. No travel delay, recruitment, respawn or combat is modeled yet; offline output still needs manual collection.
+- You start with **10 dedicated scavengers**, separate from all army fighters and the Survivors resource. Choose a team size and **SEND TEAM**; **RECALL TEAM** returns the whole team. Maximum five per site.
+- Gathering requires workers and continues offline up to the documented cap. Per worker/minute: Food10, Water8, Scrap6, Lumber8. Each worker carries 100; a full team delivers automatically and becomes free. Each finite deposit holds 1000; exhaustion also returns the team with its partial load. Only an explicit SEND TEAM begins another trip. No travel is displayed.
 - Garden/Water Station production continues as requested. Existing upgrade costs remain unchanged; Lumber is now a gatherable/saved resource.
 - Worker commands now checkpoint immediately and report **Saved map and workers** or **NOT SAVED**. On first opening, the map selects a currently assigned site; reopening retains its viewport. The header shows the world seed to distinguish actual coordinate changes from pan/zoom.
-- Save schema **4** persists map positions, allocations, stock/deposits, partial work and UTC checkpoints. Versions1/2 migrate with their existing progression retained, Lumber0 and an unassigned map. New/migrated maps checkpoint automatically at frame end; production checkpoints every10 active seconds. Normal SAVE/pause/quit flush progress.
+- Save schema **5** persists map positions, allocations, stock/deposits, partial work and UTC checkpoints. Versions1/2 migrate with their existing progression retained, Lumber0 and an unassigned map. New/migrated maps checkpoint automatically at frame end; production checkpoints every10 active seconds. Normal SAVE/pause/quit flush progress.
 
-Test: select Lumber, assign one worker, keep app active60seconds, collect8 Lumber, SAVE and restart. Confirm identical site coordinates, assigned workers, Lumber and prior army/buildings. Keep the Android app installed when updating. New map UI, native migration and Android behavior still require Unity/device validation; cloud checks are below. See [scavenging architecture/report](Docs/ScavengingMap.md).
+Test: select Lumber, send one worker, keep app active60seconds, RECALL TEAM to deliver8 Lumber, SAVE and restart. Confirm identical site coordinates, assigned workers, Lumber and prior army/buildings. Keep the Android app installed when updating. New map UI, native migration and Android behavior still require Unity/device validation; cloud checks are below. See [scavenging architecture/report](Docs/ScavengingMap.md).
 
 ## Building progression
 
@@ -40,7 +40,7 @@ Open the updated project in Unity **6000.3.23f1**. Outside Play run **Ashlands >
 - Garden produces **10 × level Food per minute**; Water Station produces **6 × level Water per minute**, while the app is actively running. Production pauses in the background and while closed; **no offline catch-up for settlement buildings** yet.
 - Each producer holds five minutes of output. Use **COLLECT** to transfer stored output to the resource HUD; full storage stops production until collected. The next level increases output/storage without erasing existing stock.
 - Levels, stored output, and partial production seconds are saved. Production checkpoints autosave every 10 active seconds; resource commands save at frame end; manual SAVE and normal pause/quit also flush. A forced termination can lose the latest partial interval.
-- Existing version-one saves migrate to version three, preserving all previous progression and adding level-one buildings and an unassigned map; version-two saves also preserve building progression. Keep the same application identity and update Android without uninstalling to retain the on-device save. Older app versions cannot read new version-four saves.
+- Existing version-one saves migrate to version three, preserving all previous progression and adding level-one buildings and an unassigned map; version-two saves also preserve building progression. Keep the same application identity and update Android without uninstalling to retain the on-device save. Older app versions cannot read new version-five saves.
 
 Costs/rates are provisional local prototype balance, not numbers specified by the attached GDD. Construction queues, build times, visual building tiers, extra resource buildings, and offline production remain future work. See [building progression](Docs/BuildingProgression.md).
 

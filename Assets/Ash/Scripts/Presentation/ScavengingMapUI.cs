@@ -15,7 +15,8 @@ namespace Ash
         private bool opened;
         private RectTransform map,viewport,markerRoot;
         private ScrollRect scroll;
-        private Text stats,feedback,workforce;
+        private Text stats,feedback,workforce,teamSelection;
+        private int teamSize=1;
         private Button assign,recall,collect;
         private string selected="site-01";
         private int renderedSeed;
@@ -82,13 +83,16 @@ namespace Ash
             Control(transform,"+",new Vector2(.2f,0),new Vector2(.4f,0),new Vector2(3,226),new Vector2(-3,264),()=>SetSize(side*1.4f));
             Control(transform,"FIT",new Vector2(.4f,0),new Vector2(.7f,0),new Vector2(3,226),new Vector2(-3,264),Fit);
             Control(transform,"LOCATE",new Vector2(.7f,0),new Vector2(1,0),new Vector2(3,226),new Vector2(-8,264),Locate);
-            var card=Rect(transform,"Site details",Vector2.zero,new Vector2(1,0),new Vector2(8,70),new Vector2(-8,220),ink);
+            var card=Rect(transform,"Site details",Vector2.zero,new Vector2(1,0),new Vector2(8,70),new Vector2(-8,180),ink);
             stats=Label(card,"",16); stats.alignment=TextAnchor.MiddleLeft; stats.resizeTextForBestFit=true; stats.resizeTextMinSize=12; stats.resizeTextMaxSize=16;
+            Control(transform,"−",Vector2.zero,new Vector2(.16f,0),new Vector2(8,184),new Vector2(-3,220),()=> { teamSize=Mathf.Max(1,teamSize-1);Refresh(); });
+            var team=Rect(transform,"Selected team",new Vector2(.16f,0),new Vector2(.84f,0),new Vector2(3,184),new Vector2(-3,220),ink);teamSelection=Label(team,"",14);
+            Control(transform,"+",new Vector2(.84f,0),new Vector2(1,0),new Vector2(3,184),new Vector2(-8,220),()=> { teamSize=Mathf.Min(ScavengingService.MaximumWorkersPerSite,teamSize+1);Refresh(); });
             var status=Rect(transform,"Scavenging status",Vector2.zero,new Vector2(1,0),new Vector2(8,43),new Vector2(-8,68),ink); feedback=Label(status,"Drag to explore • Tap a resource site",12);
             feedback.resizeTextForBestFit=true; feedback.resizeTextMinSize=9; feedback.resizeTextMaxSize=12;
-            assign=Control(transform,"+1 WORKER",Vector2.zero,new Vector2(.33f,0),new Vector2(8,5),new Vector2(-3,41),()=>Command(()=>service.Assign(selected)));
-            recall=Control(transform,"RECALL 1",new Vector2(.33f,0),new Vector2(.66f,0),new Vector2(3,5),new Vector2(-3,41),()=>Command(()=>service.Recall(selected)));
-            collect=Control(transform,"COLLECT",new Vector2(.66f,0),new Vector2(1,0),new Vector2(3,5),new Vector2(-8,41),()=>Command(()=>service.Collect(selected)));
+            assign=Control(transform,"SEND TEAM",Vector2.zero,new Vector2(.33f,0),new Vector2(8,5),new Vector2(-3,41),()=>Command(()=>service.Assign(selected,teamSize)));
+            recall=Control(transform,"RECALL TEAM",new Vector2(.33f,0),new Vector2(.66f,0),new Vector2(3,5),new Vector2(-3,41),()=>Command(()=>service.Recall(selected)));
+            collect=Control(transform,"DELIVER LOAD",new Vector2(.66f,0),new Vector2(1,0),new Vector2(3,5),new Vector2(-8,41),()=>Command(()=>service.Collect(selected)));
         }
         private void Command(Func<ScavengingResult> action)
         {
@@ -97,7 +101,7 @@ namespace Ash
                 // Checkpoint assignments now, not at the next production tick or teardown callback.
                 if(save!=null)feedback.text=save() ? "Saved map and workers" : "NOT SAVED — "+(saveStatus?.Invoke() ?? "See Console");
                 else feedback.text="Updated";
-            } else feedback.text=result.ToString();
+            } else feedback.text=result==ScavengingResult.ResourceLimit ? "Workers home; load protected until resource balance has room." : result.ToString();
             Refresh();
         }
         private static Color ColorFor(ResourceType type)
@@ -123,15 +127,17 @@ namespace Ash
                 }
                 PositionMarkers();
             }
-            foreach(var site in service.Capture().Sites)labels[site.Id].text=site.Resource+"\n"+site.Workers+" workers"+(site.Remaining==0 ? " • EMPTY" : "");
+            foreach(var site in service.Capture().Sites)labels[site.Id].text=site.Resource+"\n"+(site.Workers>0 ? site.Workers+" gathering" : site.Stored>0 ? "Load at home" : "Idle")+(site.Remaining==0 ? " • EMPTY" : "");
             var node=service.Site(selected);
             workforce.text="World "+service.Seed+" • Scavengers "+service.FreeWorkers+" free / "+ScavengingService.TotalWorkers+" total";
+            teamSelection.text=teamSize+" scavenger"+(teamSize==1?"":"s")+" • Carry "+ScavengingService.CarryCapacity(teamSize);
             stats.text=node.Resource.ToString().ToUpperInvariant()+" CENTER • "+node.Id+" • ("+node.X+", "+node.Z+")"
-                +"\nWorkers "+node.Workers+"/"+ScavengingService.MaximumWorkersPerSite+" • Output "+(node.Workers*ScavengingService.Rate(node.Resource))+" / active minute"
-                +"\nStored "+node.Stored+"/"+ScavengingService.SiteCapacity+" • Deposit remaining "+node.Remaining
-                +"\n"+(node.Remaining==0 ? "Exhausted — recall workers and choose another site." : node.Stored==ScavengingService.SiteCapacity ? "Storage full — collect to continue." : node.Workers==0 ? "Assign scavengers to begin gathering." : "Scavenging continues offline (up to 8 hours).");
-            assign.interactable=service.FreeWorkers>0 && node.Workers<ScavengingService.MaximumWorkersPerSite && node.Remaining>0;
-            recall.interactable=node.Workers>0; collect.interactable=node.Stored>0;
+                +"\n"+(node.Workers>0 ? "Gathering: "+node.Workers+" workers • Load "+node.Stored+"/"+ScavengingService.CarryCapacity(node.Workers) : node.Stored>0 ? "Workers home • Delivery pending: "+node.Stored : "No team assigned • Workers available at home")
+                +"\nDeposit remaining "+node.Remaining
+                +"\n"+(node.Workers>0 ? "Auto-return when full. Also gathers offline (up to 8h)." : node.Stored>0 ? "Make resource room, then DELIVER LOAD." : node.Remaining==0 ? "Exhausted — choose another resource center." : "Select team size, then SEND TEAM. No automatic resend.");
+            assign.interactable=service.FreeWorkers>=teamSize && node.Workers==0 && node.Stored==0 && node.Remaining>0;
+            recall.interactable=node.Workers>0; collect.interactable=node.Workers==0 && node.Stored>0;
+            collect.GetComponentInChildren<Text>().text=collect.interactable ? "DELIVER LOAD" : "AUTO DELIVERY";
             foreach(var item in markers) item.Value.GetComponent<Image>().color=item.Key==selected ? new Color32(188,141,62,255) : ColorFor(service.Site(item.Key).Resource);
         }
         public string SelectedSiteId => selected;

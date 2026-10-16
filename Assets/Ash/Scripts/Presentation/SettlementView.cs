@@ -154,7 +154,6 @@ namespace Ash
             art.Box(world,"Truck windshield",new Vector3(-5,1.15f,-2.17f),new Vector3(1.05f,.35f,.03f),SettlementArt.Glass);
             for (int wheel = 0; wheel < 4; wheel++) art.Box(world,"Truck tire",new Vector3(-5+(wheel%2-.5f)*1.4f,.35f,-1.6f+wheel/2*1.5f),new Vector3(.5f,.18f,.5f),new Color32(43,45,43,255),true,PrimitiveType.Cylinder).localRotation = Quaternion.Euler(0,0,90);
             art.Combine(world);
-            RealisticAssets.Scavenger(world,new Vector3(-.55f,0,0),new[] { new Vector3(-.55f,0,0),new Vector3(-.55f,0,4),new Vector3(0,0,4),new Vector3(0,0,0) });
             RealisticAssets.Character(world,"Engineer","Workshop engineer",new Vector3(3,0,-.65f),new[] { new Vector3(3,0,-.65f),new Vector3(1.4f,0,-.65f) },false,.10f);
             RealisticAssets.Character(world,"Sentry","Gate sentry",new Vector3(-1.2f,0,-6));
         }

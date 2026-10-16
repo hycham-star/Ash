@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 4;
+        public const int Version = 5;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -84,6 +84,10 @@ namespace Ash
                 savedScavenging=ScavengingService.Generate(scavenging.Seed);
             } else savedScavenging=state.Scavenging;
             scavenging.Validate(savedScavenging);
+            // Historical versions stored at most 100 at a site, regardless of workforce.
+            if(state.Version>=3 && state.Version<5)
+                foreach(var site in savedScavenging.Sites)
+                    if(site.Stored>100 || (site.Stored==100 && site.Work!=0))throw new ArgumentException("Invalid legacy scavenging cargo.");
             long timestamp=state.Version<4 ? 0 : state.ScavengingUtcSeconds;
             OfflineScavenging.ValidateTimestamp(timestamp);
             var expectedHeroes=new Dictionary<string,HeroData>(StringComparer.Ordinal);

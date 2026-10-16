@@ -7,13 +7,17 @@ namespace Ash
     {
         public int Seconds { get; }
         public ResourceAmount[] Gathered { get; }
-        public OfflineScavengingReport(int seconds,ResourceAmount[] gathered) { Seconds=seconds; Gathered=gathered; }
+        public ResourceAmount[] Delivered { get; }
+        public int ReturnedWorkers { get; }
+        public OfflineScavengingReport(int seconds,ResourceAmount[] gathered,ResourceAmount[] delivered,int returnedWorkers) { Seconds=seconds; Gathered=gathered;Delivered=delivered;ReturnedWorkers=returnedWorkers; }
         public string Summary
         {
             get {
                 var parts=new List<string>();
-                foreach(var item in Gathered)if(item.Amount>0)parts.Add("+"+item.Amount+" "+item.Type);
-                return Seconds==0 ? "" : parts.Count==0 ? "While away: no output — check workers/storage." : "While away: "+string.Join(", ",parts)+" at sites. Tap COLLECT.";
+                foreach(var item in Delivered)if(item.Amount>0)parts.Add("+"+item.Amount+" "+item.Type+" delivered");
+                if(ReturnedWorkers>0)parts.Add(ReturnedWorkers+" workers returned — send again when ready");
+                if(parts.Count==0)foreach(var item in Gathered)if(item.Amount>0)parts.Add("+"+item.Amount+" "+item.Type+" carried");
+                return Seconds==0 && parts.Count==0 ? "" : parts.Count==0 ? "While away: no output — send a team to a resource center." : "While away: "+string.Join(", ",parts)+".";
             }
         }
     }
@@ -40,6 +44,9 @@ namespace Ash
             long previous=LastUtcSeconds;
             int seconds=previous==0 || now<=previous ? 0 : (int)Math.Min(MaximumSeconds,now-previous);
             var before=service.Capture();
+            var balances=new Dictionary<ResourceType,int>();
+            foreach(ResourceType type in Enum.GetValues(typeof(ResourceType)))balances[type]=service.ResourceBalance(type);
+            int workersBefore=service.AssignedWorkers;
             advancing=true;
             try {
                 // Observers see the new watermark together with the completed site state.
@@ -47,12 +54,14 @@ namespace Ash
             } finally { advancing=false; }
             var totals=new Dictionary<ResourceType,int>();
             foreach(var site in before.Sites) {
-                int amount=service.Site(site.Id).Stored-site.Stored;
+                int amount=site.Remaining-service.Site(site.Id).Remaining;
                 if(amount>0) { totals.TryGetValue(site.Resource,out int total); totals[site.Resource]=total+amount; }
             }
             var gathered=new List<ResourceAmount>();
             foreach(ResourceType type in Enum.GetValues(typeof(ResourceType)))if(totals.TryGetValue(type,out int amount))gathered.Add(new ResourceAmount(type,amount));
-            return new OfflineScavengingReport(seconds,gathered.ToArray());
+            var delivered=new List<ResourceAmount>();
+            foreach(ResourceType type in Enum.GetValues(typeof(ResourceType))) { int amount=service.ResourceBalance(type)-balances[type];if(amount>0)delivered.Add(new ResourceAmount(type,amount)); }
+            return new OfflineScavengingReport(seconds,gathered.ToArray(),delivered.ToArray(),workersBefore-service.AssignedWorkers);
         }
         internal void RestoreValidated(long timestamp) { LastUtcSeconds=timestamp; }
     }

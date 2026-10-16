@@ -48,11 +48,17 @@ namespace Ash.Editor
                 var second=Session();
                 Require(second.Scavenging.Seed==seed && second.Scavenging.Site(lumber).Stored==16 && second.Scavenging.Site(scrap).Stored==12,"Cold startup lost map or offline progress.");
                 Require(second.Buildings.Seconds(BuildingKind.FoodGarden)==0,"Offline scavenging unexpectedly advanced settlement production.");
-                Require(second.Scavenging.Collect(lumber)==ScavengingResult.Success && second.Resources.Get(ResourceType.Lumber)==16,"Collect offline output failed.");
+                Require(second.Scavenging.Recall(lumber)==ScavengingResult.Success && second.Resources.Get(ResourceType.Lumber)==16,"Collect offline output failed.");
                 Require(second.SaveProgress(),"Post-collection save failed."); EditorSceneManager.ClosePreviewScene(scenes[1]);
                 var third=Session();
-                Require(third.Scavenging.Site(lumber).Stored==0 && third.Resources.Get(ResourceType.Lumber)==16 && third.Scavenging.Site(lumber).Workers==1,"Restart duplicated collection or lost assignment.");
-                Debug.Log("PASS Unity offline scavenging: native timestamp save/load, focus/pause deduplication, exact offline output, cold startup, stable map/workers and no reward replay after collection. Controlled clock and temporary files only; test real Android lifecycle next.");
+                Require(third.Scavenging.Site(lumber).Stored==0 && third.Resources.Get(ResourceType.Lumber)==16 && third.Scavenging.Site(lumber).Workers==0,"Restart duplicated collection or lost assignment.");
+                Require(third.Scavenging.Assign(lumber,2)==ScavengingResult.Success && third.SaveProgress(),"Explicit resend failed.");
+                EditorSceneManager.ClosePreviewScene(scenes[2]);now+=750;
+                var fourth=Session();
+                Require(fourth.Scavenging.Site(lumber).Workers==0 && fourth.Scavenging.Site(lumber).Stored==0 && fourth.Resources.Get(ResourceType.Lumber)==216,"Offline full-load return failed.");
+                Require(fourth.OfflineSummary.Contains("delivered") && fourth.OfflineSummary.Contains("returned"),"Offline delivery summary missing.");
+                Require(fourth.SaveProgress() && fourth.TryLoadProgress() && fourth.Resources.Get(ResourceType.Lumber)==216 && fourth.Scavenging.Site(lumber).Workers==0,"Completed offline trip repeated on load.");
+                Debug.Log("PASS Unity offline scavenging: native timestamp save/load, focus/pause deduplication, exact offline output, cold startup, stable map, partial recall, full-load automatic delivery/return, and no automatic repeat. Controlled clock and temporary files only; test real Android lifecycle next.");
             }
             catch(Exception error) { Debug.LogException(error); if(Application.isBatchMode)EditorApplication.Exit(1); throw; }
             finally {

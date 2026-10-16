@@ -47,16 +47,23 @@ namespace Ash.Editor
                 service.Advance(37);
                 Require(service.Site(lumber.Id).Stored==4 && service.Site(lumber.Id).Work==56,"Lumber production incorrect.");
                 var snapshot=progress.Capture(); store.Save(snapshot); string exact=codec.Encode(snapshot);
-                service.Collect(lumber.Id); service.Recall(lumber.Id);
+                service.Recall(lumber.Id);
                 progress.Restore(store.Load().State); progress.NotifyRestored();
                 Require(codec.Encode(progress.Capture())==exact,"Native map disk round trip changed coordinates, workers or stock.");
-                service.Advance(23); Require(service.Collect(lumber.Id)==ScavengingResult.Success && manager.Resources.Get(ResourceType.Lumber)==8,"Lumber did not reach resource ledger.");
+                service.Advance(23); Require(service.Recall(lumber.Id)==ScavengingResult.Success && manager.Resources.Get(ResourceType.Lumber)==8,"Lumber did not reach resource ledger.");
+                Require(service.Assign(lumber.Id,2)==ScavengingResult.Success,"Team dispatch failed.");
+                service.Advance(750);
+                Require(service.Site(lumber.Id).Workers==0 && service.FreeWorkers==10 && manager.Resources.Get(ResourceType.Lumber)==208,"Full team must auto-deliver and return.");
+                service.Advance(750);
+                Require(manager.Resources.Get(ResourceType.Lumber)==208,"Returned team must not auto-repeat.");
+                store.Save(progress.Capture());progress.Restore(store.Load().State);
+                Require(service.Site(lumber.Id).Workers==0 && manager.Resources.Get(ResourceType.Lumber)==208,"Completed trip failed native disk restart.");
                 manager.Buildings.Upgrade(BuildingKind.Headquarters);
                 var old=progress.Capture();
                 string oldJson=JsonUtility.ToJson(new LegacyV2 { Version=2,Format=old.Format,Armies=old.Armies,Resources=old.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray(),Fragments=old.Fragments,Buildings=old.Buildings });
                 progress.Restore(codec.Decode(oldJson)); progress.NotifyRestored();
                 Require(service.FreeWorkers==10 && manager.Resources.Get(ResourceType.Lumber)==0 && manager.Buildings.Level(BuildingKind.Headquarters)==2,"Version-two migration lost buildings or failed to initialize map.");
-                Debug.Log("PASS Unity map scavenging: all four resources, dedicated worker allocation, hidden map UI refresh, Lumber collection, native JSON/disk round trip, and version-two migration. Temporary files only; test map drag/zoom/layout and pause/restart on phone.");
+                Debug.Log("PASS Unity map scavenging: all four resources, dedicated worker allocation, hidden map UI refresh, partial recall, full-load auto-return without repeat, native JSON/disk round trip, and version-two migration. Temporary files only; test map drag/zoom/layout and pause/restart on phone.");
             }
             catch(Exception error) { Debug.LogException(error); if(Application.isBatchMode)EditorApplication.Exit(1); throw; }
             finally {

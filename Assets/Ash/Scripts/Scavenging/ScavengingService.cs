@@ -16,12 +16,12 @@ namespace Ash
         public int Seed;
         public ScavengingSiteState[] Sites;
     }
-    public enum ScavengingResult { Success, NoFreeWorkers, SiteFull, NoWorkers, NothingToCollect, ResourceLimit, Exhausted }
+    public enum ScavengingResult { Success, NoFreeWorkers, SiteFull, NoWorkers, NothingToCollect, ResourceLimit, Exhausted, SiteBusy, PendingDelivery }
 
     /// <summary>Seeded local map and dedicated worker allocations. Time is supplied by the caller.</summary>
     public sealed class ScavengingService
     {
-        public const int TotalWorkers=10, MaximumWorkersPerSite=5, SiteCapacity=100, InitialDeposit=1000;
+        public const int TotalWorkers=10, MaximumWorkersPerSite=5, CarryCapacityPerWorker=100, SiteCapacity=MaximumWorkersPerSite*CarryCapacityPerWorker, InitialDeposit=1000;
         public const int MapHalfSize=100;
         private readonly ResourceManager resources;
         private ScavengingState state;
@@ -78,39 +78,62 @@ namespace Ash
             for(int i=0;i<sites.Length;i++)sites[i]=Copy(state.Sites[i]);
             return new ScavengingState { Seed=Seed,Sites=sites };
         }
-        public ScavengingResult Assign(string id)
+        public static int CarryCapacity(int workers) => workers*CarryCapacityPerWorker;
+        internal int ResourceBalance(ResourceType type) => resources.Get(type);
+        public ScavengingResult Assign(string id,int workers=1)
         {
             Guard(); var site=Find(id);
+            if(workers<1 || workers>MaximumWorkersPerSite)throw new ArgumentOutOfRangeException(nameof(workers));
             if(site.Remaining==0)return ScavengingResult.Exhausted;
-            if(site.Workers==MaximumWorkersPerSite)return ScavengingResult.SiteFull;
-            if(FreeWorkers==0)return ScavengingResult.NoFreeWorkers;
-            site.Workers++; Notify(false); return ScavengingResult.Success;
+            if(site.Workers>0)return ScavengingResult.SiteBusy;
+            if(site.Stored>0)return ScavengingResult.PendingDelivery;
+            if(FreeWorkers<workers)return ScavengingResult.NoFreeWorkers;
+            site.Workers=workers; site.Work=0; Notify(false); return ScavengingResult.Success;
         }
+        // Recall is an early return of the entire team, including a partial load.
         public ScavengingResult Recall(string id)
         {
             Guard(); var site=Find(id); if(site.Workers==0)return ScavengingResult.NoWorkers;
-            site.Workers--; Notify(false); return ScavengingResult.Success;
+            bool delivered=ReturnHome(site);Notify(delivered);return site.Stored==0?ScavengingResult.Success:ScavengingResult.ResourceLimit;
         }
+        // Retrying a blocked delivery never restarts a completed trip.
         public ScavengingResult Collect(string id)
         {
-            Guard(); var site=Find(id); if(site.Stored==0)return ScavengingResult.NothingToCollect;
-            if(resources.Get(site.Resource)>int.MaxValue-site.Stored)return ScavengingResult.ResourceLimit;
+            Guard();var site=Find(id);
+            if(site.Workers>0)return ScavengingResult.SiteBusy;
+            if(site.Stored==0)return ScavengingResult.NothingToCollect;
+            bool delivered=Deliver(site);
+            if(!delivered)return ScavengingResult.ResourceLimit;
+            Notify(true);return ScavengingResult.Success;
+        }
+        private bool Deliver(ScavengingSiteState site)
+        {
+            if(site.Stored==0 || resources.Get(site.Resource)>int.MaxValue-site.Stored)return false;
             var plan=resources.PrepareAddition(new[] { new ResourceAmount(site.Resource,site.Stored) });
-            resources.CommitAdditionSilently(plan); site.Stored=0;
-            Notify(true); return ScavengingResult.Success;
+            resources.CommitAdditionSilently(plan);site.Stored=0;return true;
+        }
+        private bool ReturnHome(ScavengingSiteState site)
+        {
+            site.Workers=0;site.Work=0;return Deliver(site);
         }
         public void Advance(int seconds)
         {
             Guard(); if(seconds<0)throw new ArgumentOutOfRangeException(nameof(seconds));
-            if(seconds==0)return; bool changed=false;
+            bool changed=false,delivered=false;
             foreach(var site in state.Sites) {
-                if(site.Workers==0 || site.Remaining==0 || site.Stored==SiteCapacity)continue;
-                long work=site.Work+(long)seconds*site.Workers*Rate(site.Resource);
-                int collected=(int)Math.Min(Math.Min(site.Remaining,SiteCapacity-site.Stored),work/60);
-                site.Stored+=collected; site.Remaining-=collected;
-                site.Work=site.Remaining==0 || site.Stored==SiteCapacity ? 0 : (int)(work%60); changed=true;
+                if(site.Workers==0)continue;
+                int capacity=CarryCapacity(site.Workers);
+                // Preserve legacy cargo even if it exceeds this team's new carrying capacity.
+                if(site.Remaining>0 && site.Stored<capacity && seconds>0) {
+                    long work=site.Work+(long)seconds*site.Workers*Rate(site.Resource);
+                    int gathered=(int)Math.Min(Math.Min(site.Remaining,capacity-site.Stored),work/60);
+                    site.Stored+=gathered;site.Remaining-=gathered;site.Work=(int)(work%60);changed=true;
+                }
+                if(site.Remaining==0 || site.Stored>=capacity) {
+                    delivered|=ReturnHome(site);changed=true;
+                }
             }
-            if(changed)Notify(false);
+            if(changed)Notify(delivered);
         }
         public void Validate(ScavengingState saved)
         {
@@ -124,7 +147,7 @@ namespace Ash
                 known.Remove(site.Id);
                 if(site.Resource!=original.Resource || site.X!=original.X || site.Z!=original.Z || site.Remaining<0 || site.Stored<0
                     || site.Stored>SiteCapacity || site.Remaining>InitialDeposit-site.Stored || site.Workers<0 || site.Workers>MaximumWorkersPerSite
-                    || site.Work<0 || site.Work>=60 || ((site.Remaining==0 || site.Stored==SiteCapacity) && site.Work!=0))
+                    || site.Work<0 || site.Work>=60 || ((site.Remaining==0 || site.Stored>=CarryCapacity(Math.Max(1,site.Workers))) && site.Work!=0))
                     throw new ArgumentException("Invalid scavenging site state.");
                 workers+=site.Workers;
             }
