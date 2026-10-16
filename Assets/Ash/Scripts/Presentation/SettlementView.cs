@@ -26,6 +26,7 @@ namespace Ash
         private BuildingKind selectedBuilding;
         private Text buildingStats, upgradeBuilding, collectBuilding;
         private CombatResultsUI results;
+        private VisualBattlePlayback playback;
         private ScavengingMapUI scavengingMap;
         private int selectedHero, selectedCamp, renderedHero = -1;
         private Color oldAmbient;
@@ -102,7 +103,7 @@ namespace Ash
             camera.cullingMask = ~(1<<PortraitLayer); camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color32(69,76,73,255);
             controls = camera.gameObject.AddComponent<SettlementCamera>(); controls.BuildingSelected += Inspect;
             var sun = new GameObject("Late Afternoon Sun",typeof(Light)).GetComponent<Light>(); sun.transform.SetParent(presentation.transform,false);
-            sun.cullingMask=~(1<<PortraitLayer);
+            sun.cullingMask=~((1<<PortraitLayer)|(1<<VisualBattlePlayback.Layer));
             sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(48,-38,0); sun.intensity = 1.15f;
             sun.color = new Color(1,.9f,.73f); sun.shadows = LightShadows.Soft;
             art.Box(world,"Ashland terrain",new Vector3(0,-.25f,0),new Vector3(55,.45f,55),SettlementArt.Sand);
@@ -292,13 +293,16 @@ namespace Ash
         }
         private void Raid(bool apply)
         {
+            if(playback!=null && playback.IsOpen)return;
             CancelReset();
             if (camps.Count==0) { toast.text="No encounters configured."; return; }
             var hero=gameManager.Heroes[selectedHero];
             try
             {
                 var outcome=apply ? gameManager.Battles.RunBattle(hero.InstanceId,camps[selectedCamp]) : gameManager.Battles.PreviewBattle(hero.InstanceId,camps[selectedCamp]);
-                results.Show(outcome,apply); Refresh(); toast.text=apply ? "Raid settled. Survivors and rewards updated." : "Preview only — army and resources unchanged.";
+                if(playback==null)playback=gameObject.AddComponent<VisualBattlePlayback>();
+                playback.Play(outcome,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,hero.Definition.Ability.Name,apply,()=>
+                { results.Show(outcome,apply);Refresh();toast.text=apply?"Raid settled. Survivors and rewards updated.":"Preview only — army and resources unchanged."; });
                 if (apply) foreach (var error in gameManager.Battles.NotificationErrors) Debug.LogWarning(error,this);
             }
             catch (Exception error) { toast.text=error.Message+" Assign fighters from HEROES first."; }

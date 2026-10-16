@@ -19,7 +19,7 @@ namespace Ash.Editor
                     var shader=Resources.Load<Shader>(name);
                     Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Missing or invalid shader: "+name);
                 }
-                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
+                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","CavalryMount","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
                 {
                     var model=Resources.Load<GameObject>("Art/"+name);
                     Require(model!=null,"Missing imported FBX: "+name);
@@ -41,6 +41,8 @@ namespace Ash.Editor
                         Require(importer.textureType==(suffix=="Normal"?TextureImporterType.NormalMap:TextureImporterType.Default),"Incorrect texture import: "+path);
                     }
                 }
+                var mounted=Resources.Load<GameObject>("Art/CavalryMount").GetComponentsInChildren<Transform>(true);
+                Require(mounted.Any(t=>t.name=="FaceAimOrigin") && mounted.Any(t=>t.name=="FaceAimForward"),"Mounted fighter facing markers missing.");
                 var character=Resources.Load<GameObject>("Art/Scavenger");
                 Require(character.GetComponentsInChildren<SkinnedMeshRenderer>(true).Any(x=>x.bones.Length>=11 && x.bones.All(b=>b!=null)),"Scavenger skeletal binding missing.");
                 var clips=AssetDatabase.LoadAllAssetsAtPath("Assets/Ash/Resources/Art/Scavenger.fbx").OfType<AnimationClip>();

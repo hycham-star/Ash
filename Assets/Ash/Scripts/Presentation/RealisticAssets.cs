@@ -40,6 +40,21 @@ namespace Ash
             var alignment=new GameObject("Character visual alignment").transform;
             alignment.SetParent(root.transform,false);alignment.localPosition=Vector3.up*groundHeight;
             var model=Create(assetName,assetName+"Material",alignment);
+            Align(model.transform,alignment,root.transform,patrol!=null && patrol.Length>1?Vector3.forward:Vector3.back,assetName);
+            root.AddComponent<DetailedScavenger>().Configure(model,patrol,assetName);
+            if(!portrait)Grounding(root.transform,new Vector3(0,groundHeight+.005f,0),new Vector2(.7f,.55f));
+            return root;
+        }
+        public static GameObject MountedFighter(Transform parent,Vector3 position)
+        {
+            var root=new GameObject("Mounted cavalry group");root.transform.SetParent(parent,false);root.transform.localPosition=position;
+            var alignment=new GameObject("Mounted unit alignment").transform;alignment.SetParent(root.transform,false);
+            var model=Create("CavalryMount","CavalryMountMaterial",alignment);
+            Align(model.transform,alignment,root.transform,Vector3.back,"CavalryMount");
+            Grounding(root.transform,new Vector3(0,.015f,0),new Vector2(1,2));return root;
+        }
+        private static void Align(Transform model,Transform alignment,Transform root,Vector3 desired,string assetName)
+        {
             Transform origin=null,front=null;
             foreach(var child in model.GetComponentsInChildren<Transform>(true))
             {
@@ -47,15 +62,9 @@ namespace Ash
                 if(child.name=="FaceAimForward")front=child;
             }
             if(origin==null || front==null)throw new InvalidOperationException("Missing facing markers: "+assetName);
-            var facing=root.transform.InverseTransformDirection(front.position-origin.position);facing.y=0;
+            var facing=root.InverseTransformDirection(front.position-origin.position);facing.y=0;
             if(facing.sqrMagnitude<.01f)throw new InvalidOperationException("Invalid facing markers: "+assetName);
-            var desired=patrol!=null && patrol.Length>1 ? Vector3.forward : Vector3.back;
-            // Keep alignment outside the imported animation hierarchy so root curves cannot overwrite it.
-            // A signed yaw also preserves upright orientation when front/back are exactly opposite.
             alignment.localRotation=Quaternion.AngleAxis(Vector3.SignedAngle(facing.normalized,desired,Vector3.up),Vector3.up);
-            root.AddComponent<DetailedScavenger>().Configure(model,patrol,assetName);
-            if(!portrait)Grounding(root.transform,new Vector3(0,groundHeight+.005f,0),new Vector2(.7f,.55f));
-            return root;
         }
         private static GameObject Create(string modelName,string materialName,Transform parent)
         {

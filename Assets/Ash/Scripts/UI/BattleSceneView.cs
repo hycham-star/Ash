@@ -19,9 +19,9 @@ namespace Ash
         private Font font;
         private Text header, notice, encounterButton, abilityButton;
         private CombatResultsUI results;
+        private VisualBattlePlayback playback;
         private ScrollRect resultsScroll;
         private GameObject presentation;
-        private readonly List<Material> materials = new List<Material>();
 
         private void Start()
         {
@@ -49,7 +49,6 @@ namespace Ash
                 gameManager.HeroArmies.Changed -= Refresh; gameManager.Resources.Changed -= Refresh; gameManager.Fragments.Changed -= Refresh;
             }
             if (presentation != null) Destroy(presentation);
-            foreach (var material in materials) if (material != null) Destroy(material);
         }
         private void Refresh()
         {
@@ -90,13 +89,15 @@ namespace Ash
         }
         private void Fight(bool apply)
         {
+            if(playback!=null && playback.IsOpen)return;
             try
             {
                 var hero = gameManager.Heroes[selectedHero];
                 var result = apply ? gameManager.Battles.RunBattle(hero.InstanceId, camps[selectedCamp], abilities)
                     : gameManager.Battles.PreviewBattle(hero.InstanceId, camps[selectedCamp], abilities);
-                results.Show(result, apply); resultsScroll.verticalNormalizedPosition = 1; Refresh();
-                notice.text = apply ? "Battle settled once. Casualties are lost; survivors stay assigned." : "Preview only. No losses, XP, resources, or fragments applied.";
+                if(playback==null)playback=gameObject.AddComponent<VisualBattlePlayback>();
+                playback.Play(result,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,hero.Definition.Ability.Name,apply,()=>
+                { results.Show(result,apply);resultsScroll.verticalNormalizedPosition=1;Refresh();notice.text=apply?"Battle settled once. Casualties are lost; survivors stay assigned.":"Preview only. No losses, XP, resources, or fragments applied."; });
                 if (apply) foreach (var error in gameManager.Battles.NotificationErrors) Debug.LogWarning("Battle observer error: " + error, this);
             }
             catch (Exception error) { notice.text = "Battle rejected: " + error.Message; }
@@ -108,18 +109,7 @@ namespace Ash
             camera.transform.position = new Vector3(7, 10, -9); camera.transform.LookAt(Vector3.zero);
             camera.orthographic = true; camera.orthographicSize = 8;
             camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color(0.18f, 0.18f, 0.2f);
-            var sun = new GameObject("Battle Sun", typeof(Light)).GetComponent<Light>();
-            sun.transform.SetParent(presentation.transform); sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(50, -30, 0);
-            Block("Wasteland", new Vector3(0, -0.3f, 0), new Vector3(14, 0.5f, 14), new Color(0.35f, 0.31f, 0.26f));
-            Block("Remnant Camp", new Vector3(-3, 0.75f, 0), new Vector3(2, 1.5f, 2), new Color(0.37f, 0.49f, 0.55f));
-            Block("Raider Camp", new Vector3(3, 0.75f, 0), new Vector3(2, 1.5f, 2), new Color(0.6f, 0.26f, 0.2f));
-        }
-        private void Block(string name, Vector3 position, Vector3 scale, Color color)
-        {
-            var block = GameObject.CreatePrimitive(PrimitiveType.Cube); block.name = name;
-            block.transform.SetParent(presentation.transform); block.transform.position = position; block.transform.localScale = scale;
-            var material = new Material(Shader.Find("Standard")) { color = color }; materials.Add(material);
-            block.GetComponent<Renderer>().sharedMaterial = material;
+            camera.cullingMask = 0; // The playback owns its isolated arena camera.
         }
         private void BuildUI()
         {
