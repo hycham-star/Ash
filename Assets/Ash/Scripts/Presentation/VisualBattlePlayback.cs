@@ -12,8 +12,8 @@ namespace Ash
         public const int Layer=29;
         private sealed class Group
         {
-            public GameObject Actor; public Vector3 Start; public bool Player;
-            public FighterType Type; public int Initial,Survivors; public Text Badge;
+            public GameObject Actor; public Vector3 Start;
+            public FighterType Type; public int Initial; public Text Badge;
         }
         private readonly List<Group> groups=new List<Group>();
         private GameObject overlay,stage;
@@ -22,20 +22,24 @@ namespace Ash
         private SettlementArt art;
         private Text heading,roundText,totals,skipText;
         private RectTransform viewport,safeRoot;
-        private LineRenderer playerShot,enemyShot,abilityRing,enemyAbilityRing;
+        private readonly List<Transform> dustClouds=new List<Transform>();
+        private Transform leader;
+        private Material dustMaterial;
+        private bool arrived;
+        private const float TravelSeconds=4f, DustSeconds=2.5f, TravelDistance=7f;
         private Action finished;
         private CombatResult result;
-        private string title,ability;
-        private float elapsed,roundSeconds;
+        private string title;
+        private float elapsed;
         public bool IsOpen { get; private set; }
 
-        public void Play(CombatResult snapshot,string heroId,string heroName,string campName,string abilityName,bool applied,Action onFinished)
+        public void Play(CombatResult snapshot,string heroId,string heroName,string campName,bool applied,Action onFinished)
         {
             if(IsOpen)throw new InvalidOperationException("A battle presentation is already open.");
             result=snapshot??throw new ArgumentNullException(nameof(snapshot));finished=onFinished;
             title=(applied?"PvE BATTLE":"PREVIEW — NO CHANGES")+"\n"+heroName+" vs "+campName;
-            ability=abilityName;elapsed=0;roundSeconds=Mathf.Clamp(12f/Mathf.Max(1,result.Rounds.Count),.12f,1.1f);IsOpen=true;
-            try { BuildUI();BuildStage(heroId,heroName);SetTotals(Initial(true),Initial(false)); }
+            elapsed=0;arrived=false;IsOpen=true;
+            try { BuildUI();BuildStage(heroId,heroName);totals.text="YOUR ARMY • "+Initial()+" fighters"; }
             catch(Exception error)
             {
                 Debug.LogWarning("Battle visuals unavailable; showing the resolved result. "+error.Message,this);
@@ -57,7 +61,7 @@ namespace Ash
             roundText=Label(safeRoot,"Round",new Vector2(.03f,.15f),new Vector2(.97f,.22f),18);
             totals=Label(safeRoot,"Survivors",new Vector2(.03f,.10f),new Vector2(.97f,.15f),17);
             var legend=Label(safeRoot,"Type counters",new Vector2(.03f,.055f),new Vector2(.97f,.10f),12);
-            legend.text="Infantry > Cavalry > Sharpshooter > Infantry\nFormations represent fighter groups; badges show quantities.";
+            legend.text="Your army is heading to the target.\nThe raid is resolved behind the dust cloud.";
             var button=Rect(safeRoot,"Skip animation",new Vector2(.12f,.005f),new Vector2(.88f,.052f));button.gameObject.AddComponent<Image>().color=new Color(.38f,.25f,.12f);
             var click=button.gameObject.AddComponent<Button>();click.targetGraphic=button.GetComponent<Image>();click.onClick.AddListener(Complete);click.navigation=new Navigation{mode=Navigation.Mode.None};
             if(EventSystem.current!=null)EventSystem.current.SetSelectedGameObject(click.gameObject);
@@ -72,86 +76,93 @@ namespace Ash
         {
             art=new SettlementArt();stage=new GameObject("Resolved battle stage");stage.transform.SetParent(transform,false);stage.transform.position=new Vector3(2000,0,0);
             var cameraObject=new GameObject("Arena camera",typeof(Camera));cameraObject.transform.SetParent(stage.transform,false);view=cameraObject.GetComponent<Camera>();
-            view.transform.localPosition=new Vector3(8,10,-13);view.transform.LookAt(stage.transform.position+new Vector3(0,.7f,0));view.orthographic=true;view.orthographicSize=6.3f;view.nearClipPlane=.1f;view.farClipPlane=70;view.cullingMask=1<<Layer;
+            view.transform.localPosition=new Vector3(0,23,-11);view.transform.LookAt(stage.transform.position);view.orthographic=true;view.orthographicSize=9.2f;view.nearClipPlane=.1f;view.farClipPlane=70;view.cullingMask=1<<Layer;
             view.clearFlags=CameraClearFlags.SolidColor;view.backgroundColor=new Color(.15f,.18f,.18f);
             texture=new RenderTexture(768,1024,16){name="PvE arena",antiAliasing=2};texture.Create();if(!texture.IsCreated())throw new InvalidOperationException("Arena render texture unavailable.");
             view.targetTexture=texture;viewport.GetComponent<RawImage>().texture=texture;
             var lamp=new GameObject("Arena light",typeof(Light));lamp.transform.SetParent(stage.transform,false);var light=lamp.GetComponent<Light>();light.type=LightType.Directional;light.intensity=1.2f;light.color=new Color(1,.91f,.78f);light.cullingMask=1<<Layer;light.shadows=LightShadows.Soft;lamp.transform.rotation=Quaternion.Euler(48,-35,0);
-            art.Box(stage.transform,"Wasteland arena",new Vector3(0,-.13f,0),new Vector3(15,.25f,18),SettlementArt.Sand);
+            art.Box(stage.transform,"Wasteland arena",new Vector3(0,-.13f,0),new Vector3(22,.25f,26),SettlementArt.Sand);
             for(int i=0;i<9;i++)art.Rock(stage.transform,new Vector3((i%2==0?-1:1)*(4.5f+i%3*.4f),0,-5+i*1.3f),new Vector3(.4f,.25f,.45f));
             art.Combine(stage.transform);
-            AddGroups(result.PlayerFighters,true);AddGroups(result.EnemyFighters,false);
-            var leader=RealisticAssets.Hero(stage.transform,heroId,heroName,new Vector3(-2.7f,0,-4));leader.transform.localRotation=Quaternion.Euler(0,180,0);
-            playerShot=Line("Your shots",SettlementArt.Amber,false);enemyShot=Line("Enemy shots",new Color(.7f,.25f,.12f),false);abilityRing=Line("Hero ability",SettlementArt.Amber,true);enemyAbilityRing=Line("Enemy ability",new Color(.7f,.25f,.12f),true);
+            var target=RealisticAssets.Building(stage.transform,"Workshop",new Vector2(4,3));target.name="Raid target";target.transform.localPosition=new Vector3(0,0,5.2f);
+            AddGroups(result.PlayerFighters);
+            leader=RealisticAssets.Hero(stage.transform,heroId,heroName,new Vector3(0,0,-6.2f)).transform;leader.localRotation=Quaternion.Euler(0,180,0);
+            March(leader.gameObject,HeroVisualCatalog.ModelFor(heroId));
+            BuildDust();
             foreach(var child in stage.GetComponentsInChildren<Transform>(true))child.gameObject.layer=Layer;
         }
-        private void AddGroups(IEnumerable<CombatFighterResult> fighters,bool player)
+        private void AddGroups(IEnumerable<CombatFighterResult> fighters)
         {
             for(int type=0;type<3;type++)
             {
-                int initial=0,surviving=0;foreach(var stack in fighters)if((int)stack.Fighter.Definition.Type==type){initial+=stack.InitialQuantity;surviving+=stack.SurvivingQuantity;}
+                int initial=0;foreach(var stack in fighters)if((int)stack.Fighter.Definition.Type==type){initial+=stack.InitialQuantity;}
                 if(initial==0)continue;
-                var position=new Vector3((type-1)*2.1f,0,player?-2.1f:2.1f);
-                var actor=type==2?RealisticAssets.MountedFighter(stage.transform,position):RealisticAssets.Character(stage.transform,type==0?"Sentry":"JonasReed",(player?"Your ":"Enemy ")+(FighterType)type,position);
-                if(player)actor.transform.localRotation=Quaternion.Euler(0,180,0);
-                var badge=Label(viewport,(player?"Your ":"Enemy ")+"group",Vector2.zero,Vector2.zero,13);
-                badge.rectTransform.sizeDelta=new Vector2(110,38);badge.color=player?new Color(1,.88f,.5f):new Color(1,.65f,.55f);
-                groups.Add(new Group{Actor=actor,Start=position,Player=player,Type=(FighterType)type,Initial=initial,Survivors=surviving,Badge=badge});badge.text=(FighterType)type+"\n×"+initial;
+                var position=new Vector3((type-1)*2.4f,0,-4.5f);
+                var actor=type==2?RealisticAssets.MountedFighter(stage.transform,position):RealisticAssets.Character(stage.transform,type==0?"Sentry":"JonasReed","Your "+(FighterType)type,position);
+                actor.transform.localRotation=Quaternion.Euler(0,180,0);
+                if(type!=2)March(actor,type==0?"Sentry":"JonasReed");
+                var badge=Label(viewport,"Your group",Vector2.zero,Vector2.zero,11);
+                badge.rectTransform.sizeDelta=new Vector2(84,38);badge.color=new Color(1,.88f,.5f);
+                groups.Add(new Group{Actor=actor,Start=position,Type=(FighterType)type,Initial=initial,Badge=badge});badge.text=(FighterType)type+"\n×"+initial;
             }
         }
-        private LineRenderer Line(string name,Color color,bool loop)
+        private static void March(GameObject actor,string assetName)
         {
-            var obj=new GameObject(name,typeof(LineRenderer));obj.transform.SetParent(stage.transform,false);var line=obj.GetComponent<LineRenderer>();line.sharedMaterial=art.Material(color);line.startWidth=line.endWidth=.045f;line.loop=loop;line.generateLightingData=true;line.enabled=false;return line;
+            var animation=actor.GetComponentInChildren<Animation>(true);
+            if(animation==null)throw new InvalidOperationException("March animation missing: "+assetName);
+            foreach(var clip in Resources.LoadAll<AnimationClip>("Art/"+assetName))
+                if(clip.legacy && !clip.name.StartsWith("__preview__",StringComparison.Ordinal) && clip.name.IndexOf("Walk",StringComparison.OrdinalIgnoreCase)>=0)
+                { animation.AddClip(clip,"Raid march");animation.wrapMode=WrapMode.Loop;animation.Play("Raid march");return; }
+            throw new InvalidOperationException("Walk clip missing: "+assetName);
+        }
+        private void BuildDust()
+        {
+            var shader=Resources.Load<Shader>("AshRaidDust");
+            if(shader==null || !shader.isSupported)throw new InvalidOperationException("Raid dust shader unavailable.");
+            dustMaterial=new Material(shader){color=new Color(.68f,.57f,.39f,.92f)};
+            for(int i=0;i<24;i++)
+            {
+                var cloud=GameObject.CreatePrimitive(PrimitiveType.Quad);cloud.name="Raid dust";cloud.transform.SetParent(stage.transform,false);
+                SettlementArt.Release(cloud.GetComponent<Collider>());
+                var renderer=cloud.GetComponent<Renderer>();renderer.sharedMaterial=dustMaterial;renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
+                cloud.SetActive(false);dustClouds.Add(cloud.transform);
+            }
         }
         private void Update()
         {
-            if(!IsOpen)return;SafeArea();elapsed+=Mathf.Min(Time.unscaledDeltaTime,.1f);
-            int count=result.Rounds.Count;float fighting=Mathf.Max(0,elapsed-.65f);float duration=count*roundSeconds;
-            bool ended=elapsed>=.65f+duration;
-            if(ended)
+            if(!IsOpen)return;SafeArea();elapsed+=Time.unscaledDeltaTime;
+            if(elapsed>=TravelSeconds+DustSeconds){Complete();return;}
+            if(elapsed<TravelSeconds)
             {
-                heading.text=result.Outcome.ToString().ToUpperInvariant()+"\n"+result.EndReason;
-                SetTotals(Survivors(true),Survivors(false));roundText.text="Battle complete";skipText.text="VIEW RESULTS";
-                foreach(var group in groups){group.Actor.transform.localPosition=group.Start;group.Actor.SetActive(group.Survivors>0);group.Badge.text=group.Type+"\n×"+group.Survivors;}
-                playerShot.enabled=enemyShot.enabled=abilityRing.enabled=enemyAbilityRing.enabled=false;
-                if(elapsed>=.65f+duration+1) { Complete();return; }
-            }
-            else if(elapsed>=.65f && count>0)
-            {
-                int index=Mathf.Min(count-1,(int)(fighting/roundSeconds));float phase=(fighting-index*roundSeconds)/roundSeconds;var round=result.Rounds[index];
-                roundText.text="ROUND "+round.Number+" / "+count+"    Damage "+round.PlayerDamage.ToString("0.#")+" / "+round.EnemyDamage.ToString("0.#")+(round.PlayerAbilityActivated?"\n"+ability:round.EnemyAbilityActivated?"\nEnemy ability":"");
-                if(phase>.75f)SetTotals(round.PlayerSurvivors,round.EnemySurvivors);
+                float distance=Mathf.Clamp01(elapsed/TravelSeconds)*TravelDistance;
+                foreach(var group in groups)group.Actor.transform.localPosition=group.Start+Vector3.forward*distance;
+                leader.localPosition=new Vector3(0,0,-6.2f+distance);
+                roundText.text="MARCHING TO TARGET";
                 foreach(var group in groups)
                 {
-                    float reach=group.Type==FighterType.Cavalry?1.65f:group.Type==FighterType.Infantry?1.25f:.08f;
-                    group.Actor.transform.localPosition=group.Start+new Vector3(0,Mathf.Sin(phase*Mathf.PI)*.045f,(group.Player?1:-1)*Mathf.Sin(phase*Mathf.PI)*reach);
+                    var point=view.WorldToViewportPoint(group.Actor.transform.position+Vector3.up*(group.Type==FighterType.Cavalry?2.6f:2));
+                    group.Badge.rectTransform.anchorMin=group.Badge.rectTransform.anchorMax=new Vector2(point.x,point.y);group.Badge.rectTransform.anchoredPosition=Vector2.zero;
                 }
-                Shot(playerShot,true,phase);Shot(enemyShot,false,phase);
-                Pulse(abilityRing,round.PlayerAbilityActivated,phase,new Vector3(-2.7f,.12f,-4));
-                Pulse(enemyAbilityRing,round.EnemyAbilityActivated,phase,new Vector3(0,.12f,3.5f));
+                return;
             }
-            else roundText.text="Armies approaching";
-            foreach(var group in groups)
+            if(!arrived)
             {
-                var point=view.WorldToViewportPoint(group.Actor.transform.position+Vector3.up*(group.Type==FighterType.Cavalry?2.6f:2));
-                group.Badge.rectTransform.anchorMin=group.Badge.rectTransform.anchorMax=new Vector2(point.x,point.y);group.Badge.rectTransform.anchoredPosition=Vector2.zero;
+                arrived=true;
+                foreach(var group in groups){group.Actor.SetActive(false);group.Badge.gameObject.SetActive(false);}
+                leader.gameObject.SetActive(false);totals.text="";
+                foreach(var cloud in dustClouds)cloud.gameObject.SetActive(true);
+            }
+            roundText.text="RAID IN PROGRESS…";
+            float time=elapsed-TravelSeconds;
+            for(int i=0;i<dustClouds.Count;i++)
+            {
+                float angle=i*2.39996f+time*.18f,radius=.4f+(i%5)*.65f;
+                var cloud=dustClouds[i];cloud.localPosition=new Vector3(Mathf.Cos(angle)*radius,.8f+(i%4)*.4f+Mathf.Sin(time*2+i)*.18f,3.8f+Mathf.Sin(angle)*radius);
+                cloud.rotation=view.transform.rotation;
+                float size=3.5f+Mathf.Sin(time*3+i)*.4f;cloud.localScale=new Vector3(size,size,1);
             }
         }
-        private void Pulse(LineRenderer line,bool active,float phase,Vector3 center)
-        {
-            line.enabled=active && phase<.7f;if(!line.enabled)return;
-            line.positionCount=32;float radius=.5f+phase*3;
-            for(int i=0;i<32;i++){float a=i*Mathf.PI*2/32;line.SetPosition(i,stage.transform.position+center+new Vector3(Mathf.Cos(a)*radius,0,Mathf.Sin(a)*radius));}
-        }
-        private void Shot(LineRenderer line,bool player,float phase)
-        {
-            Group source=null,target=null;foreach(var group in groups){if(group.Player==player && group.Type==FighterType.Sharpshooter)source=group;if(group.Player!=player && (target==null || group.Type==FighterType.Infantry))target=group;}
-            line.enabled=source!=null && target!=null && phase>.25f && phase<.55f;
-            if(!line.enabled)return;line.positionCount=2;line.SetPosition(0,source.Actor.transform.position+Vector3.up*1.2f);line.SetPosition(1,target.Actor.transform.position+Vector3.up*.9f);
-        }
-        private int Initial(bool player){int value=0;foreach(var g in groups)if(g.Player==player)value+=g.Initial;return value;}
-        private int Survivors(bool player){int value=0;foreach(var g in groups)if(g.Player==player)value+=g.Survivors;return value;}
-        private void SetTotals(int yours,int enemy){totals.text="Your survivors: "+yours+"     Enemy: "+enemy;}
+        private int Initial(){int value=0;foreach(var g in groups)value+=g.Initial;return value;}
         private void Complete()
         {
             if(!IsOpen)return;IsOpen=false;var callback=finished;finished=null;Release();callback?.Invoke();
@@ -162,7 +173,7 @@ namespace Ash
                 var events=EventSystem.current;
                 if(events!=null && events.currentSelectedGameObject!=null && events.currentSelectedGameObject.transform.IsChildOf(overlay.transform))events.SetSelectedGameObject(null);
                 overlay.SetActive(false);Destroy(overlay);}if(view!=null)view.targetTexture=null;
-            if(texture!=null){texture.Release();Destroy(texture);}if(stage!=null){stage.SetActive(false);Destroy(stage);}art?.Dispose();art=null;overlay=null;stage=null;view=null;texture=null;groups.Clear();
+            if(texture!=null){texture.Release();Destroy(texture);}if(stage!=null){stage.SetActive(false);Destroy(stage);}if(dustMaterial!=null)Destroy(dustMaterial);dustMaterial=null;dustClouds.Clear();leader=null;art?.Dispose();art=null;overlay=null;stage=null;view=null;texture=null;groups.Clear();
         }
         private void OnDestroy(){IsOpen=false;finished=null;Release();}
         private static RectTransform Rect(Transform parent,string name,Vector2 min,Vector2 max)

@@ -301,7 +301,7 @@ namespace Ash
             {
                 var outcome=apply ? gameManager.Battles.RunBattle(hero.InstanceId,camps[selectedCamp]) : gameManager.Battles.PreviewBattle(hero.InstanceId,camps[selectedCamp]);
                 if(playback==null)playback=gameObject.AddComponent<VisualBattlePlayback>();
-                playback.Play(outcome,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,hero.Definition.Ability.Name,apply,()=>
+                playback.Play(outcome,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,apply,()=>
                 { results.Show(outcome,apply);Refresh();toast.text=apply?"Raid settled. Survivors and rewards updated.":"Preview only — army and resources unchanged."; });
                 if (apply) foreach (var error in gameManager.Battles.NotificationErrors) Debug.LogWarning(error,this);
             }

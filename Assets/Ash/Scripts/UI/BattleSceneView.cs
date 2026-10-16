@@ -96,7 +96,7 @@ namespace Ash
                 var result = apply ? gameManager.Battles.RunBattle(hero.InstanceId, camps[selectedCamp], abilities)
                     : gameManager.Battles.PreviewBattle(hero.InstanceId, camps[selectedCamp], abilities);
                 if(playback==null)playback=gameObject.AddComponent<VisualBattlePlayback>();
-                playback.Play(result,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,hero.Definition.Ability.Name,apply,()=>
+                playback.Play(result,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,apply,()=>
                 { results.Show(result,apply);resultsScroll.verticalNormalizedPosition=1;Refresh();notice.text=apply?"Battle settled once. Casualties are lost; survivors stay assigned.":"Preview only. No losses, XP, resources, or fragments applied."; });
                 if (apply) foreach (var error in gameManager.Battles.NotificationErrors) Debug.LogWarning("Battle observer error: " + error, this);
             }

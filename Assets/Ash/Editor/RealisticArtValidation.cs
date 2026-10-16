@@ -14,7 +14,7 @@ namespace Ash.Editor
                 throw new InvalidOperationException("Stop Play mode before validating imported art.");
             try
             {
-                foreach(var name in new[]{"AshDetail","AshContact"})
+                foreach(var name in new[]{"AshDetail","AshContact","AshRaidDust"})
                 {
                     var shader=Resources.Load<Shader>(name);
                     Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Missing or invalid shader: "+name);
