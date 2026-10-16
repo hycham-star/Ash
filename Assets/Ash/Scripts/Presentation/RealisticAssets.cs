@@ -37,7 +37,9 @@ namespace Ash
         public static GameObject Character(Transform parent,string assetName,string displayName,Vector3 position,Vector3[] patrol=null,bool portrait=false,float groundHeight=.065f)
         {
             var root=new GameObject(displayName);root.transform.SetParent(parent,false);root.transform.localPosition=position;
-            var model=Create(assetName,assetName+"Material",root.transform);
+            var alignment=new GameObject("Character visual alignment").transform;
+            alignment.SetParent(root.transform,false);
+            var model=Create(assetName,assetName+"Material",alignment);
             model.transform.localPosition=Vector3.up*groundHeight;
             Transform origin=null,front=null;
             foreach(var child in model.GetComponentsInChildren<Transform>(true))
@@ -49,7 +51,9 @@ namespace Ash
             var facing=root.transform.InverseTransformDirection(front.position-origin.position);facing.y=0;
             if(facing.sqrMagnitude<.01f)throw new InvalidOperationException("Invalid facing markers: "+assetName);
             var desired=patrol!=null && patrol.Length>1 ? Vector3.forward : Vector3.back;
-            model.transform.localRotation=Quaternion.FromToRotation(facing.normalized,desired)*model.transform.localRotation;
+            // Keep alignment outside the imported animation hierarchy so root curves cannot overwrite it.
+            // A signed yaw also preserves upright orientation when front/back are exactly opposite.
+            alignment.localRotation=Quaternion.AngleAxis(Vector3.SignedAngle(facing.normalized,desired,Vector3.up),Vector3.up);
             root.AddComponent<DetailedScavenger>().Configure(model,patrol,assetName);
             if(!portrait)Grounding(root.transform,new Vector3(0,groundHeight+.005f,0),new Vector2(.7f,.55f));
             return root;

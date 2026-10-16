@@ -21,7 +21,7 @@ HeroVisualCatalog binds models to permanent hero IDs. The selected hero's world 
 
 The engineer uses the walk clip on a visual patrol that stays clear of buildings and the selected leader. The sentry and heroes use idle clips. All ten new models contain both idle and walk takes for reuse. The shared motion component also retains the original scavenger's walk playback. This is presentation animation, not a gathering travel system or new combat behavior.
 
-Exported facing markers normalize model orientation independently of FBX axis conversion: moving characters face their travel direction; stationary models face the portrait camera side. The portrait camera frames the full character in a 384x576 render texture, with lighting isolated to the portrait layer. Portrait models have no ground quad. The obsolete procedural SurvivorView and its metadata were removed, and settlement validation now checks a detailed hero skeleton instead of the old cube model.
+Exported facing markers normalize model orientation with an upright yaw on a separate wrapper outside imported animation curves: moving characters face their travel direction; stationary models face the portrait camera side. The portrait camera frames the full character in a 384x576 render texture, with lighting isolated to the portrait layer. Portrait models have no ground quad. The obsolete procedural SurvivorView and its metadata were removed, and settlement validation now checks a detailed hero skeleton instead of the old cube model.
 
 ## Test in Unity
 
