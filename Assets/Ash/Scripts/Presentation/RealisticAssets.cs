@@ -38,9 +38,8 @@ namespace Ash
         {
             var root=new GameObject(displayName);root.transform.SetParent(parent,false);root.transform.localPosition=position;
             var alignment=new GameObject("Character visual alignment").transform;
-            alignment.SetParent(root.transform,false);
+            alignment.SetParent(root.transform,false);alignment.localPosition=Vector3.up*groundHeight;
             var model=Create(assetName,assetName+"Material",alignment);
-            model.transform.localPosition=Vector3.up*groundHeight;
             Transform origin=null,front=null;
             foreach(var child in model.GetComponentsInChildren<Transform>(true))
             {
