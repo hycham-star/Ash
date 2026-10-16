@@ -102,6 +102,7 @@ namespace Ash
             camera.cullingMask = ~(1<<PortraitLayer); camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color32(69,76,73,255);
             controls = camera.gameObject.AddComponent<SettlementCamera>(); controls.BuildingSelected += Inspect;
             var sun = new GameObject("Late Afternoon Sun",typeof(Light)).GetComponent<Light>(); sun.transform.SetParent(presentation.transform,false);
+            sun.cullingMask=~(1<<PortraitLayer);
             sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(48,-38,0); sun.intensity = 1.15f;
             sun.color = new Color(1,.9f,.73f); sun.shadows = LightShadows.Soft;
             art.Box(world,"Ashland terrain",new Vector3(0,-.25f,0),new Vector3(55,.45f,55),SettlementArt.Sand);
@@ -153,8 +154,8 @@ namespace Ash
             for (int wheel = 0; wheel < 4; wheel++) art.Box(world,"Truck tire",new Vector3(-5+(wheel%2-.5f)*1.4f,.35f,-1.6f+wheel/2*1.5f),new Vector3(.5f,.18f,.5f),new Color32(43,45,43,255),true,PrimitiveType.Cylinder).localRotation = Quaternion.Euler(0,0,90);
             art.Combine(world);
             RealisticAssets.Scavenger(world,new Vector3(-.55f,0,0),new[] { new Vector3(-.55f,0,0),new Vector3(-.55f,0,4),new Vector3(0,0,4),new Vector3(0,0,0) });
-            SurvivorView.Create(art,world,"Workshop engineer",3,new Vector3(3,0,-1),new[] { new Vector3(3,0,-1),new Vector3(-3,0,-1) });
-            SurvivorView.Create(art,world,"Gate sentry",1,new Vector3(-1.2f,0,-6));
+            RealisticAssets.Character(world,"Engineer","Workshop engineer",new Vector3(3,0,-.65f),new[] { new Vector3(3,0,-.65f),new Vector3(1.4f,0,-.65f) },false,.10f);
+            RealisticAssets.Character(world,"Sentry","Gate sentry",new Vector3(-1.2f,0,-6));
         }
         private Transform Marker(string title,string description,Vector3 position,Vector3 size,BuildingKind? kind=null)
         {
@@ -234,13 +235,16 @@ namespace Ash
         }
         private void BuildPortrait()
         {
-            portrait = new RenderTexture(256,384,16) { name = "Original hero portrait", antiAliasing = 2 }; portrait.Create();
+            portrait = new RenderTexture(384,576,16) { name = "Original hero portrait", antiAliasing = 2 }; portrait.Create();
             portraitStage = new GameObject("Portrait Stage"); portraitStage.transform.SetParent(presentation.transform,false); portraitStage.transform.position = new Vector3(1000,0,0);
             portraitCamera = new GameObject("Hero Portrait Camera",typeof(Camera)).GetComponent<Camera>(); portraitCamera.transform.SetParent(portraitStage.transform,false);
-            portraitCamera.transform.localPosition = new Vector3(1.5f,1.5f,-4); portraitCamera.transform.LookAt(portraitStage.transform.position+new Vector3(0,1.1f,0));
-            portraitCamera.orthographic = true; portraitCamera.orthographicSize = .85f; portraitCamera.nearClipPlane = .1f; portraitCamera.farClipPlane = 10;
+            portraitCamera.transform.localPosition = new Vector3(1.5f,1.25f,-4); portraitCamera.transform.LookAt(portraitStage.transform.position+new Vector3(0,.95f,0));
+            portraitCamera.orthographic = true; portraitCamera.orthographicSize = 1.02f; portraitCamera.nearClipPlane = .1f; portraitCamera.farClipPlane = 10;
             portraitCamera.cullingMask = 1<<PortraitLayer; portraitCamera.targetTexture = portrait; portraitCamera.depth = -1;
             portraitCamera.clearFlags = CameraClearFlags.SolidColor; portraitCamera.backgroundColor = new Color32(52,69,73,255);
+            var light=new GameObject("Portrait key light",typeof(Light)).GetComponent<Light>();
+            light.transform.SetParent(portraitCamera.transform,false);light.transform.localRotation=Quaternion.Euler(25,-20,0);
+            light.type=LightType.Directional;light.intensity=.65f;light.color=new Color(1,.94f,.85f);light.cullingMask=1<<PortraitLayer;
             var image = heroPanel.GetComponentInChildren<RawImage>(true); image.texture = portrait;
             portraitCamera.enabled = false;
         }
@@ -248,10 +252,10 @@ namespace Ash
         {
             if (selectedHero==renderedHero) return; renderedHero=selectedHero;
             if (leader != null) { leader.gameObject.SetActive(false); Destroy(leader.gameObject); }
-            leader = SurvivorView.Create(art,world,gameManager.Heroes[selectedHero].Definition.DisplayName,selectedHero,new Vector3(-1.4f,0,1.2f)).transform;
-            leader.localScale = Vector3.one*1.15f;
+            var hero=gameManager.Heroes[selectedHero].Definition;
+            leader = RealisticAssets.Hero(world,hero.Id,hero.DisplayName,new Vector3(-1.4f,0,-1)).transform;
             foreach (Transform child in portraitStage.transform) if (child.gameObject!=portraitCamera.gameObject) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
-            var model = SurvivorView.Create(art,portraitStage.transform,"Hero portrait model",selectedHero,Vector3.zero);
+            var model = RealisticAssets.Hero(portraitStage.transform,hero.Id,"Portrait: "+hero.DisplayName,Vector3.zero,true);
             foreach (var child in model.GetComponentsInChildren<Transform>()) child.gameObject.layer=PortraitLayer;
         }
         private void Refresh()

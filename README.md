@@ -1,6 +1,11 @@
 # Ashlands: Rise of the Remnants
 
-Portrait Android, low-poly strategy prototype. Current milestone: **world-map scavenging**, with dedicated workers gathering Food, Water, Scrap, and Lumber alongside settlement production. No PvP, networking, monetization, or training simulation is implemented.
+Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
+
+## Character visual update
+
+The engineer, sentry, all eight selected-hero models and their portraits now use detailed skinned artwork. Models bind to permanent hero IDs and share idle/walk animation support. Outside Play run **Ashlands > Validate Realistic Visuals** and **Validate Settlement Presentation**; then open Settlement Scene and cycle all eight heroes in the HEROES panel. New native Unity and phone checks are required. See [character preview PDF](Docs/Concepts/Character_Visuals_Preview.pdf) and [implementation and test steps](Docs/CharacterVisuals.md). The [four textured buildings](Docs/SettlementBuildings.md) and earlier HQ/scavenger update remain included.
+
 
 ## Offline scavenging
 

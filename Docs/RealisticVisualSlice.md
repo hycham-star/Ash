@@ -1,5 +1,7 @@
 # HQ section: visual review pass 2
 
+This page records the earlier HQ review. Later updates cover the [four buildings](SettlementBuildings.md) and [remaining characters and hero portraits](CharacterVisuals.md).
+
 This update refines the original HQ and one animated settlement scavenger and adds a textured surrounding apron with props. It is a review pass toward concept B. It does **not** yet match the finished art quality of The Walking Dead: Survivors. Other buildings, hero portraits and NPCs retain their existing prototype art. Review the actual assets before expanding this treatment to the rest of the game.
 
 ## What changed

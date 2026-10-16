@@ -48,15 +48,17 @@ namespace Ash.Editor
                     var screen=camera.WorldToViewportPoint(point);
                     Require(screen.z>0 && controls.OverviewArea.Contains(new Vector2(screen.x,screen.y)),"Overview clips settlement bounds behind HUD.");
                 }
-                var survivor=SurvivorView.Create(art,modelRoot.transform,"Original survivor",0,Vector3.zero);
-                Require(survivor.GetComponentsInChildren<MeshRenderer>().Length>=18,"Original survivor geometry is incomplete.");
+                var source=Resources.Load<GameObject>("Art/"+HeroVisualCatalog.ModelFor(managers[0].Heroes[0].Definition.Id));
+                Require(source!=null,"Detailed hero model is missing.");
+                var survivor=UnityEngine.Object.Instantiate(source,modelRoot.transform,false);
+                Require(survivor.GetComponentsInChildren<SkinnedMeshRenderer>().Any(renderer=>renderer.bones.Length>=11),"Detailed hero skeleton is incomplete.");
                 art.Box(modelRoot.transform,"Static facade",new Vector3(3,0,0),Vector3.one,SettlementArt.Concrete);
                 art.Roof(modelRoot.transform,new Vector3(3,1,0),new Vector3(2,.6f,2));
                 art.Rock(modelRoot.transform,new Vector3(-3,0,0),Vector3.one);
                 art.Combine(modelRoot.transform);
                 Require(modelRoot.GetComponentsInChildren<MeshFilter>().All(filter=>filter.sharedMesh!=null),"Generated mesh reference is missing.");
                 Require(manager.Resources.Get(ResourceType.Food)==100 && manager.Heroes.All(hero=>hero.Army.TotalUnits==0),"Presentation validation changed game state.");
-                Debug.Log("PASS Unity settlement wiring, bundled mobile shader, overview framing, original survivor geometry, static mesh combining, hero and encounter references. Validate camera, touch, portraits, and layout in Play mode.");
+                Debug.Log("PASS Unity settlement wiring, bundled mobile shader, overview framing, detailed hero skeleton, static mesh combining, hero and encounter references. Validate camera, touch, portraits, and layout in Play mode.");
             }
             catch(Exception error)
             {

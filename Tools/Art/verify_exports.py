@@ -7,9 +7,12 @@ import sys
 from mathutils import Vector
 
 root = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else os.getcwd()
-for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden'):
+characters = ('Engineer', 'Sentry', 'MaraFlint', 'JonasReed', 'SeraVale', 'BramHolt', 'IlyraVoss', 'KadeRook', 'AshaSol', 'OrinAshcroft')
+for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden') + characters:
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
+    for action in list(bpy.data.actions):
+        bpy.data.actions.remove(action)
     bpy.ops.import_scene.fbx(filepath=os.path.join(root, 'Assets/Ash/Resources/Art', name + '.fbx'))
     meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
     assert meshes, f'{name}: missing mesh'
@@ -20,7 +23,7 @@ for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop'
     coords = [o.matrix_world @ Vector(v) for o in meshes for v in o.bound_box]
     dims = [max(v[i] for v in coords) - min(v[i] for v in coords) for i in range(3)]
     assert max(dims) < 6, f'{name}: unexpected scale {dims}'
-    if name == 'Scavenger':
+    if name == 'Scavenger' or name in characters:
         rigs = [o for o in bpy.context.scene.objects if o.type == 'ARMATURE']
         assert len(rigs) == 1 and len(rigs[0].data.bones) == 11, 'Invalid skeleton'
         rig = rigs[0]
@@ -29,9 +32,6 @@ for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop'
             for vertex in obj.data.vertices:
                 assert vertex.groups and abs(sum(g.weight for g in vertex.groups) - 1) < .001, 'Unnormalized skin weights'
         assert any(len(v.groups) > 1 for o in meshes for v in o.data.vertices), 'Missing blended joints'
-        action = rig.animation_data.action
-        start, end = action.frame_range
-        assert end - start >= 30, 'Truncated walk cycle'
         def pose(frame):
             bpy.context.scene.frame_set(int(frame))
             deps = bpy.context.evaluated_depsgraph_get()
@@ -40,11 +40,34 @@ for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop'
             vertices = [v.co.copy() for v in mesh.vertices]
             obj.to_mesh_clear()
             return vertices
-        first = pose(start)
-        mid = pose(start + 8)
-        last = pose(end)
-        assert max((a-b).length for a,b in zip(first, mid)) > .05, 'Walk does not deform mesh'
-        assert max((a-b).length for a,b in zip(first, last)) < .005, 'Loop has a pose discontinuity'
+        if name in characters:
+            assert bpy.data.objects.get('FaceAimOrigin') and bpy.data.objects.get('FaceAimForward'), 'Missing facing markers'
+            modes = ('Walk', 'Idle')
+        else:
+            modes = ('Walk',)
+        for mode in modes:
+            if name in characters:
+                actions = [a for a in bpy.data.actions if mode in a.name]
+                assert len(actions) == 1, f'{name}: expected one {mode} action, got {[a.name for a in bpy.data.actions]}'
+                rig.animation_data.action = actions[0]
+            action = rig.animation_data.action
+            start, end = action.frame_range
+            assert end - start >= 30, f'Truncated {mode} cycle'
+            first = pose(start)
+            mid = pose(start + 8)
+            last = pose(end)
+            minimum = .05 if mode == 'Walk' else .001
+            assert max((a-b).length for a,b in zip(first, mid)) > minimum, f'{mode} does not deform mesh'
+            assert max((a-b).length for a,b in zip(first, last)) < .005, f'{mode} loop has a pose discontinuity'
         assert 1.5 < dims[2] < 2.1, f'Invalid human height {dims[2]}'
-        print('PASS skeletal deformation, blended normalized weights, walk length and loop closure')
+        print('PASS skeletal deformation, blended normalized weights, motion lengths and loop closure')
     print('PASS FBX round trip', name, 'triangles', triangles, 'dimensions', [round(x, 3) for x in dims])
+
+# A walk action can export correctly yet disappear from a source .blend if it has no user.
+# Reopen the editable files too, so later rebuilds preserve both animation modes.
+for name in characters:
+    bpy.ops.wm.open_mainfile(filepath=os.path.join(root, 'Tools/Art/Characters', name + '.blend'))
+    assert {a.name for a in bpy.data.actions} == {'Idle', 'Walk'}, f'{name}: editable source lost an animation action'
+    assert all(a.use_fake_user for a in bpy.data.actions), f'{name}: source actions are not retained'
+    assert bpy.data.objects.get('FaceAimOrigin') and bpy.data.objects.get('FaceAimForward'), f'{name}: source facing markers missing'
+    print('PASS editable character source reload', name, 'Idle + Walk retained', flush=True)

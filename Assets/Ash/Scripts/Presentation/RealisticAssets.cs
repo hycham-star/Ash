@@ -30,6 +30,30 @@ namespace Ash
             Grounding(root.transform,new Vector3(0,.105f,0),new Vector2(.7f,.55f));
             return root;
         }
+        public static GameObject Hero(Transform parent,string heroId,string displayName,Vector3 position,bool portrait=false)
+        {
+            return Character(parent,HeroVisualCatalog.ModelFor(heroId),displayName,position,null,portrait,portrait?0:.10f);
+        }
+        public static GameObject Character(Transform parent,string assetName,string displayName,Vector3 position,Vector3[] patrol=null,bool portrait=false,float groundHeight=.065f)
+        {
+            var root=new GameObject(displayName);root.transform.SetParent(parent,false);root.transform.localPosition=position;
+            var model=Create(assetName,assetName+"Material",root.transform);
+            model.transform.localPosition=Vector3.up*groundHeight;
+            Transform origin=null,front=null;
+            foreach(var child in model.GetComponentsInChildren<Transform>(true))
+            {
+                if(child.name=="FaceAimOrigin")origin=child;
+                if(child.name=="FaceAimForward")front=child;
+            }
+            if(origin==null || front==null)throw new InvalidOperationException("Missing facing markers: "+assetName);
+            var facing=root.transform.InverseTransformDirection(front.position-origin.position);facing.y=0;
+            if(facing.sqrMagnitude<.01f)throw new InvalidOperationException("Invalid facing markers: "+assetName);
+            var desired=patrol!=null && patrol.Length>1 ? Vector3.forward : Vector3.back;
+            model.transform.localRotation=Quaternion.FromToRotation(facing.normalized,desired)*model.transform.localRotation;
+            root.AddComponent<DetailedScavenger>().Configure(model,patrol,assetName);
+            if(!portrait)Grounding(root.transform,new Vector3(0,groundHeight+.005f,0),new Vector2(.7f,.55f));
+            return root;
+        }
         private static GameObject Create(string modelName,string materialName,Transform parent)
         {
             var source=UnityEngine.Resources.Load<GameObject>("Art/"+modelName);

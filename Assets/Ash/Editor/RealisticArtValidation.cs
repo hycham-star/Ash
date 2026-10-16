@@ -19,7 +19,7 @@ namespace Ash.Editor
                     var shader=Resources.Load<Shader>(name);
                     Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Missing or invalid shader: "+name);
                 }
-                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden"})
+                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
                 {
                     var model=Resources.Load<GameObject>("Art/"+name);
                     Require(model!=null,"Missing imported FBX: "+name);
@@ -45,8 +45,22 @@ namespace Ash.Editor
                 Require(character.GetComponentsInChildren<SkinnedMeshRenderer>(true).Any(x=>x.bones.Length>=11 && x.bones.All(b=>b!=null)),"Scavenger skeletal binding missing.");
                 var clips=AssetDatabase.LoadAllAssetsAtPath("Assets/Ash/Resources/Art/Scavenger.fbx").OfType<AnimationClip>();
                 Require(clips.Any(x=>x.legacy && x.length>1 && !x.name.StartsWith("__preview__",StringComparison.Ordinal)),"Legacy walk clip missing.");
+                var heroIds=AssetDatabase.FindAssets("t:HeroConfig",new[]{"Assets/Ash/Data/Heroes"})
+                    .Select(guid=>AssetDatabase.LoadAssetAtPath<HeroConfig>(AssetDatabase.GUIDToAssetPath(guid)).CreateDefinition().Id).ToArray();
+                Require(heroIds.Length==8 && new System.Collections.Generic.HashSet<string>(heroIds).SetEquals(HeroVisualCatalog.Heroes.Keys),"Hero IDs and visual bindings differ.");
+                Require(HeroVisualCatalog.Heroes.Values.Distinct().Count()==8,"Heroes must have distinct visual assets.");
+                foreach(var name in new[]{"Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
+                {
+                    var asset=Resources.Load<GameObject>("Art/"+name);
+                    Require(asset.GetComponentsInChildren<SkinnedMeshRenderer>(true).Any(renderer=>renderer.bones.Length>=11 && renderer.bones.All(bone=>bone!=null)),"Missing skeletal binding: "+name);
+                    var transforms=asset.GetComponentsInChildren<Transform>(true);
+                    Require(transforms.Any(t=>t.name=="FaceAimOrigin") && transforms.Any(t=>t.name=="FaceAimForward"),"Facing markers missing: "+name);
+                    var animations=AssetDatabase.LoadAllAssetsAtPath("Assets/Ash/Resources/Art/"+name+".fbx").OfType<AnimationClip>().ToArray();
+                    foreach(var mode in new[]{"Idle","Walk"})
+                        Require(animations.Any(clip=>clip.legacy && clip.length>1 && !clip.name.StartsWith("__preview__",StringComparison.Ordinal) && clip.name.IndexOf(mode,StringComparison.OrdinalIgnoreCase)>=0),mode+" clip missing: "+name);
+                }
                 Require(Resources.Load<Material>("Art/ContactMaterial")!=null,"Contact grounding material missing.");
-                Debug.Log("PASS Unity realistic visual imports: meshes, skeletal binding, walk clip, atlas/normal imports, bundled materials and shaders. Check motion, framing and rendering in Play mode and on Android. Player saves untouched.");
+                Debug.Log("PASS Unity realistic visual imports: meshes, eight stable hero visual IDs, NPC/hero skeletal bindings, idle/walk clips, facing markers, atlas/normal imports, bundled materials and shaders. Check motion, framing and rendering in Play mode and on Android. Player saves untouched.");
             }
             catch(Exception error)
             {

@@ -25,7 +25,7 @@ namespace Ash.Editor
             model.materialImportMode=ModelImporterMaterialImportMode.None;
             model.importNormals=ModelImporterNormals.Import;
             model.importTangents=ModelImporterTangents.CalculateMikk;
-            model.importAnimation=assetPath.EndsWith("Scavenger.fbx",StringComparison.Ordinal);
+            model.importAnimation=HeroVisualCatalog.IsCharacterModel(System.IO.Path.GetFileNameWithoutExtension(assetPath));
             if(model.importAnimation)model.animationType=ModelImporterAnimationType.Legacy;
         }
     }
