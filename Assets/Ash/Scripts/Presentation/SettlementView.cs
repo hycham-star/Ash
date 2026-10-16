@@ -28,7 +28,10 @@ namespace Ash
         private CombatResultsUI results;
         private VisualBattlePlayback playback;
         private ScavengingMapUI scavengingMap;
-        private int selectedHero, selectedCamp, renderedHero = -1;
+        private int selectedHero, selectedCamp, selectedFighter, renderedHero = -1;
+        private Slider fighterQuantity;
+        private Text fighterQuantityLabel, addFightersLabel, fillFightersLabel;
+        private readonly List<Text> fighterTypeLabels=new List<Text>();
         private Color oldAmbient;
         private float oldShadowDistance;
         private const int PortraitLayer = 30;
@@ -275,6 +278,7 @@ namespace Ash
             if (camps.Count>0) campButton.text = camps[selectedCamp].Name.ToUpperInvariant();
             if (portraitStage != null) UpdateLeader();
             RefreshBuilding();
+            RefreshFighterControls();
         }
         private void ShowMap()
         {
@@ -283,12 +287,38 @@ namespace Ash
         }
         private void ShowHeroes(bool visible) { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
         private void ShowRaid() { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
-        private void Assign(int type)
+        private int MaximumReinforcements()
         {
-            CancelReset();
-            var hero=gameManager.Heroes[selectedHero]; var fighter=gameManager.Units[type];
-            var result=gameManager.HeroArmies.AssignFighters(hero.InstanceId,fighter.Definition.Id,5);
-            toast.text=result==ArmyCommandResult.Success ? "5 "+fighter.Definition.Type+" assigned to "+hero.Definition.DisplayName : "Assignment: "+result;
+            var hero=gameManager.Heroes[selectedHero];var fighter=gameManager.Units[selectedFighter];
+            return Math.Min(Math.Max(0,hero.Army.Capacity-hero.Army.TotalUnits),gameManager.HeroArmies.Available(fighter.Definition.Id));
+        }
+        private void RefreshFighterControls()
+        {
+            if(fighterQuantity==null)return;
+            int maximum=MaximumReinforcements();
+            fighterQuantity.minValue=0;fighterQuantity.maxValue=Math.Max(1,maximum);
+            fighterQuantity.SetValueWithoutNotify(Mathf.Clamp(fighterQuantity.value,0,maximum));fighterQuantity.interactable=maximum>0;
+            for(int i=0;i<fighterTypeLabels.Count;i++)fighterTypeLabels[i].color=i==selectedFighter?SettlementArt.Amber:new Color32(234,227,204,255);
+            UpdateFighterQuantity();
+        }
+        private void UpdateFighterQuantity()
+        {
+            int quantity=Mathf.RoundToInt(fighterQuantity.value),maximum=MaximumReinforcements();
+            var fighter=gameManager.Units[selectedFighter];var hero=gameManager.Heroes[selectedHero];
+            fighterQuantityLabel.text=fighter.Definition.Type+" +"+quantity+" / "+maximum+" • Army "+hero.Army.TotalUnits+" → "+(hero.Army.TotalUnits+quantity)+"/"+hero.Army.Capacity;
+            addFightersLabel.text="ADD "+quantity;
+            addFightersLabel.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=quantity>0;
+            fillFightersLabel.text="FILL +"+maximum;
+            fillFightersLabel.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=maximum>0;
+        }
+        private void Assign(bool fill)
+        {
+            CancelReset();var hero=gameManager.Heroes[selectedHero];var fighter=gameManager.Units[selectedFighter];
+            int quantity=fill?MaximumReinforcements():Math.Min(Mathf.RoundToInt(fighterQuantity.value),MaximumReinforcements());
+            if(quantity==0){toast.text="Army full or no fighters of this type in reserve.";return;}
+            var result=gameManager.HeroArmies.AssignFighters(hero.InstanceId,fighter.Definition.Id,quantity);
+            toast.text=result==ArmyCommandResult.Success ? quantity+" "+fighter.Definition.Type+" assigned to "+hero.Definition.DisplayName : "Assignment: "+result;
+            RefreshFighterControls();
         }
         private void Raid(bool apply)
         {
@@ -332,19 +362,35 @@ namespace Ash
             Button(ui,"VIEW HERO",.55f,0,1,0,4,88,-12,136,()=>ShowHeroes(true));
             Button(ui,"HEROES",0,0,.5f,0,12,14,-4,76,22,()=>ShowHeroes(true));
             Button(ui,"WASTELAND RAID",.5f,0,1,0,4,14,-12,76,20,ShowRaid);
-            heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.82f),Vector2.zero,Vector2.zero,ink).gameObject;
+            heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.88f),Vector2.zero,Vector2.zero,ink).gameObject;
             var heroRoot=heroPanel.GetComponent<RectTransform>();
             TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear).color=SettlementArt.Amber;
             Button(heroRoot,"X",.8f,1,1,1,4,-62,-12,-12,()=>ShowHeroes(false));
-            var portraitRect=Panel(heroRoot,"Original portrait",new Vector2(0,1),new Vector2(.38f,1),new Vector2(18,-330),new Vector2(-6,-82),new Color32(51,68,73,255));
+            var portraitRect=Panel(heroRoot,"Original portrait",new Vector2(0,1),new Vector2(.38f,1),new Vector2(18,-294),new Vector2(-6,-82),new Color32(51,68,73,255));
             var portraitImage=new GameObject("Rendered survivor portrait",typeof(RectTransform),typeof(RawImage)); portraitImage.transform.SetParent(portraitRect,false);
             var imageRect=portraitImage.GetComponent<RectTransform>(); imageRect.anchorMin=Vector2.zero; imageRect.anchorMax=Vector2.one; imageRect.offsetMin=imageRect.offsetMax=Vector2.zero;
             portraitImage.GetComponent<RawImage>().raycastTarget=false;
-            heroStats=TextPanel(heroRoot,.38f,0,1,1,10,142,-18,-82,18,"",Color.clear);
-            Button(heroRoot,"<",0,1,.19f,1,18,-386,-4,-342,()=> { selectedHero=(selectedHero+7)%8; Refresh(); });
-            Button(heroRoot,">",.19f,1,.38f,1,4,-386,-6,-342,()=> { selectedHero=(selectedHero+1)%8; Refresh(); });
-            for (int i=0;i<3;i++) { int index=i; Button(heroRoot,"+5 "+gameManager.Units[i].Definition.Type, i/3f,0,(i+1)/3f,0,12,60,-8,104,15,()=>Assign(index)); }
-            Button(heroRoot,"TAKE THIS HERO ON A RAID",0,0,1,0,18,14,-18,54,19,ShowRaid);
+            heroStats=TextPanel(heroRoot,.38f,0,1,1,10,210,-18,-82,18,"",Color.clear);
+            Button(heroRoot,"<",0,1,.19f,1,18,-342,-4,-302,()=> { selectedHero=(selectedHero+7)%8; Refresh(); });
+            Button(heroRoot,">",.19f,1,.38f,1,4,-342,-6,-302,()=> { selectedHero=(selectedHero+1)%8; Refresh(); });
+            for(int i=0;i<3;i++) { int index=i;fighterTypeLabels.Add(Button(heroRoot,gameManager.Units[i].Definition.Type.ToString(),i/3f,0,(i+1)/3f,0,12,164,-8,202,14,()=> { selectedFighter=index;fighterQuantity.SetValueWithoutNotify(0);RefreshFighterControls(); })); }
+            fighterQuantityLabel=TextPanel(heroRoot,0,0,1,0,12,127,-12,163,13,"",Color.clear);
+            fighterQuantityLabel.resizeTextForBestFit=true;fighterQuantityLabel.resizeTextMinSize=10;fighterQuantityLabel.resizeTextMaxSize=13;
+            var sliderRoot=Panel(heroRoot,"Fighter quantity slider",Vector2.zero,new Vector2(.72f,0),new Vector2(18,84),new Vector2(-8,126),Color.clear);
+            sliderRoot.GetComponent<Image>().raycastTarget=true;
+            fighterQuantity=sliderRoot.gameObject.AddComponent<Slider>();fighterQuantity.wholeNumbers=true;
+            var track=Panel(sliderRoot,"Track",new Vector2(0,.35f),new Vector2(1,.65f),Vector2.zero,Vector2.zero,new Color32(63,75,76,255));
+            var fillArea=Panel(track,"Fill area",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,Color.clear);fillArea.GetComponent<Image>().raycastTarget=false;
+            var fill=Panel(fillArea,"Fill",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,SettlementArt.Amber);fill.GetComponent<Image>().raycastTarget=false;fighterQuantity.fillRect=fill;
+            var handleArea=Panel(sliderRoot,"Handle area",Vector2.zero,Vector2.one,new Vector2(12,0),new Vector2(-12,0),Color.clear);handleArea.GetComponent<Image>().raycastTarget=false;
+            var handle=Panel(handleArea,"Handle",new Vector2(0,.5f),new Vector2(0,.5f),Vector2.zero,Vector2.zero,new Color32(245,224,170,255));handle.sizeDelta=new Vector2(24,38);
+            fighterQuantity.handleRect=handle;fighterQuantity.targetGraphic=handle.GetComponent<Image>();fighterQuantity.direction=Slider.Direction.LeftToRight;
+            fighterQuantity.onValueChanged.AddListener(_=>UpdateFighterQuantity());
+            fillFightersLabel=Button(heroRoot,"FILL",.72f,0,1,0,4,84,-12,126,15,()=>Assign(true));
+            Button(heroRoot,"−1",0,0,.22f,0,12,46,-4,80,16,()=>fighterQuantity.value=Mathf.Max(0,fighterQuantity.value-1));
+            addFightersLabel=Button(heroRoot,"ADD",.22f,0,.78f,0,4,46,-4,80,16,()=>Assign(false));
+            Button(heroRoot,"+1",.78f,0,1,0,4,46,-12,80,16,()=>fighterQuantity.value=Mathf.Min(MaximumReinforcements(),fighterQuantity.value+1));
+            Button(heroRoot,"TAKE THIS HERO ON A RAID",0,0,1,0,18,4,-18,42,17,ShowRaid);
             heroPanel.SetActive(false);
             raidPanel=Panel(ui,"Wasteland raid",new Vector2(.04f,.30f),new Vector2(.96f,.82f),Vector2.zero,Vector2.zero,ink).gameObject;
             var raidRoot=raidPanel.GetComponent<RectTransform>();
