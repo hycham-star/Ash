@@ -7,7 +7,7 @@ import sys
 from mathutils import Vector
 
 root = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else os.getcwd()
-for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings'):
+for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden'):
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
     bpy.ops.import_scene.fbx(filepath=os.path.join(root, 'Assets/Ash/Resources/Art', name + '.fbx'))

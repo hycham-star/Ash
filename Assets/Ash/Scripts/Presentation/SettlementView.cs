@@ -109,22 +109,11 @@ namespace Ash
             art.Box(world,"North south road",new Vector3(0,.08f,0),new Vector3(1.8f,.03f,16),new Color32(96,100,93,255));
             art.Box(world,"Crossing road",new Vector3(0,.08f,-1),new Vector3(13,.03f,1.5f),new Color32(96,100,93,255));
             for (int i = 0; i < 12; i++) art.Box(world,"Road marking",new Vector3(0,.11f,-7+i*1.2f),new Vector3(.09f,.012f,.45f),SettlementArt.Amber);
-            Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),SettlementArt.Concrete,BuildingKind.Headquarters);
-            Building("WORKSHOP","A salvaged warehouse of tools, spare parts, and forgotten machines.",new Vector3(3,0,2.5f),new Vector3(3,1.7f,2.8f),SettlementArt.Metal);
-            Building("BARRACKS","Open HEROES to assign reserve fighters to your chosen survivor.",new Vector3(-3.3f,0,-4),new Vector3(3,1.5f,2.6f),new Color32(134,108,79,255));
-            var pump = Marker("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f),BuildingKind.WaterStation);
-            for (int i = 0; i < 2; i++)
-            {
-                art.Box(pump,"Water tank",new Vector3(-.7f+i*1.4f,1.4f,0),new Vector3(1,1.1f,1),new Color32(96,142,148,255),true,PrimitiveType.Cylinder);
-                for (int leg = 0; leg < 4; leg++) art.Box(pump,"Tank supports",new Vector3(-.7f+i*1.4f+(leg%2-.5f)*.7f,.5f,(leg/2-.5f)*.7f),new Vector3(.1f,1,.1f),SettlementArt.Metal);
-            }
-            art.Box(pump,"Pump housing",new Vector3(0,.35f,-1),new Vector3(.6f,.7f,.45f),SettlementArt.Rust);
-            var farm = Marker("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.7f,2.5f),BuildingKind.FoodGarden);
-            for (int row = 0; row < 3; row++)
-            {
-                art.Box(farm,"Raised soil bed",new Vector3(0,.2f,-.8f+row*.8f),new Vector3(2.8f,.25f,.52f),SettlementArt.Timber);
-                for (int leaf = 0; leaf < 6; leaf++) art.Box(farm,"Growing crops",new Vector3(-1.1f+leaf*.43f,.43f,-.8f+row*.8f),new Vector3(.25f,.25f,.3f),new Color32(90,123,62,255));
-            }
+            Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),"Headquarters",BuildingKind.Headquarters);
+            Building("WORKSHOP","A salvaged warehouse of tools, spare parts, and forgotten machines.",new Vector3(3,0,2.5f),new Vector3(3,2.3f,2.8f),"Workshop");
+            Building("BARRACKS","Open HEROES to assign reserve fighters to your chosen survivor.",new Vector3(-3.3f,0,-4),new Vector3(3,1.8f,2.6f),"Barracks");
+            Building("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f),"WaterStation",BuildingKind.WaterStation);
+            Building("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.9f,2.5f),"FoodGarden",BuildingKind.FoodGarden);
             for (int side = 0; side < 2; side++)
             {
                 float x = side == 0 ? -7 : 7;
@@ -174,22 +163,11 @@ namespace Ash
             var collider = root.gameObject.AddComponent<BoxCollider>(); collider.center = new Vector3(0,size.y/2,0); collider.size = size;
             return root;
         }
-        private void Building(string title,string description,Vector3 position,Vector3 size,Color color,BuildingKind? kind=null)
+        private void Building(string title,string description,Vector3 position,Vector3 size,string assetName,BuildingKind? kind=null)
         {
             var root = Marker(title,description,position,size+new Vector3(0,.8f,0),kind);
-            if(kind==BuildingKind.Headquarters) { RealisticAssets.Headquarters(root); return; }
-            art.Box(root,"Foundation",new Vector3(0,.16f,0),new Vector3(size.x+.3f,.3f,size.z+.3f),SettlementArt.Concrete);
-            art.Box(root,"Walls",new Vector3(0,size.y/2+.2f,0),size,color);
-            art.Roof(root,new Vector3(0,size.y+.2f,0),new Vector3(size.x+.4f,.75f,size.z+.4f));
-            art.Box(root,"Front door",new Vector3(0,.8f,-size.z/2-.03f),new Vector3(.62f,1.25f,.07f),SettlementArt.Timber);
-            for (int i = 0; i < 2; i++)
-            {
-                float x = (i==0 ? -1 : 1)*size.x*.3f;
-                art.Box(root,"Window frame",new Vector3(x,1.25f,-size.z/2-.04f),new Vector3(.7f,.6f,.09f),SettlementArt.Metal);
-                art.Box(root,"Window glass",new Vector3(x,1.25f,-size.z/2-.1f),new Vector3(.55f,.42f,.03f),SettlementArt.Glass);
-            }
-            art.Box(root,"Chimney",new Vector3(size.x*.3f,size.y+.85f,.55f),new Vector3(.28f,1,.3f),SettlementArt.Metal);
-
+            if(kind==BuildingKind.Headquarters)RealisticAssets.Headquarters(root);
+            else RealisticAssets.Building(root,assetName,new Vector2(size.x,size.z));
         }
         private void Tower(Vector3 position)
         {

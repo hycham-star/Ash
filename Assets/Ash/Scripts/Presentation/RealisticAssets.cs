@@ -14,6 +14,13 @@ namespace Ash
             Grounding(model.transform,new Vector3(0,.17f,0),new Vector2(4.3f,4.1f));
             return model;
         }
+        public static GameObject Building(Transform parent,string assetName,Vector2 footprint)
+        {
+            var model=Create(assetName,assetName+"Material",parent);
+            model.name=assetName+" — original textured building";
+            Grounding(model.transform,new Vector3(0,.065f,0),footprint+new Vector2(.25f,.25f));
+            return model;
+        }
         public static GameObject Scavenger(Transform parent,Vector3 position,Vector3[] patrol)
         {
             var root=new GameObject("Detailed scavenger — visual patrol"); root.transform.SetParent(parent,false); root.transform.localPosition=position;
