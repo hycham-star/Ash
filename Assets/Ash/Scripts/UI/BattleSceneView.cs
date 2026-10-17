@@ -54,7 +54,7 @@ namespace Ash
         {
             var hero = gameManager.Heroes[selectedHero];
             var text = new StringBuilder("ASHLANDS • PvE AUTO-COMBAT\n");
-            text.Append(hero.Definition.DisplayName).Append(" Lv").Append(hero.Level).Append(" • XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
+            text.Append(HeroRarityColors.Text(hero.Definition.DisplayName+" • "+hero.Definition.Rarity,hero.Definition.Rarity)).Append(" Lv").Append(hero.Level).Append(" • XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
                 .Append("\nArmy ").Append(hero.Army.TotalUnits).Append('/').Append(hero.Army.Capacity).Append(" • Power ").Append(hero.Army.Power.ToString("0.##"));
             text.Append("\n");
             foreach (var fighter in gameManager.Units) text.Append(fighter.Definition.Type).Append(':').Append(hero.Army.QuantityOf(fighter.Definition.Id, fighter.Level)).Append(' ');
@@ -96,7 +96,7 @@ namespace Ash
                 var result = apply ? gameManager.Battles.RunBattle(hero.InstanceId, camps[selectedCamp], abilities)
                     : gameManager.Battles.PreviewBattle(hero.InstanceId, camps[selectedCamp], abilities);
                 if(playback==null)playback=gameObject.AddComponent<VisualBattlePlayback>();
-                playback.Play(result,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,apply,()=>
+                playback.Play(result,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,hero.Definition.Rarity,apply,()=>
                 { results.Show(result,apply);resultsScroll.verticalNormalizedPosition=1;Refresh();notice.text=apply?"Battle settled once. Casualties are lost; survivors stay assigned.":"Preview only. No losses, XP, resources, or fragments applied."; });
                 if (apply) foreach (var error in gameManager.Battles.NotificationErrors) Debug.LogWarning("Battle observer error: " + error, this);
             }

@@ -33,11 +33,11 @@ namespace Ash
         private float elapsed;
         public bool IsOpen { get; private set; }
 
-        public void Play(CombatResult snapshot,string heroId,string heroName,string campName,bool applied,Action onFinished)
+        public void Play(CombatResult snapshot,string heroId,string heroName,string campName,HeroRarity rarity,bool applied,Action onFinished)
         {
             if(IsOpen)throw new InvalidOperationException("A battle presentation is already open.");
             result=snapshot??throw new ArgumentNullException(nameof(snapshot));finished=onFinished;
-            title=(applied?"PvE BATTLE":"PREVIEW — NO CHANGES")+"\n"+heroName+" vs "+campName;
+            title=(applied?"PvE BATTLE":"PREVIEW — NO CHANGES")+"\n"+HeroRarityColors.Text(heroName,rarity)+" vs "+campName;
             elapsed=0;arrived=false;IsOpen=true;
             try { BuildUI();BuildStage(heroId,heroName);totals.text="YOUR ARMY • "+Initial()+" fighters"; }
             catch(Exception error)

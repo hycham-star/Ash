@@ -29,6 +29,7 @@ namespace Ash
         private VisualBattlePlayback playback;
         private ScavengingMapUI scavengingMap;
         private int selectedHero, selectedCamp, selectedFighter, renderedHero = -1;
+        private Image heroPortraitFrame;
         private Slider fighterQuantity;
         private Text fighterQuantityLabel, addFightersLabel, fillFightersLabel;
         private readonly List<Text> fighterTypeLabels=new List<Text>();
@@ -267,14 +268,15 @@ namespace Ash
             resources.text = "FOOD  "+gameManager.Resources.Get(ResourceType.Food)+"      SCRAP  "+gameManager.Resources.Get(ResourceType.Scrap)
                 +"\nWATER  "+gameManager.Resources.Get(ResourceType.Water)+"      FUEL  "+gameManager.Resources.Get(ResourceType.Fuel);
             resources.text += "\nLUMBER  "+gameManager.Resources.Get(ResourceType.Lumber);
-            leaderLabel.text = hero.Definition.DisplayName.ToUpperInvariant()+"\nLv "+hero.Level+"  •  Army "+hero.Army.TotalUnits+"/"+hero.Army.Capacity;
-            var text = new StringBuilder(hero.Definition.DisplayName+"\n"+hero.Definition.Rarity+" • "+hero.Definition.Specialization+"\n\n");
+            leaderLabel.text = HeroRarityColors.Text(hero.Definition.DisplayName.ToUpperInvariant(),hero.Definition.Rarity)+"\nLv "+hero.Level+"  •  Army "+hero.Army.TotalUnits+"/"+hero.Army.Capacity;
+            var text = new StringBuilder(HeroRarityColors.Text(hero.Definition.DisplayName+"\n"+hero.Definition.Rarity,hero.Definition.Rarity)+" • "+hero.Definition.Specialization+"\n\n");
             text.Append("LEVEL ").Append(hero.Level).Append("    XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
                 .Append("\nARMY ").Append(hero.Army.TotalUnits).Append('/').Append(hero.Army.Capacity).Append("\nPOWER ").Append(hero.Army.Power.ToString("0.##"))
                 .Append("\nBONUS +").Append(hero.Definition.BonusAt(hero.Level)/100m).Append("% matching fighters")
                 .Append("\nFRAGMENTS ").Append(gameManager.Fragments.Get(hero.Definition.Id)).Append("\n\n").Append(hero.Definition.Biography);
             heroStats.text = text.ToString();
-            raidHeader.text = "WASTELAND RAID\n"+hero.Definition.DisplayName+" • "+hero.Army.TotalUnits+" fighters";
+            heroPortraitFrame.color=HeroRarityColors.For(hero.Definition.Rarity);
+            raidHeader.text = "WASTELAND RAID\n"+HeroRarityColors.Text(hero.Definition.DisplayName,hero.Definition.Rarity)+" • "+hero.Army.TotalUnits+" fighters";
             if (camps.Count>0) campButton.text = camps[selectedCamp].Name.ToUpperInvariant();
             if (portraitStage != null) UpdateLeader();
             RefreshBuilding();
@@ -330,7 +332,7 @@ namespace Ash
             {
                 var outcome=apply ? gameManager.Battles.RunBattle(hero.InstanceId,camps[selectedCamp]) : gameManager.Battles.PreviewBattle(hero.InstanceId,camps[selectedCamp]);
                 if(playback==null)playback=gameObject.AddComponent<VisualBattlePlayback>();
-                playback.Play(outcome,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,apply,()=>
+                playback.Play(outcome,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,hero.Definition.Rarity,apply,()=>
                 { results.Show(outcome,apply);Refresh();toast.text=apply?"Raid settled. Survivors and rewards updated.":"Preview only — army and resources unchanged."; });
                 if (apply) foreach (var error in gameManager.Battles.NotificationErrors) Debug.LogWarning(error,this);
             }
@@ -367,8 +369,9 @@ namespace Ash
             TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear).color=SettlementArt.Amber;
             Button(heroRoot,"X",.8f,1,1,1,4,-62,-12,-12,()=>ShowHeroes(false));
             var portraitRect=Panel(heroRoot,"Original portrait",new Vector2(0,1),new Vector2(.38f,1),new Vector2(18,-294),new Vector2(-6,-82),new Color32(51,68,73,255));
+            heroPortraitFrame=portraitRect.GetComponent<Image>();
             var portraitImage=new GameObject("Rendered survivor portrait",typeof(RectTransform),typeof(RawImage)); portraitImage.transform.SetParent(portraitRect,false);
-            var imageRect=portraitImage.GetComponent<RectTransform>(); imageRect.anchorMin=Vector2.zero; imageRect.anchorMax=Vector2.one; imageRect.offsetMin=imageRect.offsetMax=Vector2.zero;
+            var imageRect=portraitImage.GetComponent<RectTransform>(); imageRect.anchorMin=Vector2.zero; imageRect.anchorMax=Vector2.one; imageRect.offsetMin=new Vector2(6,6);imageRect.offsetMax=new Vector2(-6,-6);
             portraitImage.GetComponent<RawImage>().raycastTarget=false;
             heroStats=TextPanel(heroRoot,.38f,0,1,1,10,210,-18,-82,18,"",Color.clear);
             Button(heroRoot,"<",0,1,.19f,1,18,-342,-4,-302,()=> { selectedHero=(selectedHero+7)%8; Refresh(); });

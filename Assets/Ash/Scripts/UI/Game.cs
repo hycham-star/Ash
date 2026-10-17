@@ -56,7 +56,7 @@ namespace Ash
             var definition = hero.Definition;
             var ability = definition.Ability;
             var text = new StringBuilder();
-            text.Append(definition.DisplayName).Append(" • ").Append(definition.Rarity)
+            text.Append(HeroRarityColors.Text(definition.DisplayName+" • "+definition.Rarity,definition.Rarity))
                 .Append("\nLevel ").Append(hero.Level).Append(" / ").Append(definition.MaxLevel)
                 .Append("    XP ").Append(hero.Xp).Append(" / ").Append(hero.XpToNextLevel == 0 ? "MAX" : hero.XpToNextLevel.ToString())
                 .Append("\n\n").Append(definition.Biography)
@@ -74,7 +74,11 @@ namespace Ash
                     .Append("  • Base power ").Append(fighter.Power).Append('\n');
             status.text = text.ToString();
             for (int i = 0; i < heroButtons.Count; i++)
-                heroButtons[i].color = i == selectedHero ? new Color(0.5f, 0.31f, 0.12f) : new Color(0.08f, 0.1f, 0.12f);
+            {
+                var color=HeroRarityColors.For(gameManager.Heroes[i].Definition.Rarity);
+                heroButtons[i].color=Color.Lerp(new Color(.08f,.1f,.12f),color,i==selectedHero?.35f:.12f);
+                var outline=heroButtons[i].GetComponent<Outline>();outline.effectColor=color;outline.effectDistance=Vector2.one*(i==selectedHero?3:1);
+            }
             for (int i = 0; i < fighterRows.Count; i++)
             {
                 var fighter = gameManager.Units[i];
@@ -163,10 +167,11 @@ namespace Ash
                 float top = -90 - (i / 2) * 45;
                 var label = Label(root, new Vector2(minX, 1), new Vector2(minX + 0.5f, 1), new Vector2(12, top - 40), new Vector2(-12, top), 17);
                 label.alignment = TextAnchor.MiddleCenter;
-                label.text = hero.Definition.DisplayName + " • " + hero.Definition.Rarity;
+                label.text = HeroRarityColors.Text(hero.Definition.DisplayName + " • " + hero.Definition.Rarity,hero.Definition.Rarity);
                 var button = label.transform.parent.gameObject.AddComponent<Button>();
                 button.targetGraphic = label.transform.parent.GetComponent<Image>();
                 heroButtons.Add((Image)button.targetGraphic);
+                button.targetGraphic.gameObject.AddComponent<Outline>().effectColor=HeroRarityColors.For(hero.Definition.Rarity);
                 button.onClick.AddListener(() => { selectedHero = index; Refresh(); detailsScroll.verticalNormalizedPosition = 1; });
             }
             status = Label(root, Vector2.zero, Vector2.one, new Vector2(12, 290), new Vector2(-12, -280), 19);
