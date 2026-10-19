@@ -2,6 +2,10 @@
 
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
 
+## Hero rarity uniforms
+
+The actual eight hero models now wear matching colors by rarity: **Ordinary grey, Rare blue, Epic purple, Legendary gold**, including their portraits and raid appearances. See the [uniform preview](Docs/HeroRarityUniforms.pdf) and [color rules/checks](Docs/HeroRarityColors.md). Use Unity **6000.3.26f1** and accept the project patch upgrade if prompted; run **Validate Realistic Visuals** outside Play, then cycle all eight heroes.
+
 ## Character visual update
 
 The engineer, sentry, all eight selected-hero models and their portraits now use detailed skinned artwork. Models bind to permanent hero IDs and share idle/walk animation support. Outside Play run **Ashlands > Validate Realistic Visuals** and **Validate Settlement Presentation**; then open Settlement Scene and cycle all eight heroes in the HEROES panel. New native Unity and phone checks are required. See [character preview PDF](Docs/Concepts/Character_Visuals_Preview.pdf) and [implementation and test steps](Docs/CharacterVisuals.md). The [four textured buildings](Docs/SettlementBuildings.md) and earlier HQ/scavenger update remain included.

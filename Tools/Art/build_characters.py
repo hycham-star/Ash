@@ -1,11 +1,12 @@
 """Original character expansion using the approved skinned body and procedural art helpers.
 Blender 4.3.2. Run with --python-exit-code 1, then -- /path/to/Ash.
-Shares a body/skeleton; distinct outfits, hair, colors and equipment are authored below.
+Shares a body/skeleton; rarity uniforms with distinct hair and equipment are authored below.
 """
 import ast
 import bpy
 import math
 import os
+import re
 import sys
 from mathutils import Vector
 root=sys.argv[sys.argv.index('--')+1] if '--' in sys.argv else os.getcwd()
@@ -32,6 +33,13 @@ characters=[
  ('OrinAshcroft','strategist',(.13,.17,.20),(.44,.31,.22),(.26,.25,.23),False,'beard'),
 ]
 sourceout=os.path.join(root,'Tools/Art/Characters');os.makedirs(sourceout,exist_ok=True)
+# Gameplay rarity is the source of truth for hero uniforms, not per-character colors.
+rarity_coats=((.33,.36,.40),(.055,.22,.65),(.36,.075,.62),(.82,.49,.045))
+requested=next((arg.split('=',1)[1].split(',') for arg in sys.argv if arg.startswith('--only=')),None)
+if requested:
+ assert set(requested).issubset({c[0] for c in characters}), 'Unknown character requested'
+ characters=[c for c in characters if c[0] in requested]
+
 
 def animate(mode):
  action=bpy.data.actions.new(mode);rig.animation_data.action=action
@@ -73,9 +81,17 @@ for index,(name,role,coat,tone,haircolor,feminine,style) in enumerate(characters
  for action in list(bpy.data.actions):bpy.data.actions.remove(action)
  scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.samples=16;scene.cycles.use_denoising=False;scene.render.bake.margin=8;scene.world.color=(.26,.29,.33)
  parts=[]
+ hero_config=os.path.join(root,'Assets/Ash/Data/Heroes',name+'.asset')
+ is_hero=os.path.isfile(hero_config)
+ if is_hero:
+  rarity=int(re.search(r'^  rarity: (\d+)$',open(hero_config).read(),re.M).group(1));coat=rarity_coats[rarity]
  cloth=mat(name+' jacket',coat,'cloth');skin=mat(name+' skin',tone);hair=mat(name+' hair',haircolor)
  iron=mat(name+' steel',(.11,.14,.145));wood=mat(name+' canvas',(.25,.19,.11),'cloth');leather=mat(name+' leather',(.105,.065,.035));dark=mat(name+' dark',(.035,.035,.03));glass=mat(name+' glass',(.08,.13,.15));gold=mat(name+' ochre',(.50,.34,.09));silver=mat(name+' pale metal',(.36,.37,.34))
  thisbody=body
+ if is_hero:
+  # Rarity colors cover torso, sleeves and trousers; skin, hair, boots and tools keep their material.
+  thisbody=thisbody.replace("(.185,.115,.105),iron,'Hips'", "(.185,.115,.105),cloth,'Hips'")
+  thisbody=thisbody.replace(".05,.052)],iron,", ".05,.052)],cloth,")
  if feminine:
   thisbody=thisbody.replace('.245,.125','.215,.125').replace('.175,.115','.16,.115').replace('(.095,.089,.132)','(.089,.085,.128)').replace('(.073,.066,.049)','(.069,.064,.045)')
  exec(compile(thisbody,sourcepath+' [shared character body]','exec'),globals())
@@ -115,7 +131,8 @@ for index,(name,role,coat,tone,haircolor,feminine,style) in enumerate(characters
   ball('Dust scarf',(0,-.015,1.445),(.10,.081,.045),gold,'Chest')
   box('Route folio',(-.20,.015,.95),(.085,.18,.28),leather,'Hips',.015)
  elif role=='builder':
-  box('Builder chest guard',(0,-.133,1.20),(.32,.040,.27),iron,'Chest',.025)
+  armor=mat(name+' rarity armor',tuple(c*.8 for c in coat))
+  box('Builder chest guard',(0,-.133,1.20),(.32,.040,.27),armor,'Chest',.025)
   rod('Builder harness',(-.14,-.16,1.30),(.14,-.16,1.00),.018,wood,'Chest')
   for x in (-.14,.14):pouch(x,.88)
  elif role=='radio':
