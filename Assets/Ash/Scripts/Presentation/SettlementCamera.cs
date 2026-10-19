@@ -29,7 +29,7 @@ namespace Ash
                 Mathf.Max(1, safeArea.height - 405 * scale) / height);
             OverviewArea = area;
             // Enclose the settlement walls, roofs and towers, excluding distant scenery.
-            var bounds = new Bounds(new Vector3(0, 1.5f, 0), new Vector3(16, 6, 19));
+            var bounds = new Bounds(new Vector3(0, 1.5f, 0), new Vector3(SettlementLayout.HalfWidth*2+4,6,SettlementLayout.HalfDepth*2+4));
             float horizontal = 0, vertical = 0;
             for (int corner = 0; corner < 8; corner++)
             {
@@ -40,7 +40,7 @@ namespace Ash
             }
             homeZoom = Mathf.Max(10, 1.08f * Mathf.Max(horizontal / (view.aspect * area.width), vertical / area.height));
             maximumZoom = Mathf.Max(80, homeZoom * 3.5f);
-            home = bounds.center - transform.forward * 45
+            home = bounds.center - transform.forward * 90
                 - transform.right * ((area.center.x - .5f) * 2 * homeZoom * view.aspect)
                 - transform.up * ((area.center.y - .5f) * 2 * homeZoom);
             panOrigin=home; transform.position = home; view.orthographicSize = homeZoom; dragging = false;
@@ -49,7 +49,7 @@ namespace Ash
         {
             view.orthographicSize=Mathf.Clamp(zoom,4,maximumZoom);
             float size=view.orthographicSize;
-            panOrigin=target-transform.forward*45
+            panOrigin=target-transform.forward*90
                 -transform.right*((OverviewArea.center.x-.5f)*2*size*view.aspect)
                 -transform.up*((OverviewArea.center.y-.5f)*2*size);
             transform.position=panOrigin; dragging=false;
@@ -92,7 +92,7 @@ namespace Ash
                 var delta = before.GetPoint(first)-after.GetPoint(second);
                 transform.position += delta;
                 var offset = transform.position-panOrigin;
-                transform.position = panOrigin + new Vector3(Mathf.Clamp(offset.x,-6,6),0,Mathf.Clamp(offset.z,-6,6));
+                transform.position = panOrigin + new Vector3(Mathf.Clamp(offset.x,-24,24),0,Mathf.Clamp(offset.z,-26,26));
             }
             previous = point;
         }
@@ -100,7 +100,7 @@ namespace Ash
         {
             if (!dragging) return; dragging = false;
             if (Vector2.Distance(origin,point) > 10) return;
-            if (Physics.Raycast(view.ScreenPointToRay(point), out var hit, 100))
+            if (Physics.Raycast(view.ScreenPointToRay(point), out var hit, 300))
             {
                 var building = hit.collider.GetComponent<SettlementBuilding>();
                 if (building != null) BuildingSelected?.Invoke(building);

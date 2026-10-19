@@ -44,7 +44,7 @@ namespace Ash.Editor
                 var controls=cameraRoot.AddComponent<SettlementCamera>(); controls.ResetView();
                 for(int corner=0;corner<8;corner++)
                 {
-                    var point=new Vector3((corner&1)==0?-8:8, (corner&2)==0?-1.5f:4.5f, (corner&4)==0?-9.5f:9.5f);
+                    var point=new Vector3((corner&1)==0?-(SettlementLayout.HalfWidth+2):SettlementLayout.HalfWidth+2, (corner&2)==0?-1.5f:4.5f, (corner&4)==0?-(SettlementLayout.HalfDepth+2):SettlementLayout.HalfDepth+2);
                     var screen=camera.WorldToViewportPoint(point);
                     Require(screen.z>0 && controls.OverviewArea.Contains(new Vector2(screen.x,screen.y)),"Overview clips settlement bounds behind HUD.");
                 }

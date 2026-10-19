@@ -2,9 +2,13 @@
 
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
 
+## Expanded settlement and population
+
+The settlement now has a **36×40 walled area and 12 building plots**. Tap a plot or the **POP / FREE** button to construct housing, farms, water wells or scrapyards. Civilian residents grow with housing, Food and Water, and staff new producers. Construction, upgrades and output save with existing progression in **schema 7**. Run **Ashlands > Validate Settlement Development** and **Validate Settlement Presentation** outside Play. See [construction rules and test steps](Docs/SettlementDevelopment.md).
+
 ## Hospital
 
-All raid fighter casualties are now **wounded and recoverable**; heroes are never wounded. Open **HOSPITAL** or tap the clinic, pay Food/Water for treatment, and recovered fighters return to reserve. Excess patients wait safely; paid queues automatically fill available beds. Upgrades add beds and speed healing. Treatment continues offline using the existing saved clock. Save version **6** migrates prior progression. Run **Ashlands > Validate Hospital** outside Play, then test the clinic on Unity and Android. See [hospital rules and step-by-step checks](Docs/Hospital.md).
+All raid fighter casualties are now **wounded and recoverable**; heroes are never wounded. Open **HOSPITAL** or tap the clinic, pay Food/Water for treatment, and recovered fighters return to reserve. Excess patients wait safely; paid queues automatically fill available beds. Upgrades add beds and speed healing. Treatment continues offline using the existing saved clock. Save version **7** migrates prior progression, including hospital patients. Run **Ashlands > Validate Hospital** outside Play, then test the clinic on Unity and Android. See [hospital rules and step-by-step checks](Docs/Hospital.md).
 
 ## Hero rarity uniforms
 
@@ -131,7 +135,7 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**497 regular checks passed**, including hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**569 regular checks passed**, including hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
 GUID/scene reference checks passed. **New offline compilation/import, native timestamp migration, pause/focus lifecycle, summary UI, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Ash
 {
     public enum BuildingKind { Headquarters, FoodGarden, WaterStation }
-    public enum BuildingCommandResult { Success, MaximumLevel, HeadquartersRequired, InsufficientResources, NothingToCollect, ResourceLimit }
+    public enum BuildingCommandResult { Success, MaximumLevel, HeadquartersRequired, InsufficientResources, NothingToCollect, ResourceLimit, PlotOccupied, InsufficientResidents, InvalidPlotType }
     [Serializable]
     public sealed class BuildingState
     {
@@ -15,7 +15,7 @@ namespace Ash
     }
 
     /// <summary>Local prototype rules. Caller supplies active-play seconds; no Unity or wall clock dependency.</summary>
-    public sealed class BuildingService
+    public sealed partial class BuildingService
     {
         private readonly ResourceManager resources;
         private readonly Dictionary<BuildingKind, BuildingState> buildings = new Dictionary<BuildingKind, BuildingState>();
@@ -102,9 +102,7 @@ namespace Ash
             foreach(var state in buildings.Values)
             {
                 if(state.Kind==BuildingKind.Headquarters || state.Stored==Capacity(state.Kind))continue;
-                long elapsed=(long)state.Seconds+activeSeconds;
-                state.Stored=(int)Math.Min(Capacity(state.Kind), state.Stored+(elapsed/60)*Rate(state.Kind));
-                state.Seconds=state.Stored==Capacity(state.Kind) ? 0 : (int)(elapsed%60); changed=true;
+                AdvanceStock(state.Stored,state.Seconds,activeSeconds,Rate(state.Kind),Capacity(state.Kind),out state.Stored,out state.Seconds);changed=true;
             }
             if(changed) {
                 commanding=true;

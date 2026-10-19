@@ -1,4 +1,4 @@
-> Current progress schema is 6 and includes the [hospital](Hospital.md): level, waiting/paid/active patients and healing work. Versions 1–5 migrate without resetting existing supported progression. The older schema descriptions below are historical.
+> Current progress schema is 7, including [settlement development](SettlementDevelopment.md) and the [hospital](Hospital.md). Versions 1–6 migrate without resetting existing supported progression. The older schema descriptions below are historical.
 
 > Current offline milestone writes schema4 and adds timestamp-based catch-up for assigned map workers, up to8hours with storage/deposit caps. See OfflineScavenging.md for current behavior and403checks. Earlier milestone details below are historical.
 

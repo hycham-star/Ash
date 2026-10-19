@@ -63,7 +63,7 @@ namespace Ash
             float elapsed=Mathf.Min(Time.unscaledDeltaTime,1f);
             productionSeconds+=elapsed; productionCheckpoint+=elapsed;
             if(productionSeconds>=1) {
-                int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds); Hospital.Advance(seconds);
+                int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds); Buildings.AdvanceDevelopment(seconds); Hospital.Advance(seconds);
                 advancingScavenging=true;
                 try { Scavenging.Advance(seconds); } finally { advancingScavenging=false; }
             }
@@ -156,6 +156,7 @@ namespace Ash
                 var starting=new ResourceManager(initialResources);
                 for(int i=0;i<fresh.Resources.Length;i++)fresh.Resources[i]=new ResourceAmount(fresh.Resources[i].Type,starting.Get(fresh.Resources[i].Type));
                 foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
+                fresh.Development=SettlementDevelopmentState.Fresh();
                 fresh.Hospital=HospitalState.Fresh();
                 fresh.Buildings=new BuildingService(new ResourceManager()).Capture();
                 fresh.Scavenging=ScavengingService.Generate(NewMapSeed());
