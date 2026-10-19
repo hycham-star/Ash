@@ -40,7 +40,7 @@ namespace Ash
             gameManager.Resources.Changed += Refresh;
             gameManager.Fragments.Changed += Refresh;
             Refresh();
-            notice.text = "Use Balanced or Specialty to prepare fighters from reserve. Preview is safe; Fight applies losses and rewards.";
+            notice.text = "Use Balanced or Specialty to prepare fighters from reserve. Preview is safe; Fight sends wounded to hospital and applies rewards.";
         }
         private void OnDestroy()
         {
@@ -97,7 +97,7 @@ namespace Ash
                     : gameManager.Battles.PreviewBattle(hero.InstanceId, camps[selectedCamp], abilities);
                 if(playback==null)playback=gameObject.AddComponent<VisualBattlePlayback>();
                 playback.Play(result,hero.Definition.Id,hero.Definition.DisplayName,camps[selectedCamp].Name,hero.Definition.Rarity,apply,()=>
-                { results.Show(result,apply);resultsScroll.verticalNormalizedPosition=1;Refresh();notice.text=apply?"Battle settled once. Casualties are lost; survivors stay assigned.":"Preview only. No losses, XP, resources, or fragments applied."; });
+                { results.Show(result,apply);resultsScroll.verticalNormalizedPosition=1;Refresh();notice.text=apply?"Battle settled once. Wounded sent to hospital; survivors stay assigned.":"Preview only. No losses, XP, resources, or fragments applied."; });
                 if (apply) foreach (var error in gameManager.Battles.NotificationErrors) Debug.LogWarning("Battle observer error: " + error, this);
             }
             catch (Exception error) { notice.text = "Battle rejected: " + error.Message; }
@@ -130,7 +130,7 @@ namespace Ash
             Button(root, "BALANCED ARMY", 0, 0.333f, -295, -255, true, () => PrepareArmy(false));
             Button(root, "SPECIALTY ARMY", 0.333f, 0.666f, -295, -255, true, () => PrepareArmy(true));
             Button(root, "RESET TEST SESSION", 0.666f, 1, -295, -255, true, () => SceneManager.LoadScene(gameObject.scene.name));
-            var report = Label(root, Vector2.zero, Vector2.one, new Vector2(12, 136), new Vector2(-12, -305), 17);
+            var report = Label(root, Vector2.zero, Vector2.one, new Vector2(12, 174), new Vector2(-12, -305), 17);
             report.transform.parent.gameObject.AddComponent<RectMask2D>();
             var content = report.GetComponent<RectTransform>(); content.anchorMin = new Vector2(0, 1); content.anchorMax = Vector2.one;
             content.pivot = new Vector2(0.5f, 1); content.offsetMin = new Vector2(10, 0); content.offsetMax = new Vector2(-10, -8);
@@ -138,6 +138,8 @@ namespace Ash
             resultsScroll = report.transform.parent.gameObject.AddComponent<ScrollRect>(); resultsScroll.viewport = report.transform.parent.GetComponent<RectTransform>();
             resultsScroll.content = content; resultsScroll.horizontal = false; resultsScroll.movementType = ScrollRect.MovementType.Clamped;
             results = report.transform.parent.gameObject.AddComponent<CombatResultsUI>(); results.Bind(report);
+            var hospital=HospitalUI.Create(root,gameManager,font);
+            Button(root,"HOSPITAL",0,.5f,128,162,false,hospital.Show);
             notice = Label(root, Vector2.zero, new Vector2(1, 0), new Vector2(12, 76), new Vector2(-12, 128), 16);
             Button(root, "FIGHT — APPLY RESULT", 0, 0.5f, 16, 68, false, () => Fight(true));
             Button(root, "PREVIEW — NO CHANGES", 0.5f, 1, 16, 68, false, () => Fight(false));

@@ -128,6 +128,7 @@ Check(fullService.Available("infantry") + fullRoster.Sum(h => h.Army.QuantityOf(
 for (int i = 0; i < fullRoster.Length; i++) fullService.RemoveFighters(fullRoster[i].InstanceId, "infantry", i + 1);
 Check(fullService.Available("infantry") == 1000 && fullRoster.All(h => h.Army.TotalUnits == 0), "removing from every hero restores full reserve");
 Check(fullRoster.All(h => h.Army.Power == 0), "empty armies have zero power regardless of rarity");
+passed += HospitalChecks.Run(definitions,fighterDefinitions);
 passed += CombatChecks.Run(definitions, fighterDefinitions);
 passed += PersistenceChecks.Run(definitions,fighterDefinitions);
 passed += BuildingChecks.Run(definitions,fighterDefinitions);

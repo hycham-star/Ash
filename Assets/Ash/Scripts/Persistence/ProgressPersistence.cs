@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 5;
+        public const int Version = 6;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -14,6 +14,7 @@ namespace Ash
         private readonly BuildingService buildings;
         private readonly ScavengingService scavenging;
         private readonly OfflineScavenging offline;
+        private readonly HospitalService hospital;
 
         public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments, BuildingService buildings = null, ScavengingService scavenging = null, OfflineScavenging offline = null)
         {
@@ -23,6 +24,7 @@ namespace Ash
             this.buildings = buildings ?? new BuildingService(resources);
             this.scavenging = scavenging ?? new ScavengingService(resources);
             this.offline = offline ?? new OfflineScavenging(this.scavenging);
+            this.hospital=armies.GetHospital(resources);
         }
         public ProgressState Capture()
         {
@@ -33,7 +35,7 @@ namespace Ash
             foreach(var id in fragments.DefinitionIds) ids.Add(id);
             var stock = new List<FragmentState>();
             foreach(var id in ids) stock.Add(new FragmentState { DefinitionId=id, Quantity=fragments.Get(id) });
-            return new ProgressState { Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture(), ScavengingUtcSeconds=offline.LastUtcSeconds };
+            return new ProgressState { Hospital=hospital.Capture(), Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture(), ScavengingUtcSeconds=offline.LastUtcSeconds };
         }
         public void Validate(ProgressState state) { Prepare(state); }
         public void Restore(ProgressState state)
@@ -46,11 +48,12 @@ namespace Ash
             buildings.RestoreValidated(candidate.Buildings);
             scavenging.RestoreValidated(candidate.Scavenging);
             offline.RestoreValidated(candidate.ScavengingUtcSeconds);
+            hospital.RestoreValidated(candidate.Hospital);
         }
         public string[] NotifyRestored()
         {
             var errors=new List<string>();
-            foreach(var action in new Action[] { armies.NotifyChanged, resources.NotifyChanged, fragments.NotifyChanged, buildings.NotifyChanged, scavenging.NotifyChanged })
+            foreach(var action in new Action[] { armies.NotifyChanged, resources.NotifyChanged, fragments.NotifyChanged, buildings.NotifyChanged, scavenging.NotifyChanged, hospital.NotifyChanged })
                 try { action(); } catch(Exception error) { errors.Add(error.Message); }
             return errors.ToArray();
         }
@@ -60,6 +63,7 @@ namespace Ash
             public ResourceManager Resources;
             public HeroFragmentWallet Fragments;
             public BuildingState[] Buildings;
+            public HospitalState Hospital;
             public ScavengingState Scavenging;
             public long ScavengingUtcSeconds;
         }
@@ -90,6 +94,8 @@ namespace Ash
                     if(site.Stored>100 || (site.Stored==100 && site.Work!=0))throw new ArgumentException("Invalid legacy scavenging cargo.");
             long timestamp=state.Version<4 ? 0 : state.ScavengingUtcSeconds;
             OfflineScavenging.ValidateTimestamp(timestamp);
+            var savedHospital=state.Version<6?HospitalState.Fresh():state.Hospital;
+            hospital.Validate(savedHospital);
             var expectedHeroes=new Dictionary<string,HeroData>(StringComparer.Ordinal);
             var expectedFighters=new Dictionary<string,UnitData>(StringComparer.Ordinal);
             var fragmentIds=new HashSet<string>(fragments.DefinitionIds,StringComparer.Ordinal);
@@ -130,6 +136,7 @@ namespace Ash
                     totals[stack.DefinitionId]+=stack.Quantity;
                 }
             }
+            foreach(var patient in savedHospital.Patients)totals[patient.DefinitionId]+=patient.Quantity;
             foreach(var total in totals.Values) if(total>int.MaxValue) throw new ArgumentException("Saved fighter total overflows the reserve.");
             int resourceCount=state.Version<3 ? 5 : Enum.GetValues(typeof(ResourceType)).Length;
             if(state.Resources.Length!=resourceCount) throw new ArgumentException("Incomplete resource ledger.");
@@ -144,7 +151,7 @@ namespace Ash
                     throw new ArgumentException("Invalid or duplicate fragment balance.");
                 fragmentBalances.Add(stock.DefinitionId,stock.Quantity);
             }
-            return new Candidate { Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging, ScavengingUtcSeconds=timestamp };
+            return new Candidate { Hospital=savedHospital, Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging, ScavengingUtcSeconds=timestamp };
         }
     }
 }

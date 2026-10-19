@@ -2,6 +2,10 @@
 
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
 
+## Hospital
+
+All raid fighter casualties are now **wounded and recoverable**; heroes are never wounded. Open **HOSPITAL** or tap the clinic, pay Food/Water for treatment, and recovered fighters return to reserve. Excess patients wait safely; paid queues automatically fill available beds. Upgrades add beds and speed healing. Treatment continues offline using the existing saved clock. Save version **6** migrates prior progression. Run **Ashlands > Validate Hospital** outside Play, then test the clinic on Unity and Android. See [hospital rules and step-by-step checks](Docs/Hospital.md).
+
 ## Hero rarity uniforms
 
 The actual eight hero models now wear matching colors by rarity: **Ordinary grey, Rare blue, Epic purple, Legendary gold**, including their portraits and raid appearances. See the [uniform preview](Docs/HeroRarityUniforms.pdf) and [color rules/checks](Docs/HeroRarityColors.md). Use Unity **6000.3.26f1** and accept the project patch upgrade if prompted; run **Validate Realistic Visuals** outside Play, then cycle all eight heroes.
@@ -99,9 +103,9 @@ This is the first visual pass, not final commissioned art. Headquarters, Garden 
 
 Suggested smoke checks: Mara Flint + Balanced Army + Stray Raiders gives a straightforward victory. Raider Patrol gives a victory with casualties. Fortified Outpost defeats Mara's full starting army, providing an immediate defeat test. Preparation buttons use the reserve available in the current scene; the separate Hero Army scene also supports custom quantities.
 
-Abilities activate automatically at fixed combat ticks; no manual activation is needed. Infantry counters Cavalry, Cavalry counters Sharpshooter, and Sharpshooter counters Infantry. Defeat grants only configured consolation XP; a draw grants no rewards. Wounded survivors start healthy in their next battle; persistent wounds are not implemented.
+Abilities activate automatically at fixed combat ticks; no manual activation is needed. Infantry counters Cavalry, Cavalry counters Sharpshooter, and Sharpshooter counters Infantry. Defeat grants only configured consolation XP; a draw grants no rewards. Player casualties enter the hospital as wounded. Survivors remain combat-ready and heroes are never wounded.
 
-The Battle Scene is an instant prototype simulation with a round-by-round results log and cube placeholders, not an animated combat presentation. All balance values are configurable prototype data.
+The battle resolves deterministically, then shows the overhead march, 2.5 seconds of dust and the results. The hospital receives wounded during settlement; playback cannot apply them twice. All balance values are configurable prototype data.
 
 ## Hero Army scene
 
@@ -127,7 +131,7 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**403 regular checks passed**, including33offline checks and the prior370 checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**497 regular checks passed**, including hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
 GUID/scene reference checks passed. **New offline compilation/import, native timestamp migration, pause/focus lifecycle, summary UI, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 

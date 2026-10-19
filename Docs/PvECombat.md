@@ -1,3 +1,5 @@
+> Current casualty behavior: [Fighter hospital](Hospital.md). All player casualties become recoverable wounded; heroes are never wounded. The historical implementation details below predate that addition.
+
 # First PvE auto-combat system
 
 The latest request authorizes PvE combat and active hero abilities. Earlier exclusions of combat are superseded for this milestone. PvP, networking, monetization, training, persistence, and fake server integrations remain outside scope.

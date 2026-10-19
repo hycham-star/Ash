@@ -1,3 +1,5 @@
+> Current progress schema is 6 and includes the [hospital](Hospital.md): level, waiting/paid/active patients and healing work. Versions 1–5 migrate without resetting existing supported progression. The older schema descriptions below are historical.
+
 > Current offline milestone writes schema4 and adds timestamp-based catch-up for assigned map workers, up to8hours with storage/deposit caps. See OfflineScavenging.md for current behavior and403checks. Earlier milestone details below are historical.
 
 > Current scavenging milestone: writes payload schema **3** with six resources (Lumber appended) and a saved scavenging map. Version1/2 five-resource saves migrate, preserving their old progression and gaining Lumber0 plus an unassigned map. Version1 also gains level-one buildings. New/migrated world checkpointing is handled by GameManager at frame end; LocalSaveStore.Load itself stays read-only. See ScavengingMap.md for current validation; the document below records the original persistence milestone.

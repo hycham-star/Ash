@@ -12,6 +12,7 @@ namespace Ash
         public ResourceAmount[] Resources;
         public FragmentState[] Fragments;
         public BuildingState[] Buildings;
+        public HospitalState Hospital;
         public ScavengingState Scavenging;
         public long ScavengingUtcSeconds;
     }

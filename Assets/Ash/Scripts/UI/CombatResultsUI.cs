@@ -10,7 +10,7 @@ namespace Ash
         public void Bind(Text target) { resultsText = target; Clear(); }
         public void Clear()
         {
-            if (resultsText != null) resultsText.text = "COMBAT RESULTS\n\nPrepare an army, choose a camp, then fight.\n\nPreview runs the same simulation without casualties or rewards.\n\nCounters:\nInfantry > Cavalry\nCavalry > Sharpshooter\nSharpshooter > Infantry";
+            if (resultsText != null) resultsText.text = "COMBAT RESULTS\n\nPrepare an army, choose a camp, then fight.\n\nPreview changes no armies, hospital patients or rewards.\n\nCounters:\nInfantry > Cavalry\nCavalry > Sharpshooter\nSharpshooter > Infantry";
         }
         public void Show(CombatResult result, bool applied)
         {
@@ -18,8 +18,9 @@ namespace Ash
             text.Append(result.Outcome.ToString().ToUpperInvariant()).Append(" • ").Append(result.EndReason)
                 .Append("\nHero: ").Append(result.HeroInstanceId).Append("\nCamp: ").Append(result.EncounterId)
                 .Append("\nRounds: ").Append(result.Rounds.Count).Append("\n\nYOUR ARMY\n");
-            AppendFighters(text, result.PlayerFighters);
-            text.Append("\nENEMY ARMY\n"); AppendFighters(text, result.EnemyFighters);
+            AppendFighters(text, result.PlayerFighters,true);
+            text.Append(applied ? "\nAll wounded fighters sent to hospital. Heroes remain available.\n" : "\nProjected wounded only; hospital unchanged.\n");
+            text.Append("\nENEMY ARMY\n"); AppendFighters(text, result.EnemyFighters,false);
             text.Append(applied ? "\nREWARDS SETTLED\n" : "\nPROJECTED REWARDS (NOT GRANTED)\n")
                 .Append("Hero XP: ").Append(result.Rewards.HeroXp).Append(" (level cap applies)\n");
             foreach (var resource in result.Rewards.Resources) text.Append(resource.Type).Append(": +").Append(resource.Amount).Append('\n');
@@ -33,11 +34,11 @@ namespace Ash
                     .Append(round.PlayerAbilityActivated ? " • ABILITY" : "").Append('\n');
             resultsText.text = text.ToString();
         }
-        private static void AppendFighters(StringBuilder text, System.Collections.Generic.IEnumerable<CombatFighterResult> fighters)
+        private static void AppendFighters(StringBuilder text, System.Collections.Generic.IEnumerable<CombatFighterResult> fighters,bool player)
         {
             foreach (var stack in fighters)
                 text.Append(stack.Fighter.Definition.Type).Append(" Lv").Append(stack.Fighter.Level)
-                    .Append(" • Start ").Append(stack.InitialQuantity).Append(" • Lost ").Append(stack.Casualties)
+                    .Append(" • Start ").Append(stack.InitialQuantity).Append(player?" • Wounded ":" • Defeated ").Append(stack.Casualties)
                     .Append(" • Survive ").Append(stack.SurvivingQuantity).Append('\n');
         }
     }

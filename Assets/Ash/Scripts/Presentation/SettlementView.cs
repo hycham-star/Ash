@@ -28,6 +28,7 @@ namespace Ash
         private CombatResultsUI results;
         private VisualBattlePlayback playback;
         private ScavengingMapUI scavengingMap;
+        private HospitalUI hospitalUI;
         private int selectedHero, selectedCamp, selectedFighter, renderedHero = -1;
         private Image heroPortraitFrame;
         private Slider fighterQuantity;
@@ -120,6 +121,15 @@ namespace Ash
             Building("BARRACKS","Open HEROES to assign reserve fighters to your chosen survivor.",new Vector3(-3.3f,0,-4),new Vector3(3,1.8f,2.6f),"Barracks");
             Building("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f),"WaterStation",BuildingKind.WaterStation);
             Building("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.9f,2.5f),"FoodGarden",BuildingKind.FoodGarden);
+            var clinic=Marker("HOSPITAL","Heal wounded fighters; upgrade beds and recovery speed.",new Vector3(-3,0,6.5f),new Vector3(3,2.5f,2.5f));
+            clinic.GetComponent<SettlementBuilding>().Configure("HOSPITAL","All wounded are recoverable. Heroes cannot be wounded.",hospital:true);
+            RealisticAssets.Building(clinic,"Barracks",new Vector2(3,2.5f)).transform.localScale=Vector3.one*.8f;
+            art.Box(clinic,"Clinic roof sign",new Vector3(0,1.92f,0),new Vector3(1,.04f,1),new Color32(40,103,86,255));
+            art.Box(clinic,"Roof plus upright",new Vector3(0,1.95f,0),new Vector3(.16f,.03f,.7f),Color.white);
+            art.Box(clinic,"Roof plus crossbar",new Vector3(0,1.96f,0),new Vector3(.7f,.03f,.16f),Color.white);
+            art.Box(clinic,"Clinic sign",new Vector3(0,1.3f,-1.35f),new Vector3(.9f,.8f,.05f),new Color32(40,103,86,255));
+            art.Box(clinic,"Medical plus upright",new Vector3(0,1.3f,-1.39f),new Vector3(.16f,.55f,.04f),Color.white);
+            art.Box(clinic,"Medical plus crossbar",new Vector3(0,1.3f,-1.40f),new Vector3(.55f,.16f,.04f),Color.white);
             for (int side = 0; side < 2; side++)
             {
                 float x = side == 0 ? -7 : 7;
@@ -184,11 +194,12 @@ namespace Ash
         private void Inspect(SettlementBuilding building)
         {
             selection.text = building.DisplayName+"\n"+building.Description;
-            if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
+            if(building.IsHospital)ShowHospital();
+            else if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
         }
         private void ShowBuilding(BuildingKind kind)
         {
-            scavengingMap.Hide();
+            scavengingMap.Hide();hospitalUI.Hide();
             CancelReset(); selectedBuilding=kind; heroPanel.SetActive(false); raidPanel.SetActive(false);
             portraitCamera.enabled=false; buildingPanel.SetActive(true); RefreshBuilding();
         }
@@ -282,13 +293,18 @@ namespace Ash
             RefreshBuilding();
             RefreshFighterControls();
         }
+        private void ShowHospital()
+        {
+            CancelReset();scavengingMap.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);portraitCamera.enabled=false;hospitalUI.Show();
+        }
         private void ShowMap()
         {
+            hospitalUI.Hide();
             CancelReset(); heroPanel.SetActive(false); raidPanel.SetActive(false); buildingPanel.SetActive(false); portraitCamera.enabled=false;
             scavengingMap.Show(); scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); scavengingMap.transform.SetAsLastSibling();
         }
-        private void ShowHeroes(bool visible) { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
-        private void ShowRaid() { scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
+        private void ShowHeroes(bool visible) { hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
+        private void ShowRaid() { hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
         private int MaximumReinforcements()
         {
             var hero=gameManager.Heroes[selectedHero];var fighter=gameManager.Units[selectedFighter];
@@ -358,7 +374,8 @@ namespace Ash
             Button(ui,"LOAD",.26f,1,.52f,1,4,-150,-4,-112,LoadProgress);
             resetButton=Button(ui,"RESET",.52f,1,.78f,1,4,-150,-4,-112,RequestReset);
             selection=TextPanel(ui,0,0,.56f,0,12,144,-4,239,15,"",ink);
-            Button(ui,"BUILDINGS",.56f,0,.78f,0,4,144,-4,239,13,()=>ShowBuilding(BuildingKind.Headquarters));
+            Button(ui,"BUILDINGS",.56f,0,.78f,0,4,193,-4,239,12,()=>ShowBuilding(BuildingKind.Headquarters));
+            Button(ui,"HOSPITAL",.56f,0,.78f,0,4,144,-4,189,12,ShowHospital);
             Button(ui,"MAP",.78f,0,1,0,4,144,-12,239,16,ShowMap);
             leaderLabel=TextPanel(ui,0,0,.55f,0,12,88,-4,136,18,"",new Color32(41,57,59,246));
             Button(ui,"VIEW HERO",.55f,0,1,0,4,88,-12,136,()=>ShowHeroes(true));
@@ -422,6 +439,7 @@ namespace Ash
             collectBuilding=Button(buildingRoot,"COLLECT",.5f,0,1,0,4,14,-12,70,18,CollectBuilding);
             buildingPanel.SetActive(false);
             scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font,gameManager.SaveProgress,()=>gameManager.SaveStatus);
+            hospitalUI=HospitalUI.Create(ui,gameManager,font);
             toast=TextPanel(ui,0,0,1,0,12,244,-12,282,15,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
             toast.resizeTextForBestFit=true; toast.resizeTextMinSize=9; toast.resizeTextMaxSize=15;
         }

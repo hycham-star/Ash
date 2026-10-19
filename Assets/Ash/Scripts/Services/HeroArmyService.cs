@@ -35,6 +35,24 @@ namespace Ash
             Heroes = roster.AsReadOnly(); Fighters = catalogue.AsReadOnly();
         }
 
+        private HospitalService hospital;
+        internal HospitalService GetHospital(ResourceManager resources)
+        {
+            if(hospital==null)hospital=new HospitalService(this,resources);
+            else if(!hospital.Uses(resources))throw new InvalidOperationException("Army hospital is bound to another resource ledger.");
+            return hospital;
+        }
+        internal Dictionary<string,int> PrepareHealingReturn(IEnumerable<FighterState> healed)
+        {
+            var plan=new Dictionary<string,int>(StringComparer.Ordinal);
+            foreach(var p in healed)
+            {
+                if(!fighters.TryGetValue(p.DefinitionId,out var fighter) || fighter.Level!=p.Level || p.Quantity<=0)throw new ArgumentException("Unknown recovered fighter.");
+                int current=plan.TryGetValue(p.DefinitionId,out int value)?value:reserve[p.DefinitionId];plan[p.DefinitionId]=checked(current+p.Quantity);
+            }
+            return plan;
+        }
+        internal void CommitHealingReturn(Dictionary<string,int> plan){foreach(var p in plan)reserve[p.Key]=p.Value;}
         public int Available(string fighterId) => fighterId != null && reserve.TryGetValue(fighterId, out int quantity) ? quantity : 0;
         public HeroData FindHero(string heroId) => heroId != null && heroes.TryGetValue(heroId, out var hero) ? hero : null;
 

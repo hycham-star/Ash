@@ -19,6 +19,7 @@ namespace Ash
         public HeroArmyService HeroArmies { get; private set; }
         public HeroFragmentWallet Fragments { get; private set; }
         public BattleManager Battles { get; private set; }
+        public HospitalService Hospital {get;private set;}
         public BuildingService Buildings { get; private set; }
         public ScavengingService Scavenging { get; private set; }
         public OfflineScavenging OfflineScavenging { get; private set; }
@@ -51,18 +52,18 @@ namespace Ash
             saveStore=new LocalSaveStore(directory ?? Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
             TryLoadProgress();
             HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
-            Buildings.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;
+            Buildings.Changed+=MarkProductionDirty; Hospital.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;
             Debug.Log("Local progress file: "+saveStore.SavePath,this);
         }
         private void Update()
         {
-            if(!enableLocalPersistence || !IsInitialized || productionPaused)return;
+            if(!IsInitialized || productionPaused)return;
             // Foreground production is separate from UTC catch-up on resume.
             if(skipProductionFrame) { skipProductionFrame=false; return; }
             float elapsed=Mathf.Min(Time.unscaledDeltaTime,1f);
             productionSeconds+=elapsed; productionCheckpoint+=elapsed;
             if(productionSeconds>=1) {
-                int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds);
+                int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds); Hospital.Advance(seconds);
                 advancingScavenging=true;
                 try { Scavenging.Advance(seconds); } finally { advancingScavenging=false; }
             }
@@ -88,7 +89,13 @@ namespace Ash
         private void CatchUpOffline()
         {
             advancingScavenging=true;
-            try { OfflineSummary=OfflineScavenging.Resume(utcNow()).Summary; }
+            try
+            {
+                var report=OfflineScavenging.Resume(utcNow());int before=Hospital.TotalWounded;
+                Hospital.Advance(report.Seconds);OfflineSummary=report.Summary;
+                int recovered=before-Hospital.TotalWounded;
+                if(recovered>0)OfflineSummary+="\nHospital: "+recovered+" fighters recovered to reserve.";
+            }
             finally { advancingScavenging=false; }
             if(OfflineSummary.Length>0 && OfflineProgressChanged!=null)
                 foreach(Action callback in OfflineProgressChanged.GetInvocationList())
@@ -98,7 +105,7 @@ namespace Ash
         private void OnDisable() { if(PersistenceActive && !saveBlocked)SaveProgress(); }
         private void OnDestroy()
         {
-            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; }
+            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; Hospital.Changed-=MarkProductionDirty; }
         }
         public bool SaveProgress()
         {
@@ -149,6 +156,7 @@ namespace Ash
                 var starting=new ResourceManager(initialResources);
                 for(int i=0;i<fresh.Resources.Length;i++)fresh.Resources[i]=new ResourceAmount(fresh.Resources[i].Type,starting.Get(fresh.Resources[i].Type));
                 foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
+                fresh.Hospital=HospitalState.Fresh();
                 fresh.Buildings=new BuildingService(new ResourceManager()).Capture();
                 fresh.Scavenging=ScavengingService.Generate(NewMapSeed());
                 fresh.ScavengingUtcSeconds=utcNow(); OfflineSummary="";
@@ -204,6 +212,7 @@ namespace Ash
             var fragmentIds = new List<string>();
             foreach (var hero in heroes) fragmentIds.Add(hero.Definition.Id);
             var fragments = new HeroFragmentWallet(fragmentIds);
+            Hospital=service.GetHospital(resources);
             var battles = new BattleManager(service, resources, fragments);
             Buildings = new BuildingService(resources);
             Scavenging = new ScavengingService(resources,NewMapSeed());

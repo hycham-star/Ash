@@ -11,6 +11,7 @@ namespace Ash
         private readonly ResourceManager resources;
         private readonly HeroFragmentWallet fragments;
         private readonly AutoBattle simulation = new AutoBattle();
+        public HospitalService Hospital {get;}
         private bool running;
         public CombatResult LastResult { get; private set; }
         public ReadOnlyCollection<string> NotificationErrors { get; private set; } = new List<string>().AsReadOnly();
@@ -21,6 +22,7 @@ namespace Ash
             this.armies = armies ?? throw new ArgumentNullException(nameof(armies));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.fragments = fragments ?? throw new ArgumentNullException(nameof(fragments));
+            Hospital=armies.GetHospital(resources);
         }
 
         public bool IsRunning => running;
@@ -43,16 +45,19 @@ namespace Ash
                 var result = simulation.Resolve(BattleArmy.FromHero(hero), encounter, abilitiesEnabled, maxRounds);
                 // Validate every state update and overflow before changing casualties, XP, or rewards.
                 armies.ValidateCombatState(hero, result);
+                var woundedPlan=Hospital.PrepareWounded(result);
                 var resourcePlan = resources.PrepareAddition(result.Rewards.Resources);
                 int fragmentBalance = result.Rewards.HeroFragments > 0
                     ? fragments.PrepareAddition(result.Rewards.FragmentHeroDefinitionId, result.Rewards.HeroFragments) : 0;
                 armies.CommitCombatSilently(hero, result);
+                Hospital.RestoreValidated(woundedPlan);
                 bool resourceChanged = resources.CommitAdditionSilently(resourcePlan);
                 if (result.Rewards.HeroFragments > 0) fragments.CommitAdditionSilently(result.Rewards.FragmentHeroDefinitionId, fragmentBalance);
                 LastResult = result;
                 // All domains are committed before observers run. Observer errors cannot cause a partial settlement.
                 var errors = new List<string>();
                 Publish(armies.NotifyChanged, errors);
+                Publish(Hospital.NotifyChanged, errors);
                 if (resourceChanged) Publish(resources.NotifyChanged, errors);
                 if (result.Rewards.HeroFragments > 0) Publish(fragments.NotifyChanged, errors);
                 if (BattleCompleted != null)
