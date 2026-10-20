@@ -19,7 +19,7 @@ MonoBehaviour:
   specialization: 0
   abilityId: scrapline
   abilityName: Scrapline
-  abilityDescription: Organizes infantry around a reinforced salvage line.
+  abilityDescription: Organizes melee fighters around a reinforced salvage line.
   abilityTargetType: 0
   abilityPowerBonusBasisPoints: 1500
   cooldownSeconds: 30

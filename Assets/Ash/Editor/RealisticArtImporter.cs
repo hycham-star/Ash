@@ -7,6 +7,15 @@ namespace Ash.Editor
     {
         private void OnPreprocessTexture()
         {
+            if(assetPath.StartsWith("Assets/Ash/Resources/Portraits/",StringComparison.Ordinal) && assetPath.EndsWith(".png",StringComparison.OrdinalIgnoreCase))
+            {
+                var portrait=(TextureImporter)assetImporter;
+                portrait.textureType=TextureImporterType.Default;portrait.sRGBTexture=true;
+                portrait.maxTextureSize=2048;portrait.npotScale=TextureImporterNPOTScale.None;portrait.mipmapEnabled=false;
+                portrait.wrapMode=UnityEngine.TextureWrapMode.Clamp;portrait.filterMode=UnityEngine.FilterMode.Bilinear;
+                portrait.alphaSource=TextureImporterAlphaSource.None;portrait.textureCompression=TextureImporterCompression.CompressedHQ;
+                return;
+            }
             if(assetPath.StartsWith("Assets/Ash/Resources/Map/",StringComparison.Ordinal) && assetPath.EndsWith(".png",StringComparison.OrdinalIgnoreCase))
             {
                 var landmark=(TextureImporter)assetImporter;

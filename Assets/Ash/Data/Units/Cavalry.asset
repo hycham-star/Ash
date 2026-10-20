@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Cavalry
   m_EditorClassIdentifier:
   id: cavalry
-  displayName: Dust Rider Cavalry
+  displayName: Dust Bikers
   type: 2
   health: 120
   damage: 12

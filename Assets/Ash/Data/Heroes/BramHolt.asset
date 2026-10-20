@@ -19,7 +19,7 @@ MonoBehaviour:
   specialization: 0
   abilityId: iron-span
   abilityName: Iron Span
-  abilityDescription: Coordinates infantry around a steady defensive formation.
+  abilityDescription: Coordinates melee fighters around a steady defensive formation.
   abilityTargetType: 0
   abilityPowerBonusBasisPoints: 2000
   cooldownSeconds: 35

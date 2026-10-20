@@ -11,6 +11,8 @@ namespace Ash.Editor
 {
     public static class ArmyReinforcementValidation
     {
+        [MenuItem("Ashlands/Validate Hero Illustrations")]
+        public static void ValidateIllustrations()=>Run();
         [MenuItem("Ashlands/Validate Army Reinforcement Controls")]
         public static void Run()
         {
@@ -28,6 +30,13 @@ namespace Ash.Editor
                 view=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<SettlementView>(true)).Single();
                 presentation=new GameObject("Disposable reinforcement controls");SceneManager.MoveGameObjectToScene(presentation,scene);
                 Set("presentation",presentation);Set("font",Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));Call("BuildUI");
+                var illustration=(RawImage)Field("heroIllustration");
+                for(int i=0;i<manager.Heroes.Count;i++)
+                {
+                    Set("selectedHero",i);Call("Refresh");
+                    Require(illustration.texture is Texture2D atlas && atlas.width==HeroPortraitCatalog.AtlasWidth && atlas.height==HeroPortraitCatalog.AtlasHeight,"Hero preview must use the 2D illustration atlas, not a render texture.");
+                    Require(illustration.uvRect==HeroPortraitCatalog.RegionFor(manager.Heroes[i].Definition.Id),"Illustration does not match selected hero identity.");
+                }
                 int index=manager.Heroes.Select((hero,i)=>new{hero,i}).Single(x=>x.hero.Definition.Id=="mara-flint").i;Set("selectedHero",index);
                 var hero=manager.Heroes[index];while(hero.Army.Capacity<50)manager.HeroArmies.GrantHeroXp(hero.InstanceId,hero.XpToNextLevel);
                 Require(hero.Army.Capacity==50,"Expected Mara's level-five capacity.");
@@ -54,7 +63,7 @@ namespace Ash.Editor
                 Require(slider.maxValue==Math.Min(50,available),"Reserve must limit slider.");
                 fill.transform.parent.GetComponent<Button>().onClick.Invoke();
                 Require(hero.Army.TotalUnits==Math.Min(50,available),"Fill ignored available reserve.");
-                Debug.Log("PASS Unity army reinforcement controls: live slider numbers, 48/50 replacement in single fighters, Fill, full-army disabling and shared reserve limits. Disposable preview only; player saves untouched. Check portrait layout/touch on device.");
+                Debug.Log("PASS Unity hero illustrations: eight identity-bound 2D portraits, adjustable level-based capacity, live quantity slider, 48/50 replacement, Fill and shared reserve limits. Disposable preview only; player saves untouched. Check illustration framing and touch on device.");
             }
             catch(Exception error){Debug.LogException(error);if(Application.isBatchMode)EditorApplication.Exit(1);throw;}
             finally

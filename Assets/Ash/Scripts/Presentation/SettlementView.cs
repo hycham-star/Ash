@@ -14,12 +14,11 @@ namespace Ash
         [SerializeField] private EncounterConfig[] encounters = Array.Empty<EncounterConfig>();
         private readonly List<NpcEncounter> camps = new List<NpcEncounter>();
         private SettlementArt art;
-        private GameObject presentation, heroPanel, raidPanel, buildingPanel, portraitStage;
+        private GameObject presentation, heroPanel, raidPanel, buildingPanel;
         private Transform world, leader;
         private RectTransform ui;
         private SettlementCamera controls;
-        private Camera portraitCamera;
-        private RenderTexture portrait;
+        private RawImage heroIllustration;
         private Font font;
         private Text resources, selection, heroStats, raidHeader, campButton, toast, leaderLabel, saveStatus, resetButton;
         private float resetDeadline;
@@ -70,8 +69,6 @@ namespace Ash
             { gameManager.Resources.Changed -= Refresh; gameManager.HeroArmies.Changed -= Refresh; gameManager.Fragments.Changed -= Refresh; gameManager.Buildings.Changed -= Refresh; }
             if (gameManager != null) { gameManager.SaveStatusChanged -= UpdateSaveStatus; gameManager.OfflineProgressChanged -= ShowOfflineSummary; }
             if (controls != null) controls.BuildingSelected -= Inspect;
-            if (portraitCamera != null) portraitCamera.targetTexture = null;
-            if (portrait != null) { portrait.Release(); Destroy(portrait); }
             if (presentation != null) Destroy(presentation);
             developmentArt?.Dispose();
             art?.Dispose();
@@ -254,7 +251,7 @@ namespace Ash
         {
             developmentUI.Hide();scavengingMap.Hide();hospitalUI.Hide();
             CancelReset(); selectedBuilding=kind; heroPanel.SetActive(false); raidPanel.SetActive(false);
-            portraitCamera.enabled=false; buildingPanel.SetActive(true); RefreshBuilding();
+            buildingPanel.SetActive(true); RefreshBuilding();
         }
         private void RefreshBuilding()
         {
@@ -303,18 +300,7 @@ namespace Ash
         }
         private void BuildPortrait()
         {
-            portrait = new RenderTexture(384,576,16) { name = "Original hero portrait", antiAliasing = 2 }; portrait.Create();
-            portraitStage = new GameObject("Portrait Stage"); portraitStage.transform.SetParent(presentation.transform,false); portraitStage.transform.position = new Vector3(1000,0,0);
-            portraitCamera = new GameObject("Hero Portrait Camera",typeof(Camera)).GetComponent<Camera>(); portraitCamera.transform.SetParent(portraitStage.transform,false);
-            portraitCamera.transform.localPosition = new Vector3(1.5f,1.25f,-4); portraitCamera.transform.LookAt(portraitStage.transform.position+new Vector3(0,.95f,0));
-            portraitCamera.orthographic = true; portraitCamera.orthographicSize = 1.02f; portraitCamera.nearClipPlane = .1f; portraitCamera.farClipPlane = 10;
-            portraitCamera.cullingMask = 1<<PortraitLayer; portraitCamera.targetTexture = portrait; portraitCamera.depth = -1;
-            portraitCamera.clearFlags = CameraClearFlags.SolidColor; portraitCamera.backgroundColor = new Color32(52,69,73,255);
-            var light=new GameObject("Portrait key light",typeof(Light)).GetComponent<Light>();
-            light.transform.SetParent(portraitCamera.transform,false);light.transform.localRotation=Quaternion.Euler(25,-20,0);
-            light.type=LightType.Directional;light.intensity=.65f;light.color=new Color(1,.94f,.85f);light.cullingMask=1<<PortraitLayer;
-            var image = heroPanel.GetComponentInChildren<RawImage>(true); image.texture = portrait;
-            portraitCamera.enabled = false;
+            HeroPortraitCatalog.Apply(heroIllustration,gameManager.Heroes[selectedHero].Definition.Id);
         }
         private void UpdateLeader()
         {
@@ -322,9 +308,6 @@ namespace Ash
             if (leader != null) { leader.gameObject.SetActive(false); Destroy(leader.gameObject); }
             var hero=gameManager.Heroes[selectedHero].Definition;
             leader = RealisticAssets.Hero(world,hero.Id,hero.DisplayName,new Vector3(-1.4f,0,-1)).transform;
-            foreach (Transform child in portraitStage.transform) if (child.gameObject!=portraitCamera.gameObject) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
-            var model = RealisticAssets.Hero(portraitStage.transform,hero.Id,"Portrait: "+hero.DisplayName,Vector3.zero,true);
-            foreach (var child in model.GetComponentsInChildren<Transform>()) child.gameObject.layer=PortraitLayer;
         }
         private void Refresh()
         {
@@ -336,13 +319,17 @@ namespace Ash
             var text = new StringBuilder(HeroRarityColors.Text(hero.Definition.DisplayName+"\n"+hero.Definition.Rarity,hero.Definition.Rarity)+" • "+hero.Definition.Specialization+"\n\n");
             text.Append("LEVEL ").Append(hero.Level).Append("    XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
                 .Append("\nARMY ").Append(hero.Army.TotalUnits).Append('/').Append(hero.Army.Capacity).Append("\nPOWER ").Append(hero.Army.Power.ToString("0.##"))
+                .Append("\nCAPACITY +").Append(hero.Definition.CapacityPerLevel).Append(" per level");
+            foreach(var unit in gameManager.Units)text.Append("\n").Append(unit.Definition.Type).Append(": ").Append(hero.Army.QuantityOf(unit.Definition.Id,unit.Level));
+            text
                 .Append("\nBONUS +").Append(hero.Definition.BonusAt(hero.Level)/100m).Append("% matching fighters")
                 .Append("\nFRAGMENTS ").Append(gameManager.Fragments.Get(hero.Definition.Id)).Append("\n\n").Append(hero.Definition.Biography);
             heroStats.text = text.ToString();
             heroPortraitFrame.color=HeroRarityColors.For(hero.Definition.Rarity);
             raidHeader.text = "WASTELAND RAID\n"+HeroRarityColors.Text(hero.Definition.DisplayName,hero.Definition.Rarity)+" • "+hero.Army.TotalUnits+" fighters";
             if (camps.Count>0) campButton.text = camps[selectedCamp].Name.ToUpperInvariant();
-            if (portraitStage != null) UpdateLeader();
+            if(heroIllustration!=null)BuildPortrait();
+            if (world != null) UpdateLeader();
             RefreshBuilding();
             RefreshFighterControls();
             if(populationLabel!=null)populationLabel.text="POP "+gameManager.Buildings.Population+"/"+gameManager.Buildings.HousingCapacity+" • FREE "+gameManager.Buildings.FreeResidents;
@@ -350,19 +337,19 @@ namespace Ash
         }
         private void ShowDevelopment(string id=null)
         {
-            CancelReset();scavengingMap.Hide();hospitalUI.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);portraitCamera.enabled=false;developmentUI.Show(id);
+            CancelReset();scavengingMap.Hide();hospitalUI.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);developmentUI.Show(id);
         }
         private void ShowHospital()
         {
-            CancelReset();developmentUI.Hide();scavengingMap.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);portraitCamera.enabled=false;hospitalUI.Show();
+            CancelReset();developmentUI.Hide();scavengingMap.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);hospitalUI.Show();
         }
         private void ShowMap()
         {
             developmentUI.Hide();hospitalUI.Hide();
-            CancelReset(); heroPanel.SetActive(false); raidPanel.SetActive(false); buildingPanel.SetActive(false); portraitCamera.enabled=false;
+            CancelReset(); heroPanel.SetActive(false); raidPanel.SetActive(false); buildingPanel.SetActive(false);
             scavengingMap.Show(); scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); scavengingMap.transform.SetAsLastSibling();
         }
-        private void ShowHeroes(bool visible) { developmentUI.Hide();hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
+        private void ShowHeroes(bool visible) { developmentUI.Hide();hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); Refresh(); }
         private void ShowRaid()=>ShowMap();
         private void ShowWorldRaidResult(CombatResult outcome)
         {
@@ -453,10 +440,13 @@ namespace Ash
             Button(heroRoot,"X",.8f,1,1,1,4,-62,-12,-12,()=>ShowHeroes(false));
             var portraitRect=Panel(heroRoot,"Original portrait",new Vector2(0,1),new Vector2(.38f,1),new Vector2(18,-294),new Vector2(-6,-82),new Color32(51,68,73,255));
             heroPortraitFrame=portraitRect.GetComponent<Image>();
-            var portraitImage=new GameObject("Rendered survivor portrait",typeof(RectTransform),typeof(RawImage)); portraitImage.transform.SetParent(portraitRect,false);
-            var imageRect=portraitImage.GetComponent<RectTransform>(); imageRect.anchorMin=Vector2.zero; imageRect.anchorMax=Vector2.one; imageRect.offsetMin=new Vector2(6,6);imageRect.offsetMax=new Vector2(-6,-6);
-            portraitImage.GetComponent<RawImage>().raycastTarget=false;
+            var inner=new GameObject("Portrait margin",typeof(RectTransform)).GetComponent<RectTransform>();inner.SetParent(portraitRect,false);
+            inner.anchorMin=Vector2.zero;inner.anchorMax=Vector2.one;inner.offsetMin=new Vector2(5,5);inner.offsetMax=new Vector2(-5,-5);
+            var portraitImage=new GameObject("Illustrated hero portrait",typeof(RectTransform),typeof(RawImage),typeof(AspectRatioFitter)); portraitImage.transform.SetParent(inner,false);
+            var fit=portraitImage.GetComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=.75f;
+            heroIllustration=portraitImage.GetComponent<RawImage>();heroIllustration.raycastTarget=false;
             heroStats=TextPanel(heroRoot,.38f,0,1,1,10,210,-18,-82,18,"",Color.clear);
+            heroStats.resizeTextForBestFit=true;heroStats.resizeTextMinSize=12;heroStats.resizeTextMaxSize=17;
             Button(heroRoot,"<",0,1,.19f,1,18,-342,-4,-302,()=> { selectedHero=(selectedHero+7)%8; Refresh(); });
             Button(heroRoot,">",.19f,1,.38f,1,4,-342,-6,-302,()=> { selectedHero=(selectedHero+1)%8; Refresh(); });
             for(int i=0;i<3;i++) { int index=i;fighterTypeLabels.Add(Button(heroRoot,gameManager.Units[i].Definition.Type.ToString(),i/3f,0,(i+1)/3f,0,12,164,-8,202,14,()=> { selectedFighter=index;fighterQuantity.SetValueWithoutNotify(0);RefreshFighterControls(); })); }

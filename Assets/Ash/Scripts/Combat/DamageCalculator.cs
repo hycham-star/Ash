@@ -9,9 +9,9 @@ namespace Ash
             if (!Enum.IsDefined(typeof(FighterType), attacker) || !Enum.IsDefined(typeof(FighterType), defender))
                 throw new ArgumentOutOfRangeException(nameof(attacker));
             if (attacker == defender) return 10000;
-            bool advantage = (attacker == FighterType.Infantry && defender == FighterType.Cavalry)
-                || (attacker == FighterType.Cavalry && defender == FighterType.Sharpshooter)
-                || (attacker == FighterType.Sharpshooter && defender == FighterType.Infantry);
+            bool advantage = (attacker == FighterType.Melee && defender == FighterType.Biker)
+                || (attacker == FighterType.Biker && defender == FighterType.Sharpshooter)
+                || (attacker == FighterType.Sharpshooter && defender == FighterType.Melee);
             return advantage ? 12500 : 8000;
         }
 

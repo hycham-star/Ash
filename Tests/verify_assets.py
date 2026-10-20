@@ -69,6 +69,11 @@ for name in [value for _, value in bindings] + ["Engineer", "Sentry"]:
     for suffix in (".fbx", "Albedo.png", "Normal.png", "Material.mat"):
         assert (assets / ("Ash/Resources/Art/" + name + suffix)).exists(), f"Missing character art: {name + suffix}"
 assert "SurvivorView" not in (assets / "Ash/Scripts/Presentation/SettlementView.cs").read_text(), "Settlement still creates legacy cubic characters"
+portrait=assets / "Ash/Resources/Portraits/HeroPortraitAtlas.png"
+assert struct.unpack('>IIBB',portrait.read_bytes()[16:26])==(1536,1024,8,2), "Hero illustration atlas must retain its original 1536x1024 RGB grid"
+portrait_catalog=(assets / "Ash/Scripts/Presentation/HeroPortraitCatalog.cs").read_text()
+portrait_bindings=re.findall(r'\{"([a-z-]+)",(\d)\}',portrait_catalog)
+assert len(portrait_bindings)==8 and {key for key,_ in portrait_bindings}==hero_ids and {int(cell) for _,cell in portrait_bindings}==set(range(8)), "Hero illustration atlas cells must map once to every stable hero identity"
 for landmark in ("Water","Food","Scrap","Lumber"):
     path=assets / f"Ash/Resources/Map/{landmark}.png"
     data=path.read_bytes()

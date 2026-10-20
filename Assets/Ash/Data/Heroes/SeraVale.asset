@@ -19,7 +19,7 @@ MonoBehaviour:
   specialization: 2
   abilityId: dust-route
   abilityName: Dust Route
-  abilityDescription: Directs cavalry through hidden paths in the dust.
+  abilityDescription: Directs bikers through hidden paths in the dust.
   abilityTargetType: 2
   abilityPowerBonusBasisPoints: 2000
   cooldownSeconds: 35

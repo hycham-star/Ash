@@ -146,7 +146,7 @@ namespace Ash
                 roundText.text="MARCHING TO TARGET";
                 foreach(var group in groups)
                 {
-                    var point=view.WorldToViewportPoint(group.Actor.transform.position+Vector3.up*(group.Type==FighterType.Cavalry?2.6f:2)*RealisticAssets.MiniatureScale);
+                    var point=view.WorldToViewportPoint(group.Actor.transform.position+Vector3.up*(group.Type==FighterType.Biker?2.6f:2)*RealisticAssets.MiniatureScale);
                     group.Badge.rectTransform.anchorMin=group.Badge.rectTransform.anchorMax=new Vector2(point.x,point.y);group.Badge.rectTransform.anchoredPosition=Vector2.zero;
                 }
                 return;

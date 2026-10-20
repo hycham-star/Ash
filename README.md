@@ -2,6 +2,10 @@
 
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
 
+## Illustrated hero previews
+
+**VIEW HERO / HEROES** now shows eight distinct **2D character illustrations**, using grey/blue/purple/gold rarity uniforms. The dossier shows capacity growth and counts for **Melee, Sharpshooter and Biker**. Total capacity grows with hero level; composition remains adjustable with the existing slider and Fill controls. No free fighters are added, and wounded/army/save identities are preserved. Outside Play run **Ashlands > Validate Hero Illustrations** and **Validate Realistic Visuals**. See [portrait bindings, capacity and checks](Docs/HeroIllustrations.md).
+
 ## Interactive world map and army convoys
 
 Zoom with **pinch, mouse wheel or + / −**, from FIT to clear close-up landmarks. Resource cards offer **COLLECT** (available civilian residents) and **GATHER** (selected hero + army). Army missions show a miniature armored wasteland bus and a hero on a motorcycle, fill their cargo and return once. Nine seed-stable rusty camps offer **SCOUT / RAID** cards. Raids show convoy travel, three seconds of dust and existing PvE/hospital settlement, then return. Deployed fighters cannot transfer or raid again until home.
@@ -155,7 +159,7 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**612 regular checks passed**, including world missions, hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**614 regular checks passed**, including world missions, hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
 GUID/scene reference checks passed. **New offline compilation/import, native timestamp migration, pause/focus lifecycle, summary UI, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 

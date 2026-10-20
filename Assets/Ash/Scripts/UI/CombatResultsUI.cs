@@ -10,7 +10,7 @@ namespace Ash
         public void Bind(Text target) { resultsText = target; Clear(); }
         public void Clear()
         {
-            if (resultsText != null) resultsText.text = "COMBAT RESULTS\n\nPrepare an army, choose a camp, then fight.\n\nPreview changes no armies, hospital patients or rewards.\n\nCounters:\nInfantry > Cavalry\nCavalry > Sharpshooter\nSharpshooter > Infantry";
+            if (resultsText != null) resultsText.text = "COMBAT RESULTS\n\nPrepare an army, choose a camp, then fight.\n\nPreview changes no armies, hospital patients or rewards.\n\nCounters:\nMelee > Biker\nBiker > Sharpshooter\nSharpshooter > Melee";
         }
         public void Show(CombatResult result, bool applied)
         {

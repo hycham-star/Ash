@@ -14,6 +14,11 @@ namespace Ash.Editor
                 throw new InvalidOperationException("Stop Play mode before validating imported art.");
             try
             {
+                var portrait=Resources.Load<Texture2D>("Portraits/HeroPortraitAtlas");
+                Require(portrait!=null && portrait.width==1536 && portrait.height==1024,"Missing/full-resolution hero illustration atlas.");
+                var portraitImporter=(TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(portrait));
+                Require(!portraitImporter.mipmapEnabled && portraitImporter.npotScale==TextureImporterNPOTScale.None,"Portrait import must preserve cells without mip bleed or resizing.");
+                Require(HeroPortraitCatalog.Cells.Count==8 && HeroVisualCatalog.Heroes.Keys.All(id=>HeroPortraitCatalog.Cells.ContainsKey(id)),"Illustration roster differs from authored hero identities.");
                 foreach(var resource in new[]{ResourceType.Water,ResourceType.Food,ResourceType.Scrap,ResourceType.Lumber})
                 {
                     var landmark=MapLandmarkArt.Landmark(resource);

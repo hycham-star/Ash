@@ -2,8 +2,8 @@ using System;
 
 namespace Ash
 {
-    // Fighter categories specified for the Hero → Army → Fighters milestone.
-    public enum FighterType { Infantry, Sharpshooter, Cavalry }
+    // Explicit numeric identities preserve existing armies, abilities and saved fighter categories.
+    public enum FighterType { Melee = 0, Sharpshooter = 1, Biker = 2 }
 
     public sealed class UnitDefinition
     {

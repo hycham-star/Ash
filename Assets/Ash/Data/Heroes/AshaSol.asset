@@ -19,7 +19,7 @@ MonoBehaviour:
   specialization: 0
   abilityId: ember-oath
   abilityName: Ember Oath
-  abilityDescription: Inspires infantry with an oath to protect their communities.
+  abilityDescription: Inspires melee fighters with an oath to protect their communities.
   abilityTargetType: 0
   abilityPowerBonusBasisPoints: 3500
   cooldownSeconds: 45

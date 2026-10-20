@@ -19,7 +19,7 @@ MonoBehaviour:
   specialization: 2
   abilityId: storm-run
   abilityName: Storm Run
-  abilityDescription: Aligns cavalry into a swift coordinated advance.
+  abilityDescription: Aligns bikers into a swift coordinated advance.
   abilityTargetType: 2
   abilityPowerBonusBasisPoints: 2500
   cooldownSeconds: 40

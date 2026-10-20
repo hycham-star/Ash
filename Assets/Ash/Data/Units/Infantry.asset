@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Infantry
   m_EditorClassIdentifier:
   id: infantry
-  displayName: Ashguard Infantry
+  displayName: Ashguard Melee
   type: 0
   health: 100
   damage: 10

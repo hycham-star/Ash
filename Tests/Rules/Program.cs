@@ -49,7 +49,7 @@ var fighterDefinitions = System.IO.Directory.GetFiles(System.IO.Path.Combine(Ass
     .Select(AssetFixtures.Fighter).OrderBy(f => f.Type).ToArray();
 Check(definitions.Length == 8 && definitions.Select(h => h.Id).Distinct().Count() == 8, "eight authored original heroes with unique IDs");
 Check(Enum.GetValues(typeof(HeroRarity)).Length == 4 && Enum.GetValues(typeof(HeroRarity)).Cast<HeroRarity>().All(r => definitions.Count(h => h.Rarity == r) == 2), "exactly two heroes in each of four required rarities");
-Check(fighterDefinitions.Length == 3 && fighterDefinitions.Select(f => f.Type).SequenceEqual(new[] { FighterType.Infantry, FighterType.Sharpshooter, FighterType.Cavalry }), "authored Infantry, Sharpshooter, and Cavalry definitions");
+Check(fighterDefinitions.Length == 3 && fighterDefinitions.Select(f => f.Type).SequenceEqual(new[] { FighterType.Melee, FighterType.Sharpshooter, FighterType.Biker }), "authored Infantry, Sharpshooter, and Cavalry definitions");
 Check(definitions.All(d => !string.IsNullOrWhiteSpace(d.Biography) && !string.IsNullOrWhiteSpace(d.Ability.Description) && d.Ability.CooldownSeconds > 0 && d.Ability.DurationSeconds > 0), "all eight heroes have original biographies and complete ability data");
 var heroDefinition = definitions.Single(d => d.Id == "mara-flint");
 var hero = new HeroData("owned-mara-1", heroDefinition);
@@ -59,6 +59,8 @@ Check(ReferenceEquals(hero.Army.OwnerHero, hero) && ReferenceEquals(secondHero.A
 Check(hero.Army.TotalUnits == 0 && hero.Army.Power == 0 && hero.Level == 1 && hero.Xp == 0, "hero starts level one with empty zero-power army");
 var fighters = fighterDefinitions.Select(d => new UnitData(d)).ToArray();
 var infantry = fighters[0]; var sharpshooter = fighters[1];
+Check((int)FighterType.Melee==0 && (int)FighterType.Sharpshooter==1 && (int)FighterType.Biker==2,"Melee/Sharpshooter/Biker retain existing numeric category identities");
+Check(fighters.Single(f=>f.Definition.Type==FighterType.Melee).Definition.Id=="infantry" && fighters.Single(f=>f.Definition.Type==FighterType.Biker).Definition.Id=="cavalry","renamed fighter categories retain permanent save IDs");
 var service = new HeroArmyService(new[] { hero, secondHero }, fighters, 100);
 int changes = 0;
 service.Changed += () => changes++;
@@ -101,13 +103,13 @@ Reject<ArgumentOutOfRangeException>(() => new HeroData("bad", heroDefinition, 0)
 Reject<ArgumentOutOfRangeException>(() => new HeroData("bad", heroDefinition, 1, 100), "unnormalized starting XP rejected");
 Reject<ArgumentOutOfRangeException>(() => new HeroData("bad", heroDefinition, 50, 1), "max-level hero cannot retain XP");
 Reject<ArgumentNullException>(() => new HeroData("bad", null), "missing hero definition rejected");
-Reject<ArgumentOutOfRangeException>(() => new HeroAbilityDefinition("a", "Ability", "Description", FighterType.Infantry, 1000, float.NaN, 5), "nonfinite ability cooldown rejected");
-Reject<ArgumentOutOfRangeException>(() => new HeroAbilityDefinition("a", "Ability", "Description", FighterType.Infantry, 1000, 10, -1), "negative ability duration rejected");
-Reject<ArgumentOutOfRangeException>(() => new HeroDefinition("bad", "Bad", "Bio", HeroRarity.Ordinary, FighterType.Infantry, heroDefinition.Ability, baseCapacity: int.MaxValue), "capacity overflow across progression rejected");
-Reject<ArgumentOutOfRangeException>(() => new HeroDefinition("bad", "Bad", "Bio", HeroRarity.Ordinary, FighterType.Infantry, heroDefinition.Ability, baseBonusBasisPoints: 10000), "passive bonus range validated across all levels");
-Reject<ArgumentOutOfRangeException>(() => new UnitDefinition("bad", "Bad", FighterType.Infantry, 100, 10, 1, 0), "zero fighter power rejected");
+Reject<ArgumentOutOfRangeException>(() => new HeroAbilityDefinition("a", "Ability", "Description", FighterType.Melee, 1000, float.NaN, 5), "nonfinite ability cooldown rejected");
+Reject<ArgumentOutOfRangeException>(() => new HeroAbilityDefinition("a", "Ability", "Description", FighterType.Melee, 1000, 10, -1), "negative ability duration rejected");
+Reject<ArgumentOutOfRangeException>(() => new HeroDefinition("bad", "Bad", "Bio", HeroRarity.Ordinary, FighterType.Melee, heroDefinition.Ability, baseCapacity: int.MaxValue), "capacity overflow across progression rejected");
+Reject<ArgumentOutOfRangeException>(() => new HeroDefinition("bad", "Bad", "Bio", HeroRarity.Ordinary, FighterType.Melee, heroDefinition.Ability, baseBonusBasisPoints: 10000), "passive bonus range validated across all levels");
+Reject<ArgumentOutOfRangeException>(() => new UnitDefinition("bad", "Bad", FighterType.Melee, 100, 10, 1, 0), "zero fighter power rejected");
 Reject<ArgumentOutOfRangeException>(() => new UnitDefinition("bad", "Bad", (FighterType)99, 100, 10, 1), "unknown fighter category rejected");
-Reject<ArgumentOutOfRangeException>(() => new UnitDefinition("bad", "Bad", FighterType.Infantry, 100, 10, float.PositiveInfinity), "nonfinite fighter speed rejected");
+Reject<ArgumentOutOfRangeException>(() => new UnitDefinition("bad", "Bad", FighterType.Melee, 100, 10, float.PositiveInfinity), "nonfinite fighter speed rejected");
 Reject<ArgumentOutOfRangeException>(() => new UnitData(infantry.Definition, 0), "invalid fighter level rejected");
 Reject<ArgumentException>(() => new HeroArmyService(new[] { secondHero, secondHero }, fighters, 10), "duplicate or nonempty initial hero roster rejected");
 Reject<ArgumentException>(() => new HeroArmyService(Array.Empty<HeroData>(), new[] { infantry, infantry }, 10), "duplicate fighter catalogue rejected");
