@@ -16,7 +16,7 @@ namespace Ash.Editor
         public static void Run()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Validate outside Play mode.");
-            Scene scene=default; SettlementArt art=null;
+            Scene scene=default; SettlementArt art=null; RenderTexture projectionTarget=null;
             try
             {
                 scene=EditorSceneManager.OpenPreviewScene(PrepareProject.SettlementScene);
@@ -44,8 +44,15 @@ namespace Ash.Editor
                 SceneManager.MoveGameObjectToScene(cameraRoot,scene);
                 var camera=cameraRoot.GetComponent<Camera>();
                 var controls=cameraRoot.AddComponent<SettlementCamera>();
-                foreach(float aspect in new[]{9f/16,9f/20,3f/4})
+                foreach(var resolution in new[]{new Vector2Int(360,640),new Vector2Int(360,800),new Vector2Int(360,480)})
                 {
+                    // Give the preview camera an actual portrait output, independent of the Editor's
+                    // landscape Game view. An aspect override alone is not an output viewport.
+                    camera.targetTexture=null;
+                    if(projectionTarget!=null)UnityEngine.Object.DestroyImmediate(projectionTarget);
+                    projectionTarget=new RenderTexture(resolution.x,resolution.y,16);
+                    camera.targetTexture=projectionTarget;
+                    float aspect=resolution.x/(float)resolution.y;
                     camera.aspect=aspect;controls.ResetView();
                     Require(camera.orthographic && Quaternion.Angle(camera.transform.rotation,IsometricView.Rotation)<.001f,"Camera must stay fixed and orthographic.");
                     var origin=camera.WorldToViewportPoint(Vector3.zero);
@@ -55,7 +62,15 @@ namespace Ash.Editor
                     // Viewport X is aspect-scaled; compare physical screen lengths, not normalized axes.
                     var px=new Vector2(x.x*aspect,x.y);var pz=new Vector2(z.x*aspect,z.y);var py=new Vector2(y.x*aspect,y.y);
                     Require(Mathf.Abs(px.magnitude-pz.magnitude)<.00001f && Mathf.Abs(px.magnitude-py.magnitude)<.00001f,"World axes have unequal isometric foreshortening.");
-                    Require(Mathf.Abs(Mathf.Abs(px.y/px.x)-1/Mathf.Sqrt(3))<.0001f,"Ground grid must project at 30 degrees.");
+                    // Measure the angle in the camera's own plane, before viewport normalization.
+                    // Subtracting two tiny viewport positions and dividing amplifies float error
+                    // at overview zoom and ties the angle check to Editor viewport dimensions.
+                    var groundX=camera.transform.InverseTransformDirection(Vector3.right);
+                    var groundZ=camera.transform.InverseTransformDirection(Vector3.forward);
+                    float angleX=Mathf.Atan2(Mathf.Abs(groundX.y),Mathf.Abs(groundX.x))*Mathf.Rad2Deg;
+                    float angleZ=Mathf.Atan2(Mathf.Abs(groundZ.y),Mathf.Abs(groundZ.x))*Mathf.Rad2Deg;
+                    Require(Mathf.Abs(angleX-30)<.001f && Mathf.Abs(angleZ-30)<.001f,
+                        $"Ground grid must project at 30 degrees. Measured X={angleX:F5}, Z={angleZ:F5}.");
                     var distant=camera.WorldToViewportPoint(Vector3.right+camera.transform.forward*10)-camera.WorldToViewportPoint(camera.transform.forward*10);
                     Require(new Vector2(distant.x-x.x,distant.y-x.y).magnitude<.00001f,"Objects shrink with depth.");
                     for(int corner=0;corner<8;corner++)
@@ -98,6 +113,7 @@ namespace Ash.Editor
             finally
             {
                 if(scene.IsValid() && scene.isLoaded)EditorSceneManager.ClosePreviewScene(scene);
+                if(projectionTarget!=null)UnityEngine.Object.DestroyImmediate(projectionTarget);
                 art?.Dispose();
             }
         }
