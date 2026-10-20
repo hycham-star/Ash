@@ -31,7 +31,16 @@ namespace Ash
         public string[] NotificationErrors { get; private set; } = Array.Empty<string>();
         public int Seed => state.Seed;
         public int AssignedWorkers { get { int total=0; foreach(var site in state.Sites)total+=site.Workers; return total; } }
-        public int FreeWorkers => TotalWorkers-AssignedWorkers;
+        internal Func<int> AvailableCivilians;
+        internal WorldMapService WorldMap;
+        public int FreeWorkers => Math.Max(0,Math.Min(TotalWorkers-AssignedWorkers,AvailableCivilians?.Invoke()??TotalWorkers));
+        internal int TakeForArmy(string id,int requested)
+        {
+            Guard();if(requested<0)throw new ArgumentOutOfRangeException(nameof(requested));
+            var site=Find(id);int taken=Math.Min(requested,site.Remaining);site.Remaining-=taken;
+            if(site.Remaining==0 && site.Workers>0)ReturnHome(site);
+            return taken;
+        }
         public ScavengingService(ResourceManager resources,int seed=1)
         {
             this.resources=resources ?? throw new ArgumentNullException(nameof(resources)); state=Generate(seed);

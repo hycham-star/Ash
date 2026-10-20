@@ -22,6 +22,7 @@ namespace Ash
         public HospitalService Hospital {get;private set;}
         public BuildingService Buildings { get; private set; }
         public ScavengingService Scavenging { get; private set; }
+        public WorldMapService WorldMap {get;private set;}
         public OfflineScavenging OfflineScavenging { get; private set; }
         public string OfflineSummary { get; private set; } = "";
         public event Action OfflineProgressChanged;
@@ -52,7 +53,7 @@ namespace Ash
             saveStore=new LocalSaveStore(directory ?? Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
             TryLoadProgress();
             HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
-            Buildings.Changed+=MarkProductionDirty; Hospital.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;
+            Buildings.Changed+=MarkProductionDirty; Hospital.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;WorldMap.Changed+=MarkScavengingDirty;
             Debug.Log("Local progress file: "+saveStore.SavePath,this);
         }
         private void Update()
@@ -65,7 +66,7 @@ namespace Ash
             if(productionSeconds>=1) {
                 int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds); Buildings.AdvanceDevelopment(seconds); Hospital.Advance(seconds);
                 advancingScavenging=true;
-                try { Scavenging.Advance(seconds); } finally { advancingScavenging=false; }
+                try { Scavenging.Advance(seconds); WorldMap.Advance(seconds); } finally { advancingScavenging=false; }
             }
             if(productionCheckpoint>=10) { productionCheckpoint=0; if(unsaved && !saveBlocked)dirty=true; }
         }
@@ -93,6 +94,8 @@ namespace Ash
             {
                 var report=OfflineScavenging.Resume(utcNow());int before=Hospital.TotalWounded;
                 Hospital.Advance(report.Seconds);OfflineSummary=report.Summary;
+                WorldMap.Advance(report.Seconds,false);
+                if(report.Seconds>0 && WorldMap.Report.Length>0)OfflineSummary+="\n"+WorldMap.Report;
                 int recovered=before-Hospital.TotalWounded;
                 if(recovered>0)OfflineSummary+="\nHospital: "+recovered+" fighters recovered to reserve.";
             }
@@ -105,7 +108,7 @@ namespace Ash
         private void OnDisable() { if(PersistenceActive && !saveBlocked)SaveProgress(); }
         private void OnDestroy()
         {
-            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; Hospital.Changed-=MarkProductionDirty; }
+            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; Hospital.Changed-=MarkProductionDirty;WorldMap.Changed-=MarkScavengingDirty; }
         }
         public bool SaveProgress()
         {
@@ -157,6 +160,7 @@ namespace Ash
                 for(int i=0;i<fresh.Resources.Length;i++)fresh.Resources[i]=new ResourceAmount(fresh.Resources[i].Type,starting.Get(fresh.Resources[i].Type));
                 foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
                 fresh.Development=SettlementDevelopmentState.Fresh();
+                fresh.WorldMap=WorldMapState.Fresh();
                 fresh.Hospital=HospitalState.Fresh();
                 fresh.Buildings=new BuildingService(new ResourceManager()).Capture();
                 fresh.Scavenging=ScavengingService.Generate(NewMapSeed());
@@ -217,6 +221,7 @@ namespace Ash
             var battles = new BattleManager(service, resources, fragments);
             Buildings = new BuildingService(resources);
             Scavenging = new ScavengingService(resources,NewMapSeed());
+            WorldMap=new WorldMapService(service,Scavenging,resources,Buildings,battles);
             OfflineScavenging = new OfflineScavenging(Scavenging);
             Resources = resources; HeroArmies = service; Fragments = fragments; Battles = battles;
             Heroes = service.Heroes; Units = service.Fighters;

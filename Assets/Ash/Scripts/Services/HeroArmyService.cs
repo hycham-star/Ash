@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace Ash
 {
-    public enum ArmyCommandResult { Success, HeroNotFound, FighterNotFound, InvalidQuantity, InsufficientReserve, CapacityExceeded, InsufficientAssigned }
+    public enum ArmyCommandResult { Success, HeroNotFound, FighterNotFound, InvalidQuantity, InsufficientReserve, CapacityExceeded, InsufficientAssigned, ArmyDeployed }
 
     /// <summary>Local domain command boundary; no networking, clocks, or Unity dependencies.</summary>
     public sealed class HeroArmyService
@@ -15,6 +15,7 @@ namespace Ash
         public ReadOnlyCollection<HeroData> Heroes { get; }
         public ReadOnlyCollection<UnitData> Fighters { get; }
         public event Action Changed;
+        internal Func<string,bool> DeploymentBlocked;
 
         public HeroArmyService(IEnumerable<HeroData> heroRoster, IEnumerable<UnitData> fighterCatalogue, int initialReservePerType)
         {
@@ -58,6 +59,7 @@ namespace Ash
 
         public ArmyCommandResult AssignFighters(string heroId, string fighterId, int quantity)
         {
+            if(DeploymentBlocked?.Invoke(heroId)==true)return ArmyCommandResult.ArmyDeployed;
             if (quantity <= 0) return ArmyCommandResult.InvalidQuantity;
             var hero = FindHero(heroId);
             if (hero == null) return ArmyCommandResult.HeroNotFound;
@@ -71,6 +73,7 @@ namespace Ash
 
         public ArmyCommandResult RemoveFighters(string heroId, string fighterId, int quantity)
         {
+            if(DeploymentBlocked?.Invoke(heroId)==true)return ArmyCommandResult.ArmyDeployed;
             if (quantity <= 0) return ArmyCommandResult.InvalidQuantity;
             var hero = FindHero(heroId);
             if (hero == null) return ArmyCommandResult.HeroNotFound;

@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 7;
+        public const int Version = 8;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -15,6 +15,7 @@ namespace Ash
         private readonly ScavengingService scavenging;
         private readonly OfflineScavenging offline;
         private readonly HospitalService hospital;
+        private readonly WorldMapService worldMap;
 
         public ProgressPersistence(HeroArmyService armies, ResourceManager resources, HeroFragmentWallet fragments, BuildingService buildings = null, ScavengingService scavenging = null, OfflineScavenging offline = null)
         {
@@ -25,6 +26,7 @@ namespace Ash
             this.scavenging = scavenging ?? new ScavengingService(resources);
             this.offline = offline ?? new OfflineScavenging(this.scavenging);
             this.hospital=armies.GetHospital(resources);
+            worldMap=this.scavenging.WorldMap??new WorldMapService(armies,this.scavenging,resources,this.buildings,new BattleManager(armies,resources,fragments));
         }
         public ProgressState Capture()
         {
@@ -35,7 +37,7 @@ namespace Ash
             foreach(var id in fragments.DefinitionIds) ids.Add(id);
             var stock = new List<FragmentState>();
             foreach(var id in ids) stock.Add(new FragmentState { DefinitionId=id, Quantity=fragments.Get(id) });
-            return new ProgressState { Development=buildings.CaptureDevelopment(), Hospital=hospital.Capture(), Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture(), ScavengingUtcSeconds=offline.LastUtcSeconds };
+            return new ProgressState { WorldMap=worldMap.Capture(), Development=buildings.CaptureDevelopment(), Hospital=hospital.Capture(), Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture(), ScavengingUtcSeconds=offline.LastUtcSeconds };
         }
         public void Validate(ProgressState state) { Prepare(state); }
         public void Restore(ProgressState state)
@@ -50,6 +52,7 @@ namespace Ash
             scavenging.RestoreValidated(candidate.Scavenging);
             offline.RestoreValidated(candidate.ScavengingUtcSeconds);
             hospital.RestoreValidated(candidate.Hospital);
+            worldMap.RestoreValidated(candidate.WorldMap);
         }
         public string[] NotifyRestored()
         {
@@ -68,6 +71,7 @@ namespace Ash
             public HospitalState Hospital;
             public ScavengingState Scavenging;
             public long ScavengingUtcSeconds;
+            public WorldMapState WorldMap;
         }
         private Candidate Prepare(ProgressState state)
         {
@@ -93,6 +97,25 @@ namespace Ash
                 savedScavenging=ScavengingService.Generate(scavenging.Seed);
             } else savedScavenging=state.Scavenging;
             scavenging.Validate(savedScavenging);
+            // Civilian teams now share residents with plot jobs. Retain legacy cargo and
+            // return only excess old dedicated workers if their population cannot staff them.
+            int plotJobs=0;foreach(var p in savedDevelopment.Plots)plotJobs+=BuildingService.WorkersRequired(p.Kind);
+            int civilianSlots=savedDevelopment.Population-plotJobs;
+            if(state.Version<8)
+            {
+                var copy=new ScavengingService(new ResourceManager(),savedScavenging.Seed);
+                copy.RestoreValidated(savedScavenging);savedScavenging=copy.Capture();
+                foreach(var site in savedScavenging.Sites)
+                {
+                    int keep=Math.Min(civilianSlots,site.Workers);civilianSlots-=keep;
+                    if(keep!=site.Workers){site.Workers=0;site.Work=0;civilianSlots+=keep;}
+                }
+            }
+            else
+            {
+                foreach(var site in savedScavenging.Sites)civilianSlots-=site.Workers;
+                if(civilianSlots<0)throw new ArgumentException("Civilian residents allocated more than once.");
+            }
             // Historical versions stored at most 100 at a site, regardless of workforce.
             if(state.Version>=3 && state.Version<5)
                 foreach(var site in savedScavenging.Sites)
@@ -143,6 +166,8 @@ namespace Ash
             }
             foreach(var patient in savedHospital.Patients)totals[patient.DefinitionId]+=patient.Quantity;
             foreach(var total in totals.Values) if(total>int.MaxValue) throw new ArgumentException("Saved fighter total overflows the reserve.");
+            var savedWorld=state.Version<8?WorldMapState.Fresh():state.WorldMap;
+            WorldMapService.Validate(savedWorld,candidateArmies,savedScavenging);
             int resourceCount=state.Version<3 ? 5 : Enum.GetValues(typeof(ResourceType)).Length;
             if(state.Resources.Length!=resourceCount) throw new ArgumentException("Incomplete resource ledger.");
             var seenResources=new HashSet<ResourceType>();
@@ -156,7 +181,7 @@ namespace Ash
                     throw new ArgumentException("Invalid or duplicate fragment balance.");
                 fragmentBalances.Add(stock.DefinitionId,stock.Quantity);
             }
-            return new Candidate { Development=savedDevelopment, Hospital=savedHospital, Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging, ScavengingUtcSeconds=timestamp };
+            return new Candidate { WorldMap=savedWorld, Development=savedDevelopment, Hospital=savedHospital, Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging, ScavengingUtcSeconds=timestamp };
         }
     }
 }

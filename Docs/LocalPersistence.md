@@ -1,4 +1,4 @@
-> Current progress schema is 7, including [settlement development](SettlementDevelopment.md) and the [hospital](Hospital.md). Versions 1–6 migrate without resetting existing supported progression. The older schema descriptions below are historical.
+> Current progress schema is 8, including [world missions](WorldMap.md), settlement development and hospital. Versions 1–7 migrate; legacy excess civilian allocations are recalled with cargo protected. Older schema descriptions below are historical.
 
 > Current offline milestone writes schema4 and adds timestamp-based catch-up for assigned map workers, up to8hours with storage/deposit caps. See OfflineScavenging.md for current behavior and403checks. Earlier milestone details below are historical.
 

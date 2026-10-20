@@ -13,6 +13,13 @@ namespace Ash
         private readonly AutoBattle simulation = new AutoBattle();
         public HospitalService Hospital {get;}
         private bool running;
+        private string authorizedDeployment;
+        internal CombatResult ResolveDeployment(string heroId,NpcEncounter encounter)
+        {
+            if(running)throw new InvalidOperationException("Battle settlement already running.");
+            authorizedDeployment=heroId;
+            try{return RunBattle(heroId,encounter);}finally{authorizedDeployment=null;}
+        }
         public CombatResult LastResult { get; private set; }
         public ReadOnlyCollection<string> NotificationErrors { get; private set; } = new List<string>().AsReadOnly();
         public event Action<CombatResult> BattleCompleted;
@@ -37,6 +44,7 @@ namespace Ash
 
         public CombatResult RunBattle(string heroInstanceId, NpcEncounter encounter, bool abilitiesEnabled = true, int maxRounds = 120)
         {
+            if(armies.DeploymentBlocked?.Invoke(heroInstanceId)==true && authorizedDeployment!=heroInstanceId)throw new InvalidOperationException("This hero is deployed on the world map. Recall or wait for return.");
             if (running) throw new InvalidOperationException("A battle is already being settled.");
             running = true;
             try

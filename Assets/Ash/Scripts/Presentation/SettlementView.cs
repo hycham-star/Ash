@@ -54,6 +54,7 @@ namespace Ash
                 if (config == null) { Debug.LogError("Missing settlement raid encounter.",this); enabled = false; return; }
                 camps.Add(config.CreateEncounter());
             }
+            gameManager.WorldMap.ConfigureEncounters(camps);
             art = new SettlementArt(); font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             presentation = new GameObject("Original Ashlands Settlement");
             world = new GameObject("Settlement World").transform; world.SetParent(presentation.transform,false);
@@ -362,7 +363,13 @@ namespace Ash
             scavengingMap.Show(); scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); scavengingMap.transform.SetAsLastSibling();
         }
         private void ShowHeroes(bool visible) { developmentUI.Hide();hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); portraitCamera.enabled=visible; Refresh(); }
-        private void ShowRaid() { developmentUI.Hide();hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(false); portraitCamera.enabled=false; raidPanel.SetActive(true); results.Clear(); Refresh(); }
+        private void ShowRaid()=>ShowMap();
+        private void ShowWorldRaidResult(CombatResult outcome)
+        {
+            for(int i=0;i<gameManager.Heroes.Count;i++)if(gameManager.Heroes[i].InstanceId==outcome.HeroInstanceId)selectedHero=i;
+            for(int i=0;i<camps.Count;i++)if(camps[i].Id==outcome.EncounterId)selectedCamp=i;
+            scavengingMap.Hide();raidPanel.SetActive(true);raidPanel.transform.SetAsLastSibling();results.Show(outcome,true);Refresh();
+        }
         private int MaximumReinforcements()
         {
             var hero=gameManager.Heroes[selectedHero];var fighter=gameManager.Units[selectedFighter];
@@ -483,7 +490,7 @@ namespace Ash
             var scroll=viewport.gameObject.AddComponent<ScrollRect>(); scroll.viewport=viewport; scroll.content=content; scroll.horizontal=false; scroll.movementType=ScrollRect.MovementType.Clamped;
             results=viewport.gameObject.AddComponent<CombatResultsUI>(); results.Bind(report);
             Button(raidRoot,"PREVIEW",0,0,.5f,0,18,14,-4,65,19,()=>Raid(false));
-            Button(raidRoot,"RAID",.5f,0,1,0,4,14,-18,65,19,()=>Raid(true));
+            Button(raidRoot,"WORLD MAP",.5f,0,1,0,4,14,-18,65,19,ShowRaid);
             raidPanel.SetActive(false);
             buildingPanel=Panel(ui,"Building management",new Vector2(.04f,.30f),new Vector2(.96f,.82f),Vector2.zero,Vector2.zero,ink).gameObject;
             var buildingRoot=buildingPanel.GetComponent<RectTransform>();
@@ -498,6 +505,7 @@ namespace Ash
             collectBuilding=Button(buildingRoot,"COLLECT",.5f,0,1,0,4,14,-12,70,18,CollectBuilding);
             buildingPanel.SetActive(false);
             scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font,gameManager.SaveProgress,()=>gameManager.SaveStatus);
+            scavengingMap.ConfigureWorld(gameManager.WorldMap,()=>gameManager.Heroes[selectedHero],delta=>{selectedHero=(selectedHero+delta+gameManager.Heroes.Count)%gameManager.Heroes.Count;Refresh();},ShowWorldRaidResult);
             hospitalUI=HospitalUI.Create(ui,gameManager,font);
             developmentUI=DevelopmentUI.Create(ui,gameManager,font);
             developmentUI.PlotSelected+=id=>{foreach(var p in SettlementLayout.Plots)if(p.Id==id)controls.FocusOn(new Vector3(p.X,0,p.Z),8);};

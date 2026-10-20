@@ -21,6 +21,11 @@ namespace Ash.Editor
                     var importer=(TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(landmark));
                     Require(importer.alphaSource==TextureImporterAlphaSource.FromInput && importer.alphaIsTransparency && importer.wrapMode==TextureWrapMode.Clamp,"Landmark transparency/import settings invalid: "+resource);
                 }
+                foreach(var asset in new[]{"Camp","Dust","Bus0","Bus1","Bus2","Bus3","Bus4","Bus5","Bus6","Bus7","Bike0","Bike1","Bike2","Bike3","Bike4","Bike5","Bike6","Bike7"})
+                {
+                    var texture=Resources.Load<Texture2D>("Map/"+asset);
+                    Require(texture!=null && texture.width==384 && texture.height==384,"Missing convoy/camp image: "+asset);
+                }
                 foreach(var name in new[]{"AshDetail","AshContact","AshRaidDust"})
                 {
                     var shader=Resources.Load<Shader>(name);
@@ -69,7 +74,7 @@ namespace Ash.Editor
                         Require(animations.Any(clip=>clip.legacy && clip.length>1 && !clip.name.StartsWith("__preview__",StringComparison.Ordinal) && clip.name.IndexOf(mode,StringComparison.OrdinalIgnoreCase)>=0),mode+" clip missing: "+name);
                 }
                 Require(Resources.Load<Material>("Art/ContactMaterial")!=null,"Contact grounding material missing.");
-                Debug.Log("PASS Unity realistic visual imports: four transparent miniature map landmarks, meshes, eight stable hero visual IDs, NPC/hero skeletal bindings, idle/walk clips, facing markers, atlas/normal imports, bundled materials and shaders. Check miniature scale, map taps, motion and rendering in Play mode and Android. Player saves untouched.");
+                Debug.Log("PASS Unity realistic visual imports: resource landmarks, enemy camp, eight bus/bike headings, dust, meshes, hero visual IDs, skeletal bindings, clips, facing markers, atlases and bundled shaders. Check map zoom, convoy motion and rendering in Play mode and Android. Player saves untouched.");
             }
             catch(Exception error)
             {

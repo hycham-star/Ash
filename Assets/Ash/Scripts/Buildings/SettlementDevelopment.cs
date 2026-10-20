@@ -43,7 +43,8 @@ namespace Ash
         private SettlementDevelopmentState development=SettlementDevelopmentState.Fresh();
         public int Population=>development.Population;
         public int HousingCapacity{get{int total=BaseHousing;foreach(var p in development.Plots)if(p.Kind==PlotKind.Housing)total+=p.Level*ResidentsPerHouseLevel;return total;}}
-        public int EmployedResidents{get{int total=0;foreach(var p in development.Plots)total+=WorkersRequired(p.Kind);return total;}}
+        internal Func<int> ScavengingWorkers;
+        public int EmployedResidents{get{int total=ScavengingWorkers?.Invoke()??0;foreach(var p in development.Plots)total+=WorkersRequired(p.Kind);return total;}}
         public int FreeResidents=>Population-EmployedResidents;
         public int GrowthSeconds=>development.GrowthSeconds;
         public static string PlotName(PlotKind kind)

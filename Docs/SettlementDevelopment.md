@@ -1,3 +1,5 @@
+> Current schema 8 also shares free civilian residents with map collection teams. See [world-map rules](WorldMap.md).
+
 # Expanded settlement and population development
 
 The settlement now occupies a **36 × 40** walled area, approximately six times the previous area. The original command center, workshop, barracks, food garden, water station and hospital remain in the central district. New district roads connect **12 fixed building plots** inside the expanded walls. HOME fits the entire settlement into the portrait view; mouse wheel/pinch zoom and wider drag panning let you inspect districts.

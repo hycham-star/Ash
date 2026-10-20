@@ -15,6 +15,7 @@ namespace Ash
         public SettlementDevelopmentState Development;
         public HospitalState Hospital;
         public ScavengingState Scavenging;
+        public WorldMapState WorldMap;
         public long ScavengingUtcSeconds;
     }
     [Serializable]

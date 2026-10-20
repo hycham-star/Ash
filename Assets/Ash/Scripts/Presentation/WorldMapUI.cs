@@ -1,0 +1,206 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Ash
+{
+    public sealed partial class ScavengingMapUI
+    {
+        private WorldMapService worldService;
+        private Func<HeroData> heroSelection;
+        private Action<int> cycleHero;
+        private Action<CombatResult> showRaidResult;
+        private Button armyGather;
+        private GameObject campPanel;
+        private Text campDetails,heroLabel;
+        private string selectedCampId;
+        private int campSeed;
+        private float suppressClicksUntil;
+        private readonly Dictionary<string,RectTransform> campMarkers=new Dictionary<string,RectTransform>();
+        private readonly Dictionary<string,RectTransform> convoys=new Dictionary<string,RectTransform>();
+        private readonly Dictionary<string,Texture2D> convoyTextures=new Dictionary<string,Texture2D>();
+        private HeroData CurrentHero=>heroSelection?.Invoke();
+        private float MarkerScale=>Mathf.Clamp(side/1000,.55f,3.5f);
+        public float MapSize=>side;
+        public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult)
+        {
+            if(worldService!=null)worldService.Changed-=Refresh;
+            worldService=world;heroSelection=selectedHero;cycleHero=cycle;showRaidResult=showResult;
+            worldService.Changed+=Refresh;Refresh();
+        }
+        private void BuildWorldControls()
+        {
+            Control(transform,"‹",Vector2.zero,new Vector2(.12f,0),new Vector2(8,228),new Vector2(-3,262),()=>{cycleHero?.Invoke(-1);Refresh();});
+            var heroRect=Rect(transform,"Map hero",new Vector2(.12f,0),new Vector2(.88f,0),new Vector2(3,228),new Vector2(-3,262),ink);
+            heroLabel=Label(heroRect,"Choose a hero in the settlement",13);
+            Control(transform,"›",new Vector2(.88f,0),new Vector2(1,0),new Vector2(3,228),new Vector2(-8,262),()=>{cycleHero?.Invoke(1);Refresh();});
+            var card=Rect(transform,"Enemy camp card",Vector2.zero,new Vector2(1,0),new Vector2(8,70),new Vector2(-8,220),ink);campPanel=card.gameObject;
+            var description=Rect(card,"Scout information",new Vector2(0,.30f),new Vector2(.9f,1),new Vector2(2,2),new Vector2(-2,-2),ink);
+            Control(card,"X",Vector2.one,Vector2.one,new Vector2(-32,-30),new Vector2(-3,-3),()=>{selectedCampId=null;Refresh();});
+            campDetails=Label(description,"",14);campDetails.alignment=TextAnchor.MiddleLeft;campDetails.resizeTextForBestFit=true;campDetails.resizeTextMinSize=10;campDetails.resizeTextMaxSize=14;
+            Control(card,"SCOUT",Vector2.zero,new Vector2(.33f,.29f),new Vector2(3,3),new Vector2(-2,-2),()=>WorldCommand(()=>worldService.Scout(selectedCampId)));
+            Control(card,"RAID",new Vector2(.33f,0),new Vector2(.66f,.29f),new Vector2(2,3),new Vector2(-2,-2),()=>WorldCommand(()=>worldService.Dispatch(CurrentHero.InstanceId,selectedCampId,MapMissionKind.Raid)));
+            Control(card,"RESULTS",new Vector2(.66f,0),new Vector2(1,.29f),new Vector2(2,3),new Vector2(-3,-2),()=>{if(worldService?.LastRaid!=null)showRaidResult?.Invoke(worldService.LastRaid);else feedback.text="No raid result in this session yet.";});
+            campPanel.SetActive(false);
+        }
+        private void WorldCommand(Action command)
+        {
+            if(worldService==null || CurrentHero==null){feedback.text="World map hero selection unavailable in this debug scene.";return;}
+            try
+            {
+                command();
+                feedback.text=save==null?worldService.Report:save()?"Saved locally • "+worldService.Report:"NOT SAVED — "+(saveStatus?.Invoke()??"See Console");
+            }
+            catch(Exception error){feedback.text=error.Message;}
+            Refresh();
+        }
+        private RawImage Icon(Transform parent,string title,Texture texture,Vector2 size)
+        {
+            var obj=new GameObject(title,typeof(RectTransform),typeof(RawImage));obj.transform.SetParent(parent,false);
+            var rect=(RectTransform)obj.transform;rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);rect.sizeDelta=size;
+            var image=obj.GetComponent<RawImage>();image.texture=texture;image.raycastTarget=false;return image;
+        }
+        private void RefreshWorld()
+        {
+            if(worldService==null || CurrentHero==null){armyGather.interactable=false;return;}
+            if(campMarkers.Count==0 || campSeed!=service.Seed)
+            {
+                foreach(var marker in campMarkers.Values)SettlementArt.Release(marker.gameObject);
+                campMarkers.Clear();campSeed=service.Seed;selectedCampId=null;
+                foreach(var camp in worldService.Camps)
+                {
+                    string id=camp.Id;
+                    var button=Control(markerRoot,"CAMP ?",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-32,-35),new Vector2(32,35),()=>{selectedCampId=id;Refresh();});
+                    button.gameObject.name="Enemy base • "+id;button.GetComponent<Image>().color=new Color32(0,0,0,0);
+                    var label=button.GetComponentInChildren<Text>(true);label.fontSize=10;label.rectTransform.anchorMax=new Vector2(1,.20f);label.rectTransform.offsetMin=label.rectTransform.offsetMax=Vector2.zero;
+                    var icon=Icon(button.transform,"Rusty enemy base",Resources.Load<Texture2D>("Map/Camp"),new Vector2(64,56));icon.rectTransform.anchoredPosition=new Vector2(0,5);
+                    campMarkers.Add(id,(RectTransform)button.transform);
+                }
+                PositionWorldMarkers();
+            }
+            var hero=CurrentHero;var mission=worldService.Mission(hero.InstanceId);
+            heroLabel.text=HeroRarityColors.Text(hero.Definition.DisplayName,hero.Definition.Rarity)+" • "+hero.Army.TotalUnits+" fighters • "+(mission==null?"HOME":mission.Phase.ToString());
+            workforce.text="Civilians: "+service.FreeWorkers+" field-ready • "+worldService.AvailableResidents+" residents free • Pinch / scroll / + to zoom";
+            armyGather.interactable=mission==null && hero.Army.TotalUnits>0 && service.Site(selected).Remaining>0;
+            recall.interactable=mission!=null || service.Site(selected).Workers>0;
+            teamSelection.text=teamSize+" civilians • COLLECT = workers • GATHER = hero army";
+            if(mission!=null && selectedCampId==null)stats.text+="\nArmy: "+mission.Phase+" • Cargo "+mission.Cargo+"/"+WorldMapService.Capacity(hero);
+            bool campSelected=selectedCampId!=null;campPanel.SetActive(campSelected);
+            assign.gameObject.SetActive(!campSelected);armyGather.gameObject.SetActive(!campSelected);collect.gameObject.SetActive(!campSelected);
+            // Recall remains available during camp selection, including the return trip.
+            recall.gameObject.SetActive(true);
+            foreach(var camp in worldService.Camps)
+            {
+                var marker=campMarkers[camp.Id];marker.GetComponentInChildren<Text>(true).text=worldService.IsScouted(camp.Id)?"CAMP Lv"+camp.Level:"CAMP ?";
+                marker.GetComponent<Image>().color=camp.Id==selectedCampId?new Color32(160,72,40,130):new Color32(0,0,0,0);
+            }
+            if(campSelected)
+            {
+                var camp=worldService.Camp(selectedCampId);var encounter=worldService.Encounter(camp.Id);
+                string info=camp.Name+" • "+camp.Id+"\nSCOUT to reveal strength. RAID with selected hero.";
+                if(worldService.IsScouted(camp.Id) && encounter!=null)
+                {
+                    info=camp.Name+" • Lv "+camp.Level+" • "+encounter.Name;
+                    foreach(var stack in encounter.Enemy.Fighters)info+="\n"+stack.Fighter.Definition.Type+": "+stack.Quantity;
+                    info+="\nVictory XP "+encounter.VictoryXp+" • Fragments "+encounter.VictoryFragments;
+                    foreach(var resource in encounter.RewardsFor(BattleOutcome.Victory,hero.Definition.Id).Resources)info+=" • "+resource.Type+" +"+resource.Amount;
+                }
+                campDetails.text=info+"\n"+worldService.Report;
+            }
+            RefreshConvoys();
+        }
+        private void PositionWorldMarkers()
+        {
+            if(worldService==null)return;
+            foreach(var camp in worldService.Camps)
+            {
+                if(!campMarkers.TryGetValue(camp.Id,out var marker))continue;
+                marker.anchoredPosition=MapPoint(camp.X,camp.Z);marker.sizeDelta=new Vector2(64,70)*MarkerScale;
+                var icon=marker.GetComponentInChildren<RawImage>(true);icon.rectTransform.sizeDelta=new Vector2(64,56)*MarkerScale;icon.rectTransform.anchoredPosition=new Vector2(0,5)*MarkerScale;
+            }
+            RefreshConvoys();
+        }
+        private Vector2 MapPoint(int x,int z)=>new Vector2(x,z)*(side-100)/200;
+        private Texture2D ConvoyTexture(string name)
+        {
+            if(!convoyTextures.TryGetValue(name,out var texture)){texture=Resources.Load<Texture2D>("Map/"+name);convoyTextures.Add(name,texture);}return texture;
+        }
+        private void RefreshConvoys()
+        {
+            if(worldService==null)return;
+            var missions=worldService.Capture().Missions;var active=new HashSet<string>();
+            foreach(var mission in missions)
+            {
+                active.Add(mission.HeroId);
+                if(!convoys.TryGetValue(mission.HeroId,out var root))
+                {
+                    var obj=new GameObject("Army convoy • "+mission.HeroId,typeof(RectTransform));root=(RectTransform)obj.transform;root.SetParent(markerRoot,false);root.anchorMin=root.anchorMax=new Vector2(.5f,.5f);
+                    Icon(root,"Army bus",ConvoyTexture("Bus0"),new Vector2(70,70));
+                    Icon(root,"Hero bike",ConvoyTexture("Bike0"),new Vector2(36,36));
+                    Icon(root,"Raid dust",ConvoyTexture("Dust"),new Vector2(100,100));
+                    var hero=worldService.Hero(mission.HeroId);
+                    var tag=Label(root,hero.Definition.DisplayName,10);tag.gameObject.name="Convoy hero";tag.color=HeroRarityColors.For(hero.Definition.Rarity);
+                    tag.rectTransform.anchorMin=tag.rectTransform.anchorMax=new Vector2(.5f,.5f);tag.rectTransform.sizeDelta=new Vector2(120,20);
+                    convoys.Add(mission.HeroId,root);
+                }
+                worldService.Coordinates(mission,out int x,out int z);var target=MapPoint(x,z);float travel=worldService.TravelSeconds(mission);
+                float fraction=mission.Phase==MapMissionPhase.Outbound?mission.Elapsed/travel:mission.Phase==MapMissionPhase.Returning?1-mission.Elapsed/travel:1;
+                var destination=target*fraction;
+                root.anchoredPosition=Application.isPlaying?Vector2.Lerp(root.anchoredPosition,destination,1-Mathf.Exp(-Time.unscaledDeltaTime*10)):destination;
+                var direction=(mission.Phase==MapMissionPhase.Returning?-target:target).normalized;
+                int heading=Heading(direction);bool dust=mission.Phase==MapMissionPhase.Dust;
+                var bus=root.Find("Army bus").GetComponent<RawImage>();var bike=root.Find("Hero bike").GetComponent<RawImage>();var cloud=root.Find("Raid dust").GetComponent<RawImage>();
+                bus.texture=ConvoyTexture("Bus"+heading);bike.texture=ConvoyTexture("Bike"+heading);
+                float size=Mathf.Clamp(MarkerScale,.65f,2.5f);bus.rectTransform.sizeDelta=new Vector2(70,70)*size;bike.rectTransform.sizeDelta=new Vector2(36,36)*size;
+                root.Find("Convoy hero").GetComponent<RectTransform>().anchoredPosition=new Vector2(0,-35*size);
+                bike.rectTransform.anchoredPosition=direction*26*size;
+                bus.enabled=bike.enabled=!dust;cloud.enabled=dust;
+                cloud.rectTransform.sizeDelta=Vector2.one*(90+Mathf.Sin(Time.unscaledTime*6)*6)*size;
+                root.SetAsLastSibling();
+            }
+            var removed=new List<string>();foreach(var p in convoys)if(!active.Contains(p.Key)){SettlementArt.Release(p.Value.gameObject);removed.Add(p.Key);}
+            foreach(var id in removed)convoys.Remove(id);
+        }
+        private static int Heading(Vector2 direction)
+        {
+            int best=0;float score=-2;
+            for(int i=0;i<8;i++)
+            {
+                float a=i*Mathf.PI/4;var screen=new Vector2(Mathf.Cos(a)-Mathf.Sin(a),(Mathf.Sin(a)+Mathf.Cos(a))/Mathf.Sqrt(3)).normalized;
+                float dot=Vector2.Dot(screen,direction);if(dot>score){score=dot;best=i;}
+            }
+            return best;
+        }
+        public void ZoomBy(float factor)=>ZoomAt(factor,RectTransformUtility.WorldToScreenPoint(null,viewport.TransformPoint(viewport.rect.center)));
+        public void ZoomAt(float factor,Vector2 screenPoint)
+        {
+            if(factor<=0 || float.IsNaN(factor) || float.IsInfinity(factor))return;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(viewport,screenPoint,null,out var point);
+            var old=map.anchoredPosition;float before=side;SetSize(side*factor);
+            float ratio=(side-100)/(before-100);map.anchoredPosition=point-(point-old)*ratio;ClampMap();scroll.StopMovement();
+        }
+        private void ClampMap()
+        {
+            var p=map.anchoredPosition;float x=Mathf.Max(0,(side-viewport.rect.width)/2),y=Mathf.Max(0,(side-viewport.rect.height)/2);
+            map.anchoredPosition=new Vector2(Mathf.Clamp(p.x,-x,x),Mathf.Clamp(p.y,-y,y));
+        }
+        private void Update()
+        {
+            if(Input.touchCount==2)
+            {
+                var a=Input.GetTouch(0);var b=Input.GetTouch(1);
+                if(RectTransformUtility.RectangleContainsScreenPoint(viewport,a.position) && RectTransformUtility.RectangleContainsScreenPoint(viewport,b.position))
+                {
+                    suppressClicksUntil=Time.unscaledTime+.2f;
+                    scroll.enabled=false;
+                    float before=Vector2.Distance(a.position-a.deltaPosition,b.position-b.deltaPosition),after=Vector2.Distance(a.position,b.position);
+                    if(before>1)ZoomAt(after/before,(a.position+b.position)/2);
+                }
+            }
+            else if(!scroll.enabled)scroll.enabled=true;
+            RefreshConvoys();
+        }
+        private void OnDisable(){if(scroll!=null)scroll.enabled=true;}
+    }
+}
