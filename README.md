@@ -4,6 +4,14 @@ Portrait Android strategy prototype with original textured settlement and charac
 
 ## 2.5D isometric gameplay
 
+### Miniature world-map landmarks and rendering polish
+
+Scavenging markers now show original prerendered isometric **water wells, vegetable farms, scrapyards and small woodlands** over textured terrain, rather than coloured resource rectangles. The landmarks stay small, scale gently with zoom, highlight selection, and show working-team counts. Tap one for the full resource/worker card. All sixteen saved site IDs, coordinates and dispatch rules are reused. No worker travel is shown or simulated by this presentation.
+
+World characters and cavalry now render at **60% of their previous visual size** with proportionate contact shadows and raid badges; patrol routes, unit counts and hero portraits are preserved. Textured models use softer diffuse lighting, gentler normal detail and a subtle edge light; procedural terrain/props gain mild surface variation. These are mobile shader changes in the existing built-in renderer, without a new pipeline or package.
+
+Outside Play run **Ashlands > Validate Realistic Visuals** and **Validate Map Scavenging**. Then open the settlement and check MAP: all four landmarks, FIT/zoom/drag/tap, dispatch and restart. Check settlement residents and a raid for miniature size and animation. Cloud checks do not compile Unity shaders or prove Android rendering/performance. Source for the four original RGBA landmarks is `Tools/Art/build_map_landmarks.py` (Blender, four CPU threads); no external art pack is required.
+
 The settlement and PvE march now share a fixed **35.264° pitch / −45° yaw orthographic camera**: diagonal ground axes, equal axis foreshortening and no perspective shrinking. Existing textured 3D buildings and animated characters provide depth and occlusion. Portrait HUD, drag/pinch/scroll, plot taps and HOME remain available. HOME fits all settlement walls into the space between HUD panels; plot selection zooms in. The raid still shows only your army approaching the target, then dust and results. Hero portraits and the abstract scavenging map keep their dedicated views.
 
 Open with Unity **6000.3.26f1**. Outside Play, run **Ashlands > Validate 2.5D Isometric View**, then **Open Settlement Scene** and Play. Check HOME, zoom, drag, each plot tap, building labels and a raid on a 9:16 Game view and Android. The native validator checks equal axis projection, parallel scale at depth, overview bounds at three portrait aspects, plot focus/ground rays and raid bounds. It requires Unity and has not been run in the cloud. This is a camera/presentation conversion using existing art, not a replacement art pack or a change to saved gameplay.

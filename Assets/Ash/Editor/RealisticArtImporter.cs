@@ -7,6 +7,16 @@ namespace Ash.Editor
     {
         private void OnPreprocessTexture()
         {
+            if(assetPath.StartsWith("Assets/Ash/Resources/Map/",StringComparison.Ordinal) && assetPath.EndsWith(".png",StringComparison.OrdinalIgnoreCase))
+            {
+                var landmark=(TextureImporter)assetImporter;
+                landmark.textureType=TextureImporterType.Default;landmark.sRGBTexture=true;landmark.maxTextureSize=512;
+                landmark.mipmapEnabled=true;landmark.wrapMode=UnityEngine.TextureWrapMode.Clamp;
+                landmark.npotScale=TextureImporterNPOTScale.None;
+                landmark.alphaSource=TextureImporterAlphaSource.FromInput;landmark.alphaIsTransparency=true;
+                landmark.filterMode=UnityEngine.FilterMode.Bilinear;landmark.textureCompression=TextureImporterCompression.Compressed;
+                return;
+            }
             if(!assetPath.StartsWith("Assets/Ash/Resources/Art/",StringComparison.Ordinal) || !assetPath.EndsWith(".png",StringComparison.OrdinalIgnoreCase))return;
             var texture=(TextureImporter)assetImporter;
             bool normal=assetPath.EndsWith("Normal.png",StringComparison.Ordinal);

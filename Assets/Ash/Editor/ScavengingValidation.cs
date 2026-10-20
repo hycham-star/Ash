@@ -43,6 +43,11 @@ namespace Ash.Editor
                 var map=ScavengingMapUI.Create(canvas.transform,service,UnityEngine.Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
                 map.Refresh(); // Actual refresh of the inactive panel, including real button references.
                 Require(!map.gameObject.activeSelf && map.GetComponentsInChildren<Button>(true).Length>=24,"Map UI controls incomplete.");
+                var landmarks=map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Miniature landmark").ToArray();
+                Require(landmarks.Length==16 && landmarks.All(image=>image.texture!=null && image.texture.width==384 && !image.raycastTarget),"Miniature landmarks are missing or blocking site buttons.");
+                var siteButton=map.GetComponentsInChildren<Button>(true).Single(button=>button.name.EndsWith(" • "+lumber.Id,StringComparison.Ordinal));
+                siteButton.onClick.Invoke();
+                Require(map.SelectedSiteId==lumber.Id && service.Capture().Sites.All(site=>nodes.Any(before=>before.Id==site.Id && before.X==site.X && before.Z==site.Z && site.Workers==0)),"Landmark selection changed saved positions or worker allocation.");
                 Require(service.Assign(lumber.Id)==ScavengingResult.Success && service.FreeWorkers==9,"Worker allocation failed.");
                 service.Advance(37);
                 Require(service.Site(lumber.Id).Stored==4 && service.Site(lumber.Id).Work==56,"Lumber production incorrect.");
@@ -63,7 +68,7 @@ namespace Ash.Editor
                 string oldJson=JsonUtility.ToJson(new LegacyV2 { Version=2,Format=old.Format,Armies=old.Armies,Resources=old.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray(),Fragments=old.Fragments,Buildings=old.Buildings });
                 progress.Restore(codec.Decode(oldJson)); progress.NotifyRestored();
                 Require(service.FreeWorkers==10 && manager.Resources.Get(ResourceType.Lumber)==0 && manager.Buildings.Level(BuildingKind.Headquarters)==2,"Version-two migration lost buildings or failed to initialize map.");
-                Debug.Log("PASS Unity map scavenging: all four resources, dedicated worker allocation, hidden map UI refresh, partial recall, full-load auto-return without repeat, native JSON/disk round trip, and version-two migration. Temporary files only; test map drag/zoom/layout and pause/restart on phone.");
+                Debug.Log("PASS Unity map scavenging: four resource landmark types, sixteen textured miniature buttons and selection without moving sites, dedicated workers, hidden UI refresh, partial recall, full-load auto-return, native JSON/disk round trip and version-two migration. Temporary files only; test map drag/zoom/layout on phone.");
             }
             catch(Exception error) { Debug.LogException(error); if(Application.isBatchMode)EditorApplication.Exit(1); throw; }
             finally {

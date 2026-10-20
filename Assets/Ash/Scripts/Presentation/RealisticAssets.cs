@@ -6,6 +6,7 @@ namespace Ash
     /// <summary>Original imported visual slice; independent of resources, armies, saves and gathering.</summary>
     public static class RealisticAssets
     {
+        public const float MiniatureScale=.60f;
         public static GameObject Headquarters(Transform parent)
         {
             var model=Create("Headquarters","HeadquartersMaterial",parent);
@@ -26,8 +27,9 @@ namespace Ash
             var root=new GameObject("Detailed scavenger — visual patrol"); root.transform.SetParent(parent,false); root.transform.localPosition=position;
             var model=Create("Scavenger","ScavengerMaterial",root.transform);
             model.transform.localPosition=Vector3.up*.10f;
+            model.transform.localScale=Vector3.one*MiniatureScale;
             var motion=root.AddComponent<DetailedScavenger>(); motion.Configure(model,patrol);
-            Grounding(root.transform,new Vector3(0,.105f,0),new Vector2(.7f,.55f));
+            Grounding(root.transform,new Vector3(0,.105f,0),new Vector2(.7f,.55f)*MiniatureScale);
             return root;
         }
         public static GameObject Hero(Transform parent,string heroId,string displayName,Vector3 position,bool portrait=false)
@@ -41,8 +43,9 @@ namespace Ash
             alignment.SetParent(root.transform,false);alignment.localPosition=Vector3.up*groundHeight;
             var model=Create(assetName,assetName+"Material",alignment);
             Align(model.transform,alignment,root.transform,patrol!=null && patrol.Length>1?Vector3.forward:Vector3.back,assetName);
+            if(!portrait)alignment.localScale=Vector3.one*MiniatureScale;
             root.AddComponent<DetailedScavenger>().Configure(model,patrol,assetName);
-            if(!portrait)Grounding(root.transform,new Vector3(0,groundHeight+.005f,0),new Vector2(.7f,.55f));
+            if(!portrait)Grounding(root.transform,new Vector3(0,groundHeight+.005f,0),new Vector2(.7f,.55f)*MiniatureScale);
             return root;
         }
         public static GameObject MountedFighter(Transform parent,Vector3 position)
@@ -51,7 +54,8 @@ namespace Ash
             var alignment=new GameObject("Mounted unit alignment").transform;alignment.SetParent(root.transform,false);
             var model=Create("CavalryMount","CavalryMountMaterial",alignment);
             Align(model.transform,alignment,root.transform,Vector3.back,"CavalryMount");
-            Grounding(root.transform,new Vector3(0,.015f,0),new Vector2(1,2));return root;
+            alignment.localScale=Vector3.one*MiniatureScale;
+            Grounding(root.transform,new Vector3(0,.015f,0),new Vector2(1,2)*MiniatureScale);return root;
         }
         private static void Align(Transform model,Transform alignment,Transform root,Vector3 desired,string assetName)
         {

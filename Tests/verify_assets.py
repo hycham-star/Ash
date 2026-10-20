@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import re
+import struct
 
 root = Path(__file__).resolve().parents[1]
 assets = root / "Assets"
@@ -68,5 +69,11 @@ for name in [value for _, value in bindings] + ["Engineer", "Sentry"]:
     for suffix in (".fbx", "Albedo.png", "Normal.png", "Material.mat"):
         assert (assets / ("Ash/Resources/Art/" + name + suffix)).exists(), f"Missing character art: {name + suffix}"
 assert "SurvivorView" not in (assets / "Ash/Scripts/Presentation/SettlementView.cs").read_text(), "Settlement still creates legacy cubic characters"
+for landmark in ("Water","Food","Scrap","Lumber"):
+    path=assets / f"Ash/Resources/Map/{landmark}.png"
+    data=path.read_bytes()
+    assert data[:8]==b'\x89PNG\r\n\x1a\n', f"Invalid map image: {landmark}"
+    width,height,depth,color_type=struct.unpack('>IIBB',data[16:26])
+    assert (width,height,depth,color_type)==(384,384,8,6), f"Landmark must be 384px RGBA: {landmark}"
 print(f"PASS asset metadata: {len(index)} unique GUIDs, {references} resolved references, scene object links, no legacy launcher.")
 print("Unity compilation, import, and Play mode require the Unity Editor and are not covered by this check.")

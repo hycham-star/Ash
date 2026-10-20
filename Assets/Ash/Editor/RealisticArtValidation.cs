@@ -14,6 +14,13 @@ namespace Ash.Editor
                 throw new InvalidOperationException("Stop Play mode before validating imported art.");
             try
             {
+                foreach(var resource in new[]{ResourceType.Water,ResourceType.Food,ResourceType.Scrap,ResourceType.Lumber})
+                {
+                    var landmark=MapLandmarkArt.Landmark(resource);
+                    Require(landmark!=null && landmark.width==384 && landmark.height==384,"Missing miniature map landmark: "+resource);
+                    var importer=(TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(landmark));
+                    Require(importer.alphaSource==TextureImporterAlphaSource.FromInput && importer.alphaIsTransparency && importer.wrapMode==TextureWrapMode.Clamp,"Landmark transparency/import settings invalid: "+resource);
+                }
                 foreach(var name in new[]{"AshDetail","AshContact","AshRaidDust"})
                 {
                     var shader=Resources.Load<Shader>(name);
@@ -62,7 +69,7 @@ namespace Ash.Editor
                         Require(animations.Any(clip=>clip.legacy && clip.length>1 && !clip.name.StartsWith("__preview__",StringComparison.Ordinal) && clip.name.IndexOf(mode,StringComparison.OrdinalIgnoreCase)>=0),mode+" clip missing: "+name);
                 }
                 Require(Resources.Load<Material>("Art/ContactMaterial")!=null,"Contact grounding material missing.");
-                Debug.Log("PASS Unity realistic visual imports: meshes, eight stable hero visual IDs, NPC/hero skeletal bindings, idle/walk clips, facing markers, atlas/normal imports, bundled materials and shaders. Check motion, framing and rendering in Play mode and on Android. Player saves untouched.");
+                Debug.Log("PASS Unity realistic visual imports: four transparent miniature map landmarks, meshes, eight stable hero visual IDs, NPC/hero skeletal bindings, idle/walk clips, facing markers, atlas/normal imports, bundled materials and shaders. Check miniature scale, map taps, motion and rendering in Play mode and Android. Player saves untouched.");
             }
             catch(Exception error)
             {
