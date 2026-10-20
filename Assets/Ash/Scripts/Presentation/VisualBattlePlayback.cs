@@ -76,10 +76,16 @@ namespace Ash
         {
             art=new SettlementArt();stage=new GameObject("Resolved battle stage");stage.transform.SetParent(transform,false);stage.transform.position=new Vector3(2000,0,0);
             var cameraObject=new GameObject("Arena camera",typeof(Camera));cameraObject.transform.SetParent(stage.transform,false);view=cameraObject.GetComponent<Camera>();
-            view.transform.localPosition=new Vector3(0,23,-11);view.transform.LookAt(stage.transform.position);view.orthographic=true;view.orthographicSize=9.2f;view.nearClipPlane=.1f;view.farClipPlane=70;view.cullingMask=1<<Layer;
+            IsometricView.Configure(view);view.cullingMask=1<<Layer;
             view.clearFlags=CameraClearFlags.SolidColor;view.backgroundColor=new Color(.15f,.18f,.18f);
             texture=new RenderTexture(768,1024,16){name="PvE arena",antiAliasing=2};texture.Create();if(!texture.IsCreated())throw new InvalidOperationException("Arena render texture unavailable.");
             view.targetTexture=texture;viewport.GetComponent<RawImage>().texture=texture;
+            // Enclose the complete march, target roof, cavalry and dust in the portrait render texture.
+            view.aspect=texture.width/(float)texture.height;
+            var bounds=new Bounds(stage.transform.position+new Vector3(0,2,0),new Vector3(12,6,18));
+            var area=new Rect(.04f,.04f,.92f,.92f);
+            view.orthographicSize=IsometricView.FitSize(view,bounds,area);
+            view.transform.position=IsometricView.Position(view,bounds.center,area,view.orthographicSize);
             var lamp=new GameObject("Arena light",typeof(Light));lamp.transform.SetParent(stage.transform,false);var light=lamp.GetComponent<Light>();light.type=LightType.Directional;light.intensity=1.2f;light.color=new Color(1,.91f,.78f);light.cullingMask=1<<Layer;light.shadows=LightShadows.Soft;lamp.transform.rotation=Quaternion.Euler(48,-35,0);
             art.Box(stage.transform,"Wasteland arena",new Vector3(0,-.13f,0),new Vector3(22,.25f,26),SettlementArt.Sand);
             for(int i=0;i<9;i++)art.Rock(stage.transform,new Vector3((i%2==0?-1:1)*(4.5f+i%3*.4f),0,-5+i*1.3f),new Vector3(.4f,.25f,.45f));

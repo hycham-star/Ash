@@ -109,8 +109,7 @@ namespace Ash
         {
             var camera = new GameObject("Isometric Settlement Camera",typeof(Camera)).GetComponent<Camera>();
             camera.transform.SetParent(presentation.transform,false); camera.tag = "MainCamera";
-            camera.transform.position = new Vector3(24,30,-24); camera.transform.LookAt(new Vector3(0,0,0));
-            camera.orthographic = true; camera.orthographicSize = 20; camera.farClipPlane = 300;
+            IsometricView.Configure(camera);
             camera.cullingMask = ~(1<<PortraitLayer); camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color32(69,76,73,255);
             controls = camera.gameObject.AddComponent<SettlementCamera>(); controls.BuildingSelected += Inspect;
             var sun = new GameObject("Late Afternoon Sun",typeof(Light)).GetComponent<Light>(); sun.transform.SetParent(presentation.transform,false);

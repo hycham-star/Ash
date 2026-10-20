@@ -2,6 +2,12 @@
 
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
 
+## 2.5D isometric gameplay
+
+The settlement and PvE march now share a fixed **35.264° pitch / −45° yaw orthographic camera**: diagonal ground axes, equal axis foreshortening and no perspective shrinking. Existing textured 3D buildings and animated characters provide depth and occlusion. Portrait HUD, drag/pinch/scroll, plot taps and HOME remain available. HOME fits all settlement walls into the space between HUD panels; plot selection zooms in. The raid still shows only your army approaching the target, then dust and results. Hero portraits and the abstract scavenging map keep their dedicated views.
+
+Open with Unity **6000.3.26f1**. Outside Play, run **Ashlands > Validate 2.5D Isometric View**, then **Open Settlement Scene** and Play. Check HOME, zoom, drag, each plot tap, building labels and a raid on a 9:16 Game view and Android. The native validator checks equal axis projection, parallel scale at depth, overview bounds at three portrait aspects, plot focus/ground rays and raid bounds. It requires Unity and has not been run in the cloud. This is a camera/presentation conversion using existing art, not a replacement art pack or a change to saved gameplay.
+
 ## Expanded settlement and population
 
 The settlement now has a **36×40 walled area and 12 building plots**. Tap a plot or the **POP / FREE** button to construct housing, farms, water wells or scrapyards. Civilian residents grow with housing, Food and Water, and staff new producers. Construction, upgrades and output save with existing progression in **schema 7**. Run **Ashlands > Validate Settlement Development** and **Validate Settlement Presentation** outside Play. See [construction rules and test steps](Docs/SettlementDevelopment.md).

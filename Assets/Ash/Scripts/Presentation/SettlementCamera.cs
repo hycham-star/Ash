@@ -20,6 +20,7 @@ namespace Ash
         public void ResetView()
         {
             view = GetComponent<Camera>();
+            IsometricView.Configure(view);
             width = Screen.width; height = Screen.height; safeArea = Screen.safeArea;
             // Match the HUD CanvasScaler (540x960, equal width/height match).
             float scale = Mathf.Sqrt(width / 540f * height / 960f);
@@ -30,28 +31,16 @@ namespace Ash
             OverviewArea = area;
             // Enclose the settlement walls, roofs and towers, excluding distant scenery.
             var bounds = new Bounds(new Vector3(0, 1.5f, 0), new Vector3(SettlementLayout.HalfWidth*2+4,6,SettlementLayout.HalfDepth*2+4));
-            float horizontal = 0, vertical = 0;
-            for (int corner = 0; corner < 8; corner++)
-            {
-                var offset = Vector3.Scale(bounds.extents, new Vector3((corner & 1) == 0 ? -1 : 1,
-                    (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1));
-                horizontal = Mathf.Max(horizontal, Mathf.Abs(Vector3.Dot(offset, transform.right)));
-                vertical = Mathf.Max(vertical, Mathf.Abs(Vector3.Dot(offset, transform.up)));
-            }
-            homeZoom = Mathf.Max(10, 1.08f * Mathf.Max(horizontal / (view.aspect * area.width), vertical / area.height));
+            homeZoom = Mathf.Max(10, IsometricView.FitSize(view, bounds, area));
             maximumZoom = Mathf.Max(80, homeZoom * 3.5f);
-            home = bounds.center - transform.forward * 90
-                - transform.right * ((area.center.x - .5f) * 2 * homeZoom * view.aspect)
-                - transform.up * ((area.center.y - .5f) * 2 * homeZoom);
+            home = IsometricView.Position(view, bounds.center, area, homeZoom);
             panOrigin=home; transform.position = home; view.orthographicSize = homeZoom; dragging = false;
         }
         public void FocusOn(Vector3 target,float zoom)
         {
             view.orthographicSize=Mathf.Clamp(zoom,4,maximumZoom);
             float size=view.orthographicSize;
-            panOrigin=target-transform.forward*90
-                -transform.right*((OverviewArea.center.x-.5f)*2*size*view.aspect)
-                -transform.up*((OverviewArea.center.y-.5f)*2*size);
+            panOrigin=IsometricView.Position(view,target,OverviewArea,size);
             transform.position=panOrigin; dragging=false;
         }
         private bool OverUI(int finger = -1) => EventSystem.current != null && (finger < 0 ? EventSystem.current.IsPointerOverGameObject() : EventSystem.current.IsPointerOverGameObject(finger));
