@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 8;
+        public const int Version = 9;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -37,7 +37,7 @@ namespace Ash
             foreach(var id in fragments.DefinitionIds) ids.Add(id);
             var stock = new List<FragmentState>();
             foreach(var id in ids) stock.Add(new FragmentState { DefinitionId=id, Quantity=fragments.Get(id) });
-            return new ProgressState { WorldMap=worldMap.Capture(), Development=buildings.CaptureDevelopment(), Hospital=hospital.Capture(), Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture(), ScavengingUtcSeconds=offline.LastUtcSeconds };
+            return new ProgressState { Placement=buildings.CapturePlacement(), WorldMap=worldMap.Capture(), Development=buildings.CaptureDevelopment(), Hospital=hospital.Capture(), Version=Version, Format=Format, Armies=armies.ExportState(), Resources=balances, Fragments=stock.ToArray(), Buildings=buildings.Capture(), Scavenging=scavenging.Capture(), ScavengingUtcSeconds=offline.LastUtcSeconds };
         }
         public void Validate(ProgressState state) { Prepare(state); }
         public void Restore(ProgressState state)
@@ -49,6 +49,7 @@ namespace Ash
             fragments.RestoreValidatedFrom(candidate.Fragments);
             buildings.RestoreValidated(candidate.Buildings);
             buildings.RestoreDevelopmentValidated(candidate.Development);
+            buildings.RestorePlacementValidated(candidate.Placement);
             scavenging.RestoreValidated(candidate.Scavenging);
             offline.RestoreValidated(candidate.ScavengingUtcSeconds);
             hospital.RestoreValidated(candidate.Hospital);
@@ -72,6 +73,7 @@ namespace Ash
             public ScavengingState Scavenging;
             public long ScavengingUtcSeconds;
             public WorldMapState WorldMap;
+            public SettlementPlacementState Placement;
         }
         private Candidate Prepare(ProgressState state)
         {
@@ -91,6 +93,8 @@ namespace Ash
             var savedDevelopment=state.Version<7?SettlementDevelopmentState.Fresh():state.Development;
             int headquarters=0;foreach(var b in savedBuildings)if(b.Kind==BuildingKind.Headquarters)headquarters=b.Level;
             buildings.ValidateDevelopment(savedDevelopment,headquarters);
+            var savedPlacement=state.Version<9?SettlementPlacementState.Fresh():state.Placement;
+            buildings.ValidatePlacement(savedPlacement);
             ScavengingState savedScavenging;
             if(state.Version<3) {
                 if(state.Scavenging!=null)throw new ArgumentException("Unexpected scavenging in legacy save.");
@@ -181,7 +185,7 @@ namespace Ash
                     throw new ArgumentException("Invalid or duplicate fragment balance.");
                 fragmentBalances.Add(stock.DefinitionId,stock.Quantity);
             }
-            return new Candidate { WorldMap=savedWorld, Development=savedDevelopment, Hospital=savedHospital, Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging, ScavengingUtcSeconds=timestamp };
+            return new Candidate { Placement=savedPlacement, WorldMap=savedWorld, Development=savedDevelopment, Hospital=savedHospital, Armies=candidateArmies, Resources=new ResourceManager(state.Resources), Fragments=new HeroFragmentWallet(fragmentIds,fragmentBalances), Buildings=savedBuildings, Scavenging=savedScavenging, ScavengingUtcSeconds=timestamp };
         }
     }
 }

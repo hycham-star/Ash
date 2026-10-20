@@ -2,6 +2,10 @@
 
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
 
+## Zoom navigation and movable settlement buildings
+
+Zoom out past the settlement overview to enter the world map. Zoom in over **HOME** (or tap HOME) to return, with a short fade. Hold a core building or development plot for **1.5 seconds**, drag it, then release: green is valid, red snaps back. Placement stays inside walls, avoids other plots and preserves the gate approach. Production, upgrades and armies are preserved; positions save in **schema 9**, migrating versions 1–8. Outside Play run **Ashlands > Validate Settlement Interaction**. See [controls, rules and verification](Docs/SettlementInteraction.md).
+
 ## Illustrated hero previews
 
 **VIEW HERO / HEROES** now shows eight distinct **2D character illustrations**, using grey/blue/purple/gold rarity uniforms. The dossier shows capacity growth and counts for **Melee, Sharpshooter and Biker**. Total capacity grows with hero level; composition remains adjustable with the existing slider and Fill controls. No free fighters are added, and wounded/army/save identities are preserved. Outside Play run **Ashlands > Validate Hero Illustrations** and **Validate Realistic Visuals**. See [portrait bindings, capacity and checks](Docs/HeroIllustrations.md).
@@ -28,11 +32,11 @@ Open with Unity **6000.3.26f1**. Outside Play, run **Ashlands > Validate 2.5D Is
 
 ## Expanded settlement and population
 
-The settlement now has a **36×40 walled area and 12 building plots**. Tap a plot or the **POP / FREE** button to construct housing, farms, water wells or scrapyards. Civilian residents grow with housing, Food and Water, and staff new producers. Construction, upgrades and output save with existing progression in **schema 8**. Run **Ashlands > Validate Settlement Development** and **Validate Settlement Presentation** outside Play. See [construction rules and test steps](Docs/SettlementDevelopment.md).
+The settlement now has a **36×40 walled area and 12 building plots**. Tap a plot or the **POP / FREE** button to construct housing, farms, water wells or scrapyards. Civilian residents grow with housing, Food and Water, and staff new producers. Construction, upgrades and output save with existing progression in **schema 9**. Run **Ashlands > Validate Settlement Development** and **Validate Settlement Presentation** outside Play. See [construction rules and test steps](Docs/SettlementDevelopment.md).
 
 ## Hospital
 
-All raid fighter casualties are now **wounded and recoverable**; heroes are never wounded. Open **HOSPITAL** or tap the clinic, pay Food/Water for treatment, and recovered fighters return to reserve. Excess patients wait safely; paid queues automatically fill available beds. Upgrades add beds and speed healing. Treatment continues offline using the existing saved clock. Save version **8** migrates prior progression, including hospital patients. Run **Ashlands > Validate Hospital** outside Play, then test the clinic on Unity and Android. See [hospital rules and step-by-step checks](Docs/Hospital.md).
+All raid fighter casualties are now **wounded and recoverable**; heroes are never wounded. Open **HOSPITAL** or tap the clinic, pay Food/Water for treatment, and recovered fighters return to reserve. Excess patients wait safely; paid queues automatically fill available beds. Upgrades add beds and speed healing. Treatment continues offline using the existing saved clock. Save version **9** migrates prior progression, including hospital patients. Run **Ashlands > Validate Hospital** outside Play, then test the clinic on Unity and Android. See [hospital rules and step-by-step checks](Docs/Hospital.md).
 
 ## Hero rarity uniforms
 
@@ -159,7 +163,7 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**614 regular checks passed**, including world missions, hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**670 regular checks passed**, including world missions, hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
 GUID/scene reference checks passed. **New offline compilation/import, native timestamp migration, pause/focus lifecycle, summary UI, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 

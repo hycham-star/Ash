@@ -39,6 +39,8 @@ namespace Ash
         private Text fighterQuantityLabel, addFightersLabel, fillFightersLabel;
         private readonly List<Text> fighterTypeLabels=new List<Text>();
         private Color oldAmbient;
+        private float navigationReadyAt;
+        private CanvasGroup navigationCover;
         private float oldShadowDistance;
         private const int PortraitLayer = 30;
         private readonly Color ink = new Color32(24,32,35,246);
@@ -69,6 +71,7 @@ namespace Ash
             { gameManager.Resources.Changed -= Refresh; gameManager.HeroArmies.Changed -= Refresh; gameManager.Fragments.Changed -= Refresh; gameManager.Buildings.Changed -= Refresh; }
             if (gameManager != null) { gameManager.SaveStatusChanged -= UpdateSaveStatus; gameManager.OfflineProgressChanged -= ShowOfflineSummary; }
             if (controls != null) controls.BuildingSelected -= Inspect;
+            if(controls!=null){controls.WorldMapRequested-=ShowMapFromZoom;controls.MoveStarted-=BeginBuildingMove;controls.MoveRequested-=CommitBuildingMove;controls.MoveCancelled-=CancelBuildingMove;}
             if (presentation != null) Destroy(presentation);
             developmentArt?.Dispose();
             art?.Dispose();
@@ -110,6 +113,9 @@ namespace Ash
             IsometricView.Configure(camera);
             camera.cullingMask = ~(1<<PortraitLayer); camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color32(69,76,73,255);
             controls = camera.gameObject.AddComponent<SettlementCamera>(); controls.BuildingSelected += Inspect;
+            controls.WorldMapRequested+=ShowMapFromZoom;controls.MoveStarted+=BeginBuildingMove;controls.MoveRequested+=CommitBuildingMove;controls.MoveCancelled+=CancelBuildingMove;
+            controls.InputAllowed=SettlementInputAllowed;
+            controls.PlacementAllowed=(building,point)=>{var p=world.InverseTransformPoint(point);return gameManager.Buildings.CanMoveBuilding(building.PlacementId,p.x,p.z)==PlacementResult.Success;};
             var sun = new GameObject("Late Afternoon Sun",typeof(Light)).GetComponent<Light>(); sun.transform.SetParent(presentation.transform,false);
             sun.cullingMask=~((1<<PortraitLayer)|(1<<VisualBattlePlayback.Layer));
             sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(48,-38,0); sun.intensity = 1.15f;
@@ -125,14 +131,14 @@ namespace Ash
             Building("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f),"WaterStation",BuildingKind.WaterStation);
             Building("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.9f,2.5f),"FoodGarden",BuildingKind.FoodGarden);
             var clinic=Marker("HOSPITAL","Heal wounded fighters; upgrade beds and recovery speed.",new Vector3(-3,0,6.5f),new Vector3(3,2.5f,2.5f));
-            clinic.GetComponent<SettlementBuilding>().Configure("HOSPITAL","All wounded are recoverable. Heroes cannot be wounded.",hospital:true);
+            clinic.GetComponent<SettlementBuilding>().Configure("HOSPITAL","All wounded are recoverable. Heroes cannot be wounded.",hospital:true,placementId:"core-hospital");
             RealisticAssets.Building(clinic,"Barracks",new Vector2(3,2.5f)).transform.localScale=Vector3.one*.8f;
-            art.Box(clinic,"Clinic roof sign",new Vector3(0,1.92f,0),new Vector3(1,.04f,1),new Color32(40,103,86,255));
-            art.Box(clinic,"Roof plus upright",new Vector3(0,1.95f,0),new Vector3(.16f,.03f,.7f),Color.white);
-            art.Box(clinic,"Roof plus crossbar",new Vector3(0,1.96f,0),new Vector3(.7f,.03f,.16f),Color.white);
-            art.Box(clinic,"Clinic sign",new Vector3(0,1.3f,-1.35f),new Vector3(.9f,.8f,.05f),new Color32(40,103,86,255));
-            art.Box(clinic,"Medical plus upright",new Vector3(0,1.3f,-1.39f),new Vector3(.16f,.55f,.04f),Color.white);
-            art.Box(clinic,"Medical plus crossbar",new Vector3(0,1.3f,-1.40f),new Vector3(.55f,.16f,.04f),Color.white);
+            art.Box(clinic,"Clinic roof sign",new Vector3(0,1.92f,0),new Vector3(1,.04f,1),new Color32(40,103,86,255),false);
+            art.Box(clinic,"Roof plus upright",new Vector3(0,1.95f,0),new Vector3(.16f,.03f,.7f),Color.white,false);
+            art.Box(clinic,"Roof plus crossbar",new Vector3(0,1.96f,0),new Vector3(.7f,.03f,.16f),Color.white,false);
+            art.Box(clinic,"Clinic sign",new Vector3(0,1.3f,-1.35f),new Vector3(.9f,.8f,.05f),new Color32(40,103,86,255),false);
+            art.Box(clinic,"Medical plus upright",new Vector3(0,1.3f,-1.39f),new Vector3(.16f,.55f,.04f),Color.white,false);
+            art.Box(clinic,"Medical plus crossbar",new Vector3(0,1.3f,-1.40f),new Vector3(.55f,.16f,.04f),Color.white,false);
             for (int side = 0; side < 2; side++)
             {
                 float x = side == 0 ? -18 : 18;
@@ -174,6 +180,7 @@ namespace Ash
             foreach(int z in new[]{-10,10})art.Box(world,"District crossroad",new Vector3(0,.08f,z),new Vector3(34,.03f,1.2f),new Color32(96,100,93,255));
             art.Combine(world);
             RefreshPlots();
+            SyncPlacement();
             RealisticAssets.Character(world,"Engineer","Workshop engineer",new Vector3(3,0,-.65f),new[] { new Vector3(3,0,-.65f),new Vector3(1.4f,0,-.65f) },false,.10f);
             RealisticAssets.Character(world,"Sentry","Gate sentry",new Vector3(-1.2f,0,-18));
         }
@@ -186,7 +193,7 @@ namespace Ash
             developmentWorld=new GameObject("Settlement building plots");developmentWorld.transform.SetParent(world,false);
             foreach(var definition in SettlementLayout.Plots)
             {
-                var p=gameManager.Buildings.Plot(definition.Id);var root=new GameObject(p.Id+" "+BuildingService.PlotName(p.Kind)).transform;root.SetParent(developmentWorld.transform,false);root.localPosition=new Vector3(definition.X,0,definition.Z);
+                var p=gameManager.Buildings.Plot(definition.Id);var position=gameManager.Buildings.Position(p.Id);var root=new GameObject(p.Id+" "+BuildingService.PlotName(p.Kind)).transform;root.SetParent(developmentWorld.transform,false);root.localPosition=new Vector3(position.X,0,position.Z);
                 root.gameObject.AddComponent<SettlementBuilding>().Configure(BuildingService.PlotName(p.Kind),"Settlement plot "+p.Id,plotId:p.Id);
                 var collider=root.gameObject.AddComponent<BoxCollider>();collider.center=new Vector3(0,1.6f,0);collider.size=new Vector3(6,3.2f,6);
                 developmentArt.Box(root,"Plot foundation",new Vector3(0,.06f,0),new Vector3(6,.08f,6),new Color32(125,115,91,255));
@@ -217,8 +224,8 @@ namespace Ash
                 var textRoot=new GameObject("Text",typeof(RectTransform),typeof(Text));textRoot.transform.SetParent(labelRoot.transform,false);var rect=textRoot.GetComponent<RectTransform>();rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
                 var text=textRoot.GetComponent<Text>();text.font=font;text.fontSize=24;text.alignment=TextAnchor.MiddleCenter;text.color=new Color32(255,231,170,255);text.raycastTarget=false;
                 text.text=p.Id.ToUpperInvariant()+" • "+(p.Kind==PlotKind.Empty?"TAP TO BUILD":BuildingService.PlotName(p.Kind)+" Lv"+p.Level);
+                developmentArt.Combine(root);
             }
-            developmentArt.Combine(developmentWorld.transform);
         }
         private Transform Marker(string title,string description,Vector3 position,Vector3 size,BuildingKind? kind=null)
         {
@@ -230,6 +237,7 @@ namespace Ash
         private void Building(string title,string description,Vector3 position,Vector3 size,string assetName,BuildingKind? kind=null)
         {
             var root = Marker(title,description,position,size+new Vector3(0,.8f,0),kind);
+            root.GetComponent<SettlementBuilding>().Configure(title,description,kind,placementId:"core-"+assetName.ToLowerInvariant());
             if(kind==BuildingKind.Headquarters)RealisticAssets.Headquarters(root);
             else RealisticAssets.Building(root,assetName,new Vector2(size.x,size.z));
         }
@@ -246,6 +254,56 @@ namespace Ash
             if(building.PlotId!=null)ShowDevelopment(building.PlotId);
             else if(building.IsHospital)ShowHospital();
             else if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
+        }
+        private bool SettlementInputAllowed()=>Time.unscaledTime>=navigationReadyAt
+            && (heroPanel==null || !heroPanel.activeSelf) && (raidPanel==null || !raidPanel.activeSelf)
+            && (buildingPanel==null || !buildingPanel.activeSelf) && (scavengingMap==null || !scavengingMap.gameObject.activeSelf)
+            && (hospitalUI==null || !hospitalUI.gameObject.activeSelf) && (developmentUI==null || !developmentUI.gameObject.activeSelf);
+        private void BeginBuildingMove(SettlementBuilding building)
+        {
+            CancelReset();if(toast!=null)toast.text="MOVE "+building.DisplayName+" • Drag, then release • Green = valid • Red = blocked";
+        }
+        private void CancelBuildingMove(){if(toast!=null)toast.text="Move cancelled. Original position kept.";}
+        private void CommitBuildingMove(SettlementBuilding building,Vector3 point)
+        {
+            var p=world.InverseTransformPoint(point);var result=gameManager.Buildings.MoveBuilding(building.PlacementId,p.x,p.z);
+            var position=gameManager.Buildings.Position(building.PlacementId);building.transform.localPosition=new Vector3(position.X,0,position.Z);
+            if(result==PlacementResult.Success)toast.text=gameManager.SaveProgress()?"Building moved • Saved locally":gameManager.SaveStatus;
+            else toast.text="Cannot place here: "+result+". Original position kept.";
+        }
+        private void SyncPlacement()
+        {
+            if(world==null)return;
+            foreach(var building in world.GetComponentsInChildren<SettlementBuilding>())
+            {
+                if(building.PlacementId==null || (controls!=null && controls.IsMoving(building)))continue;
+                var position=gameManager.Buildings.Position(building.PlacementId);building.transform.localPosition=new Vector3(position.X,0,position.Z);
+            }
+        }
+        private void ShowMapFromZoom()
+        {
+            ShowMap();scavengingMap.EnterFromSettlement();FadeNavigation();
+        }
+        private void ReturnFromWorldMap()
+        {
+            scavengingMap.Hide();controls.ResetView();controls.SuspendInput(.4f);FadeNavigation();
+            toast.text="Settlement • Hold a building for 1.5 seconds to move it.";
+        }
+        private void FadeNavigation()
+        {
+            if(!Application.isPlaying)return;navigationReadyAt=Time.unscaledTime+.3f;
+            if(navigationCover==null)
+            {
+                var cover=Panel(ui,"Map navigation fade",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,Color.black);
+                navigationCover=cover.gameObject.AddComponent<CanvasGroup>();
+            }
+            navigationCover.gameObject.SetActive(true);navigationCover.transform.SetAsLastSibling();navigationCover.alpha=1;navigationCover.blocksRaycasts=true;
+            StartCoroutine(FinishNavigationFade());
+        }
+        private System.Collections.IEnumerator FinishNavigationFade()
+        {
+            while(Time.unscaledTime<navigationReadyAt){navigationCover.alpha=Mathf.Clamp01((navigationReadyAt-Time.unscaledTime)/.3f);yield return null;}
+            navigationCover.alpha=0;navigationCover.blocksRaycasts=false;navigationCover.gameObject.SetActive(false);
         }
         private void ShowBuilding(BuildingKind kind)
         {
@@ -290,7 +348,7 @@ namespace Ash
         {
             CancelReset();
             if(selectedBuilding==BuildingKind.Headquarters) {
-                buildingPanel.SetActive(false); controls.FocusOn(new Vector3(-2.1f,1.5f,2.6f),6.5f);
+                buildingPanel.SetActive(false);var hq=gameManager.Buildings.Position("core-headquarters");controls.FocusOn(new Vector3(hq.X,1.5f,hq.Z),6.5f);
                 toast.text="Headquarters — drag or zoom to explore. HOME returns to the overview."; return;
             }
             int amount=gameManager.Buildings.Stored(selectedBuilding);
@@ -334,6 +392,7 @@ namespace Ash
             RefreshFighterControls();
             if(populationLabel!=null)populationLabel.text="POP "+gameManager.Buildings.Population+"/"+gameManager.Buildings.HousingCapacity+" • FREE "+gameManager.Buildings.FreeResidents;
             RefreshPlots();
+            SyncPlacement();
         }
         private void ShowDevelopment(string id=null)
         {
@@ -496,9 +555,10 @@ namespace Ash
             buildingPanel.SetActive(false);
             scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font,gameManager.SaveProgress,()=>gameManager.SaveStatus);
             scavengingMap.ConfigureWorld(gameManager.WorldMap,()=>gameManager.Heroes[selectedHero],delta=>{selectedHero=(selectedHero+delta+gameManager.Heroes.Count)%gameManager.Heroes.Count;Refresh();},ShowWorldRaidResult);
+            scavengingMap.SettlementRequested+=ReturnFromWorldMap;
             hospitalUI=HospitalUI.Create(ui,gameManager,font);
             developmentUI=DevelopmentUI.Create(ui,gameManager,font);
-            developmentUI.PlotSelected+=id=>{foreach(var p in SettlementLayout.Plots)if(p.Id==id)controls.FocusOn(new Vector3(p.X,0,p.Z),8);};
+            developmentUI.PlotSelected+=id=>{var p=gameManager.Buildings.Position(id);controls.FocusOn(new Vector3(p.X,0,p.Z),8);};
             toast=TextPanel(ui,0,0,1,0,12,244,-12,282,15,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
             toast.resizeTextForBestFit=true; toast.resizeTextMinSize=9; toast.resizeTextMaxSize=15;
         }

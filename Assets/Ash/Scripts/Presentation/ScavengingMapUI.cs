@@ -76,7 +76,8 @@ namespace Ash
             var terrainRoot=new GameObject("Textured wasteland",typeof(RectTransform),typeof(RawImage));terrainRoot.transform.SetParent(map,false);
             var terrainRect=(RectTransform)terrainRoot.transform;terrainRect.anchorMin=Vector2.zero;terrainRect.anchorMax=Vector2.one;terrainRect.offsetMin=terrainRect.offsetMax=Vector2.zero;
             terrain=terrainRoot.GetComponent<RawImage>();terrain.raycastTarget=false;
-            var home=Rect(map,"Ember Outpost",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-18,-9),new Vector2(18,9),ink); Label(home,"HOME",9); home.GetComponent<Image>().raycastTarget=false;
+            var home=Control(map,"HOME",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-16),new Vector2(28,16),RequestSettlement);
+            homeMarker=(RectTransform)home.transform;home.gameObject.name="Ember Outpost — enter settlement";
             markerRoot=new GameObject("Scavenging sites",typeof(RectTransform)).GetComponent<RectTransform>(); markerRoot.SetParent(map,false); markerRoot.anchorMin=Vector2.zero; markerRoot.anchorMax=Vector2.one; markerRoot.offsetMin=markerRoot.offsetMax=Vector2.zero;
             scroll=viewport.gameObject.AddComponent<ScrollRect>(); scroll.viewport=viewport; scroll.content=map; scroll.horizontal=scroll.vertical=true; scroll.movementType=ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity=0;viewport.gameObject.AddComponent<MapZoomInput>().Owner=this;

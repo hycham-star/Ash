@@ -160,6 +160,7 @@ namespace Ash
                 for(int i=0;i<fresh.Resources.Length;i++)fresh.Resources[i]=new ResourceAmount(fresh.Resources[i].Type,starting.Get(fresh.Resources[i].Type));
                 foreach(var fragment in fresh.Fragments)fragment.Quantity=0;
                 fresh.Development=SettlementDevelopmentState.Fresh();
+                fresh.Placement=SettlementPlacementState.Fresh();
                 fresh.WorldMap=WorldMapState.Fresh();
                 fresh.Hospital=HospitalState.Fresh();
                 fresh.Buildings=new BuildingService(new ResourceManager()).Capture();

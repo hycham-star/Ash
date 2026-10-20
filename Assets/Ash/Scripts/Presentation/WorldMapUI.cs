@@ -17,6 +17,20 @@ namespace Ash
         private string selectedCampId;
         private int campSeed;
         private float suppressClicksUntil;
+        public event Action SettlementRequested;
+        private RectTransform homeMarker;
+        private float homeTransitionReadyAt;
+        public void EnterFromSettlement()
+        {
+            selectedCampId=null;Canvas.ForceUpdateCanvases();Fit();map.anchoredPosition=Vector2.zero;
+            opened=true;homeTransitionReadyAt=Time.unscaledTime+.7f;suppressClicksUntil=homeTransitionReadyAt;
+        }
+        private void RequestSettlement()
+        {
+            if(Time.unscaledTime<homeTransitionReadyAt)return;
+            if(SettlementRequested==null){feedback.text="Open the settlement scene to enter home.";return;}
+            homeTransitionReadyAt=Time.unscaledTime+.7f;SettlementRequested.Invoke();
+        }
         private readonly Dictionary<string,RectTransform> campMarkers=new Dictionary<string,RectTransform>();
         private readonly Dictionary<string,RectTransform> convoys=new Dictionary<string,RectTransform>();
         private readonly Dictionary<string,Texture2D> convoyTextures=new Dictionary<string,Texture2D>();
@@ -112,6 +126,7 @@ namespace Ash
         }
         private void PositionWorldMarkers()
         {
+            if(homeMarker!=null)homeMarker.sizeDelta=new Vector2(56,32)*Mathf.Clamp(MarkerScale,.65f,2);
             if(worldService==null)return;
             foreach(var camp in worldService.Camps)
             {
@@ -175,10 +190,13 @@ namespace Ash
         public void ZoomBy(float factor)=>ZoomAt(factor,RectTransformUtility.WorldToScreenPoint(null,viewport.TransformPoint(viewport.rect.center)));
         public void ZoomAt(float factor,Vector2 screenPoint)
         {
-            if(factor<=0 || float.IsNaN(factor) || float.IsInfinity(factor))return;
+            if(factor<=0 || float.IsNaN(factor) || float.IsInfinity(factor) || Time.unscaledTime<homeTransitionReadyAt)return;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(viewport,screenPoint,null,out var point);
             var old=map.anchoredPosition;float before=side;SetSize(side*factor);
             float ratio=(side-100)/(before-100);map.anchoredPosition=point-(point-old)*ratio;ClampMap();scroll.StopMovement();
+            // Only home-entry zoom navigates. Other sites/camps can still zoom all the way in.
+            float distanceFromHome=(point-old).magnitude*200/(before-100);
+            if(SettlementRequested!=null && factor>1 && side>=3200 && distanceFromHome<18)RequestSettlement();
         }
         private void ClampMap()
         {

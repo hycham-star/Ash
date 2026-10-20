@@ -57,7 +57,7 @@ namespace Ash
         public void Hide(){gameObject.SetActive(false);}
         public void Refresh()
         {
-            if(stats==null)return;var service=manager.Buildings;var p=service.Plot(SelectedPlotId);var definition=SettlementLayout.Plots[selected];
+            if(stats==null)return;var service=manager.Buildings;var p=service.Plot(SelectedPlotId);var definition=service.Position(SelectedPlotId);
             string growth=service.Population==service.HousingCapacity?"Build housing to grow":manager.Resources.Get(ResourceType.Food)<2 || manager.Resources.Get(ResourceType.Water)<1?"Growth paused: need Food and Water":"Next resident in "+(60-service.GrowthSeconds)+"s (2 Food + 1 Water)";
             population.text="Population "+service.Population+" / "+service.HousingCapacity+" • Employed "+service.EmployedResidents+" • Free "+service.FreeResidents+"\n"+growth;
             plotTitle.text=p.Id.ToUpperInvariant()+" • "+BuildingService.PlotName(p.Kind);
