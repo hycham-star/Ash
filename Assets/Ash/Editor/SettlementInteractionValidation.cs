@@ -43,7 +43,8 @@ namespace Ash.Editor
                 for(int i=0;i<geometry.Length;i++)Require(Vector3.Distance(geometry[i].bounds.center-before[i],new Vector3(0,0,-2))<.002f,"Plot decoration or model did not move with its building.");
                 var progress=new ProgressPersistence(manager.HeroArmies,manager.Resources,manager.Fragments,manager.Buildings,manager.Scavenging,manager.OfflineScavenging);
                 var codec=new UnityProgressCodec();var store=new LocalSaveStore(directory,codec,progress.Validate);var saved=progress.Capture();store.Save(saved);
-                manager.Buildings.RestorePlacementValidated(SettlementPlacementState.Fresh());progress.Restore(store.Load().State);Call("SyncPlacement");
+                var reset=progress.Capture();reset.Placement=SettlementPlacementState.Fresh();progress.Restore(reset);
+                progress.Restore(store.Load().State);Call("SyncPlacement");
                 Require(codec.Encode(saved)==codec.Encode(progress.Capture()),"Native layout disk round trip changed game state.");
                 var legacy=progress.Capture();legacy.Version=8;legacy.Placement=null;progress.Restore(codec.Decode(codec.Encode(legacy)));
                 Require(manager.Buildings.Position("core-headquarters").X==-3 && manager.Buildings.Plot("plot-01").Kind==PlotKind.Farm,"Version eight migration did not preserve progression with default placement.");
