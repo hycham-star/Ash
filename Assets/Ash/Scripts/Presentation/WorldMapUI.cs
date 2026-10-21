@@ -122,7 +122,21 @@ namespace Ash
                 }
                 campDetails.text=info+"\n"+worldService.Report;
             }
+            RefreshGatheringSites();
             RefreshConvoys();
+        }
+        private void RefreshGatheringSites()
+        {
+            var gathering=new HashSet<string>();
+            if(worldService!=null)foreach(var mission in worldService.Capture().Missions)
+                if(mission.Kind==MapMissionKind.Gather && mission.Phase==MapMissionPhase.Gathering)gathering.Add(mission.TargetId);
+            foreach(var item in markers)
+            {
+                var icon=item.Value.GetComponentInChildren<RawImage>(true);
+                if(icon!=null)icon.color=gathering.Contains(item.Key)?new Color32(130,235,155,255):Color.white;
+                var background=item.Value.GetComponent<Image>();
+                background.color=gathering.Contains(item.Key)?new Color32(38,140,73,145):item.Key==selected?new Color32(122,102,53,100):new Color32(0,0,0,0);
+            }
         }
         private void PositionWorldMarkers()
         {
@@ -147,8 +161,11 @@ namespace Ash
             var missions=worldService.Capture().Missions;var active=new HashSet<string>();
             foreach(var mission in missions)
             {
+                // Gathering is represented by the site tint, never a parked convoy.
+                if(mission.Phase==MapMissionPhase.Gathering)continue;
                 active.Add(mission.HeroId);
-                if(!convoys.TryGetValue(mission.HeroId,out var root))
+                bool created=!convoys.TryGetValue(mission.HeroId,out var root);
+                if(created)
                 {
                     var obj=new GameObject("Army convoy • "+mission.HeroId,typeof(RectTransform));root=(RectTransform)obj.transform;root.SetParent(markerRoot,false);root.anchorMin=root.anchorMax=new Vector2(.5f,.5f);
                     Icon(root,"Army bus",ConvoyTexture("Bus0"),new Vector2(70,70));
@@ -162,7 +179,7 @@ namespace Ash
                 worldService.Coordinates(mission,out int x,out int z);var target=MapPoint(x,z);float travel=worldService.TravelSeconds(mission);
                 float fraction=mission.Phase==MapMissionPhase.Outbound?mission.Elapsed/travel:mission.Phase==MapMissionPhase.Returning?1-mission.Elapsed/travel:1;
                 var destination=target*fraction;
-                root.anchoredPosition=Application.isPlaying?Vector2.Lerp(root.anchoredPosition,destination,1-Mathf.Exp(-Time.unscaledDeltaTime*10)):destination;
+                root.anchoredPosition=Application.isPlaying && !created?Vector2.Lerp(root.anchoredPosition,destination,1-Mathf.Exp(-Time.unscaledDeltaTime*10)):destination;
                 var direction=(mission.Phase==MapMissionPhase.Returning?-target:target).normalized;
                 int heading=Heading(direction);bool dust=mission.Phase==MapMissionPhase.Dust;
                 var bus=root.Find("Army bus").GetComponent<RawImage>();var bike=root.Find("Hero bike").GetComponent<RawImage>();var cloud=root.Find("Raid dust").GetComponent<RawImage>();
@@ -174,7 +191,7 @@ namespace Ash
                 cloud.rectTransform.sizeDelta=Vector2.one*(90+Mathf.Sin(Time.unscaledTime*6)*6)*size;
                 root.SetAsLastSibling();
             }
-            var removed=new List<string>();foreach(var p in convoys)if(!active.Contains(p.Key)){SettlementArt.Release(p.Value.gameObject);removed.Add(p.Key);}
+            var removed=new List<string>();foreach(var p in convoys)if(!active.Contains(p.Key)){p.Value.gameObject.SetActive(false);SettlementArt.Release(p.Value.gameObject);removed.Add(p.Key);}
             foreach(var id in removed)convoys.Remove(id);
         }
         private static int Heading(Vector2 direction)

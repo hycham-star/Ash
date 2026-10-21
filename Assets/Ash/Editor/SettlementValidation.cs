@@ -103,8 +103,22 @@ namespace Ash.Editor
                 art.Rock(modelRoot.transform,new Vector3(-3,0,0),Vector3.one);
                 art.Combine(modelRoot.transform);
                 Require(modelRoot.GetComponentsInChildren<MeshFilter>().All(filter=>filter.sharedMesh!=null),"Generated mesh reference is missing.");
+                foreach(string building in new[]{"Headquarters","Workshop","Barracks","WaterStation","FoodGarden"})
+                {
+                    var buildingRoot=new GameObject("Disposable "+building);buildingRoot.transform.SetParent(modelRoot.transform,false);
+                    if(building=="Headquarters")RealisticAssets.Headquarters(buildingRoot.transform);
+                    else RealisticAssets.Building(buildingRoot.transform,building,new Vector2(3,2.6f));
+                    var props=buildingRoot.GetComponentInChildren<WastelandBuildingProps>();
+                    Require(props!=null,"Missing wasteland environment kit: "+building);
+                    var meshes=props.GetComponentsInChildren<MeshFilter>();
+                    Require(meshes.Length>0 && meshes.Sum(mesh=>mesh.sharedMesh.triangles.Length/3)<3500,"Props must use combined low-poly meshes: "+building);
+                    Require(props.GetComponentsInChildren<Collider>().Length==0,"Environment props must not intercept building selection.");
+                    var renderers=props.GetComponentsInChildren<MeshRenderer>();var centres=renderers.Select(renderer=>renderer.bounds.center).ToArray();
+                    buildingRoot.transform.localPosition+=Vector3.right*2;
+                    for(int i=0;i<renderers.Length;i++)Require(Vector3.Distance(renderers[i].bounds.center-centres[i],Vector3.right*2)<.001f,"Props detached during building relocation.");
+                }
                 Require(manager.Resources.Get(ResourceType.Food)==100 && manager.Heroes.All(hero=>hero.Army.TotalUnits==0),"Presentation validation changed game state.");
-                Debug.Log("PASS Unity settlement wiring, mobile shader, 2.5D isometric axes/depth, portrait overview at three aspects, plot focus/picking, raid framing, hero skeleton and mesh combining. Validate touch and appearance in Play mode.");
+                Debug.Log("PASS Unity settlement wiring, mobile shader, 2.5D isometric axes/depth, portrait overview at three aspects, plot focus/picking, raid framing, hero skeleton, mesh combining and movable low-poly wasteland building props. Validate touch and appearance in Play mode.");
             }
             catch(Exception error)
             {

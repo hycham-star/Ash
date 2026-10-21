@@ -87,9 +87,18 @@ namespace Ash.Editor
                 var gatherSite=service.Capture().Sites[0];manager.WorldMap.Dispatch(hero.InstanceId,gatherSite.Id,MapMissionKind.Gather);
                 map.Refresh();
                 Require(map.GetComponentsInChildren<RawImage>(true).Count(image=>(image.name=="Army bus" || image.name=="Hero bike") && image.texture!=null)==2,"Army bus/bike convoy not connected to active mission.");
-                store.Save(progress.Capture());string missionJson=codec.Encode(progress.Capture());manager.WorldMap.Recall(hero.InstanceId);manager.WorldMap.Advance(100);
+                int travel=manager.WorldMap.TravelSeconds(manager.WorldMap.Mission(hero.InstanceId));
+                manager.WorldMap.Advance(travel);map.Refresh();
+                Require(manager.WorldMap.Mission(hero.InstanceId).Phase==MapMissionPhase.Gathering,"Army did not enter gathering phase.");
+                Require(!map.GetComponentsInChildren<RawImage>(true).Any(image=>image.name=="Army bus" || image.name=="Hero bike"),"Parked convoy must disappear while gathering.");
+                var occupied=map.GetComponentsInChildren<Button>(true).Single(button=>button.name.EndsWith(" • "+gatherSite.Id,StringComparison.Ordinal));
+                Require(occupied.GetComponent<Image>().color==new Color32(38,140,73,145) && occupied.GetComponentInChildren<RawImage>(true).color!=Color.white,"Gathering site must change colour.");
+                manager.WorldMap.Recall(hero.InstanceId);map.Refresh();
+                Require(map.GetComponentsInChildren<RawImage>(true).Count(image=>image.name=="Army bus" || image.name=="Hero bike")==2,"Returning convoy must reappear.");
+                Require(occupied.GetComponentInChildren<RawImage>(true).color==Color.white,"Recalled gathering site must recover its normal colour.");
+                store.Save(progress.Capture());string missionJson=codec.Encode(progress.Capture());manager.WorldMap.Advance(100);
                 progress.Restore(store.Load().State);progress.NotifyRestored();Require(codec.Encode(progress.Capture())==missionJson,"Native mission disk round trip changed convoy state.");
-                Debug.Log("PASS Unity world map: sixteen resource landmarks, nine camp buttons/scouting, close zoom sizing, bus/bike mission visuals, native JsonUtility mission disk round trip, civilian gathering and legacy migration. Temporary saves only; test pinch/drag/convoy motion and raid dust/results on phone.");
+                Debug.Log("PASS Unity world map: sixteen resource landmarks, nine camp buttons/scouting, close zoom sizing, bus/bike travel, gathering site colours and hidden parked convoys, native JsonUtility mission disk round trip, civilian gathering and legacy migration. Temporary saves only; test pinch/drag/convoy motion and raid dust/results on phone.");
             }
             catch(Exception error) { Debug.LogException(error); if(Application.isBatchMode)EditorApplication.Exit(1); throw; }
             finally {

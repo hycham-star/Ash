@@ -12,6 +12,7 @@ namespace Ash
             var model=Create("Headquarters","HeadquartersMaterial",parent);
             model.name="Weathered Headquarters — original detailed mesh";
             Create("HeadquartersSurroundings","HeadquartersSurroundingsMaterial",parent);
+            WastelandBuildingProps.Attach(parent,"Headquarters",new Vector2(4.3f,4.1f));
             Grounding(model.transform,new Vector3(0,.17f,0),new Vector2(4.3f,4.1f));
             return model;
         }
@@ -19,6 +20,7 @@ namespace Ash
         {
             var model=Create(assetName,assetName+"Material",parent);
             model.name=assetName+" — original textured building";
+            WastelandBuildingProps.Attach(model.transform,assetName,footprint);
             Grounding(model.transform,new Vector3(0,.065f,0),footprint+new Vector2(.25f,.25f));
             return model;
         }
