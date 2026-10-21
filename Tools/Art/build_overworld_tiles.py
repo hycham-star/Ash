@@ -57,4 +57,5 @@ for cell,name in enumerate(('Food','Water','Scrap','Lumber','Camp','Home')):
  atlas.alpha_composite(im,((cell%3)*256*S,(cell//3)*256*S))
 atlas=atlas.resize((768,512),Image.Resampling.LANCZOS)
 path=ROOT/'Assets/Ash/Resources/Map/OverworldAtlas.png';atlas.save(path)
+path.with_name('OverworldAtlasPixels.bytes').write_bytes(atlas.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes())
 print(path)

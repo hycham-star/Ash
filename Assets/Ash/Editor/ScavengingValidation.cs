@@ -29,9 +29,12 @@ namespace Ash.Editor
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");
-            Scene scene=default;
+            Scene scene=default;Texture2D rawAtlas=null;
             string directory=Path.Combine(Path.GetTempPath(),"Ashlands-map-validation-"+Guid.NewGuid().ToString("N"));
             try {
+                var pixels=Resources.Load<TextAsset>("Map/OverworldAtlasPixels");
+                Require(pixels!=null,"Missing bundled raw atlas backup.");rawAtlas=MapLandmarkArt.CreateAtlasFromPixels(pixels.bytes);
+                Require(rawAtlas.width==768 && rawAtlas.height==512 && rawAtlas.filterMode==FilterMode.Bilinear,"Raw atlas backup failed native texture decoding.");
                 scene=EditorSceneManager.OpenPreviewScene(PrepareProject.SettlementScene);
                 var manager=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GameManager>(true)).Single();
                 manager.Initialize(); Require(!manager.PersistenceActive,"Validation must not touch the real save slot.");
@@ -110,6 +113,7 @@ namespace Ash.Editor
             }
             catch(Exception error) { Debug.LogException(error); if(Application.isBatchMode)EditorApplication.Exit(1); throw; }
             finally {
+                if(rawAtlas!=null)UnityEngine.Object.DestroyImmediate(rawAtlas);
                 if(scene.IsValid() && scene.isLoaded)EditorSceneManager.ClosePreviewScene(scene);
                 if(Directory.Exists(directory))Directory.Delete(directory,true);
             }

@@ -32,7 +32,7 @@ namespace Ash
             root.transform.SetParent(parent,false);
             var rect=(RectTransform)root.transform; rect.anchorMin=new Vector2(.025f,.025f); rect.anchorMax=new Vector2(.975f,.84f); rect.offsetMin=rect.offsetMax=Vector2.zero;
             root.GetComponent<Image>().color=new Color32(24,32,35,255);
-            var view=root.GetComponent<ScavengingMapUI>(); view.service=service; view.font=font; view.save=save; view.saveStatus=saveStatus; view.Build();
+            var view=root.GetComponent<ScavengingMapUI>(); view.service=service; view.font=font; view.save=save; view.saveStatus=saveStatus;MapLandmarkArt.AcquireAtlas(); view.Build();
             service.Changed+=view.Refresh; root.SetActive(false); return view;
         }
         public void Show()
@@ -46,7 +46,7 @@ namespace Ash
             if(!opened) { Fit(); Locate(); opened=true; }
         }
         public void Hide() { CloseRaidPicker();SetMapTravelView(false);gameObject.SetActive(false); }
-        private void OnDestroy() { if(service!=null)service.Changed-=Refresh; if(worldService!=null)worldService.Changed-=Refresh; if(terrainTexture!=null)SettlementArt.Release(terrainTexture); }
+        private void OnDestroy() { MapLandmarkArt.ReleaseAtlas();if(service!=null)service.Changed-=Refresh; if(worldService!=null)worldService.Changed-=Refresh; if(terrainTexture!=null)SettlementArt.Release(terrainTexture); }
         public void ShowOfflineSummary(string message) { if(!string.IsNullOrEmpty(message))feedback.text=message; }
         private RectTransform Rect(Transform parent,string title,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)
         {

@@ -19,11 +19,41 @@ namespace Ash
 
         public static Texture2D Landmark(ResourceType resource) => Resources.Load<Texture2D>("Map/"+resource);
 
+        private static Texture2D fallbackAtlas;
+        private static int atlasUsers;
+        public static void AcquireAtlas(){atlasUsers++;}
+        public static void ReleaseAtlas()
+        {
+            if(atlasUsers>0)atlasUsers--;
+            if(atlasUsers!=0)return;
+            if(fallbackAtlas!=null)SettlementArt.Release(fallbackAtlas);fallbackAtlas=null;
+        }
+        /// <summary>Returns a new owned texture; the caller must destroy it when no longer needed.</summary>
+        public static Texture2D CreateAtlasFromPixels(byte[] pixels)
+        {
+            const int width=768,height=512;
+            if(pixels==null || pixels.Length!=width*height*4)throw new System.ArgumentException("Invalid overworld atlas pixel data: expected 768 × 512 RGBA.");
+            var texture=new Texture2D(width,height,TextureFormat.RGBA32,false){name="Top-down overworld atlas (raw backup)",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+            try{texture.LoadRawTextureData(pixels);texture.Apply(false,true);return texture;}
+            catch{SettlementArt.Release(texture);throw;}
+        }
+        private static Texture2D Atlas
+        {
+            get
+            {
+                var imported=Resources.Load<Texture2D>("Map/OverworldAtlas");
+                if(imported!=null)return imported;
+                if(fallbackAtlas!=null)return fallbackAtlas;
+                // TextAsset import does not depend on PNG texture import or image-conversion modules.
+                var pixels=Resources.Load<TextAsset>("Map/OverworldAtlasPixels");
+                if(pixels==null)throw new System.InvalidOperationException("Overworld art files missing. Open the complete updated project containing Assets/Ash/Resources/Map/OverworldAtlasPixels.bytes.");
+                fallbackAtlas=CreateAtlasFromPixels(pixels.bytes);return fallbackAtlas;
+            }
+        }
         public static void Apply(RawImage image,int cell)
         {
-            var atlas=Resources.Load<Texture2D>("Map/OverworldAtlas");
-            if(atlas==null)throw new System.InvalidOperationException("Missing top-down overworld atlas.");
-            image.texture=atlas;image.uvRect=new Rect((cell%3*256+2)/768f,((1-cell/3)*256+2)/512f,252/768f,252/512f);image.raycastTarget=false;
+            if(cell<0 || cell>=6)throw new System.ArgumentOutOfRangeException(nameof(cell));
+            image.texture=Atlas;image.uvRect=new Rect((cell%3*256+2)/768f,((1-cell/3)*256+2)/512f,252/768f,252/512f);image.raycastTarget=false;
         }
         public static int Cell(ResourceType resource)=>resource==ResourceType.Food?0:resource==ResourceType.Water?1:resource==ResourceType.Scrap?2:3;
         public static Texture2D Terrain(int seed)

@@ -39,3 +39,7 @@ Run **Ashlands → Validate Overworld Map** once outside Play. This combines nat
 ![Layout preview](OverworldPreview.png)
 
 This preview uses the actual seed-4821 grid, camp/site coordinates and atlas images. It is a generated layout preview, not a Unity screenshot; it shows overview marker filtering on the left and close-zoom camps on the right.
+
+## Missing PNG import recovery
+
+The project also bundles `Resources/Map/OverworldAtlasPixels.bytes`: the exact same atlas as bottom-up RGBA pixels. If Unity cannot load the PNG texture, MapLandmarkArt creates and shares one cached texture from this TextAsset. It uses Texture2D.LoadRawTextureData, so no image-conversion package is required. The shared backup texture is released when the last map view is destroyed, including temporary validator views. No gameplay/save data is changed and no art is downloaded at runtime. The native overworld validator explicitly decodes the raw backup as well as checking the visible UI.

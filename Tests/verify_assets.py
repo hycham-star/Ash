@@ -82,3 +82,10 @@ for landmark in ("Water","Food","Scrap","Lumber"):
     assert (width,height,depth,color_type)==(384,384,8,6), f"Landmark must be 384px RGBA: {landmark}"
 print(f"PASS asset metadata: {len(index)} unique GUIDs, {references} resolved references, scene object links, no legacy launcher.")
 print("Unity compilation, import, and Play mode require the Unity Editor and are not covered by this check.")
+
+# Texture2D raw fallback must be complete RGBA pixel data, independent of PNG import.
+raw_atlas = assets / "Ash/Resources/Map/OverworldAtlasPixels.bytes"
+raw_pixels = raw_atlas.read_bytes()
+assert len(raw_pixels) == 768 * 512 * 4, "Invalid raw overworld atlas dimensions"
+assert min(raw_pixels[3::4]) == 0 and max(raw_pixels[3::4]) == 255, "Blank or opaque raw atlas"
+print("PASS complete raw overworld atlas backup (768 x 512 RGBA).")
