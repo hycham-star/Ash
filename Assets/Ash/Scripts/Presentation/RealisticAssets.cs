@@ -11,8 +11,7 @@ namespace Ash
         {
             var model=Create("Headquarters","HeadquartersMaterial",parent);
             model.name="Weathered Headquarters — original detailed mesh";
-            Create("HeadquartersSurroundings","HeadquartersSurroundingsMaterial",parent);
-            WastelandBuildingProps.Attach(parent,"Headquarters",new Vector2(4.3f,4.1f));
+            // The detailed mesh owns its roof equipment and yard clutter.
             Grounding(model.transform,new Vector3(0,.17f,0),new Vector2(4.3f,4.1f));
             return model;
         }
@@ -20,9 +19,16 @@ namespace Ash
         {
             var model=Create(assetName,assetName+"Material",parent);
             model.name=assetName+" — original textured building";
-            WastelandBuildingProps.Attach(model.transform,assetName,footprint);
+            if(assetName!="Barracks" && assetName!="Workshop")WastelandBuildingProps.Attach(model.transform,assetName,footprint);
             Grounding(model.transform,new Vector3(0,.065f,0),footprint+new Vector2(.25f,.25f));
             return model;
+        }
+        public static GameObject SalvageTruck(Transform parent,Vector3 position,float heading=0)
+        {
+            var root=new GameObject("Parked salvage truck — environment only");root.transform.SetParent(parent,false);root.transform.localPosition=position;
+            root.transform.localRotation=Quaternion.Euler(0,heading,0);root.transform.localScale=Vector3.one*.75f;
+            Create("SalvageTruck","SalvageTruckMaterial",root.transform);
+            Grounding(root.transform,new Vector3(0,.075f,0),new Vector2(1.8f,3.4f));return root;
         }
         public static GameObject Scavenger(Transform parent,Vector3 position,Vector3[] patrol)
         {

@@ -1,15 +1,22 @@
 """Original armored wasteland bus, hero motorcycle and rusty camp; eight travel headings.
 Run blender -b -t 4 --python-exit-code 1 --python Tools/Art/build_convoy_landmarks.py -- /path/to/Ash
 """
-import bpy,sys,os,math
+import bpy,sys,os,math,ast
 from mathutils import Vector
 root=sys.argv[sys.argv.index('--')+1];out=os.path.join(root,'Assets/Ash/Resources/Map')
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.samples=16;scene.cycles.use_denoising=False
 scene.render.film_transparent=True;scene.render.resolution_x=384;scene.render.resolution_y=384;scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG';scene.render.image_settings.color_mode='RGBA';scene.world.color=(.35,.39,.44)
+common=os.path.join(root,'Tools/Art/build_visual_slice.py')
+node=next(n for n in ast.parse(open(common).read()).body if isinstance(n,ast.FunctionDef) and n.name=='mat')
+exec(compile(ast.Module(body=[node],type_ignores=[]),common,'exec'),globals())
+base_material=mat
 def mat(n,c):
- m=bpy.data.materials.new(n);m.diffuse_color=(*c,1);m.use_nodes=True;p=m.node_tree.nodes.get('Principled BSDF');p.inputs['Base Color'].default_value=(*c,1);p.inputs['Roughness'].default_value=.85;return m
+ m=base_material(n,c,'cloth' if 'coat' in n else 'noise');p=m.node_tree.nodes.get('Principled BSDF')
+ if n in ('Steel','Oxidized armor'):p.inputs['Metallic'].default_value=.35;p.inputs['Roughness'].default_value=.72
+ return m
+scene.view_settings.view_transform='AgX';scene.view_settings.look='AgX - Medium High Contrast'
 rust=mat('Oxidized armor',(.32,.13,.055));ochre=mat('Worn ochre paint',(.48,.32,.10));steel=mat('Steel',(.19,.23,.22));dark=mat('Tires',(.035,.035,.03));glass=mat('Dusty glass',(.11,.23,.25));wood=mat('Timber',(.23,.14,.07));soil=mat('Ground',(.27,.23,.15));cloth=mat('Rider coat',(.25,.30,.26));skin=mat('Skin',(.52,.34,.21));dust=mat('Dust',(.56,.43,.27))
 def finish(o,n,m):
  o.name=n;o.data.materials.append(m);return o
@@ -27,6 +34,10 @@ def ball(n,p,s,m):
 def wheel(x,y,z,r=.35):
  o=cyl('Heavy tire',(x,y,z),r,.22,dark);o.rotation_euler.y=math.pi/2
  o=cyl('Wheel hub',(x+(.12 if x>0 else -.12),y,z),r*.45,.025,steel);o.rotation_euler.y=math.pi/2
+ for i in range(12):
+  a=i*math.tau/12;o=box('Chunky tire tread',(x,y+math.cos(a)*r,z+math.sin(a)*r),(.23,.075,.05),dark);o.rotation_euler.x=a-math.pi/2
+ for i in range(6):
+  a=i*math.tau/6;ball('Wheel bolts',(x+(.14 if x>0 else -.14),y+math.cos(a)*r*.30,z+math.sin(a)*r*.30),(.017,.017,.017),steel)
 def bus():
  box('Armored bus',(0,0,.95),(1.2,3.4,1.1),ochre);box('Roof',(0,0,1.53),(1.25,3.4,.16),rust)
  for side in (-1,1):
@@ -44,15 +55,32 @@ def bus():
  for y in (-1.4,-.8,.1,1.25):rod('Rack brace',(-.5,y,1.76),(.5,y,1.76),.025,steel)
  box('Roof supplies',(0,-.6,1.83),(.7,1,.35),wood)
  rod('Tall exhaust',(-.73,-1.5,.6),(-.73,-1.5,1.8),.07,steel)
+ for side in (-1,1):
+  rod('Mirror arm',(side*.58,1.48,1.25),(side*.86,1.48,1.25),.025,steel);box('Mirror',(side*.86,1.48,1.33),(.10,.18,.23),dark)
+  for y in (-1.15,1.15):box('Wheel arch armor',(side*.64,y,.77),(.22,.85,.08),steel)
+ for x in (-.23,.23):rod('Windshield wiper',(x,1.77,1.03),(x+.18,1.77,1.25),.012,dark)
+ box('Front grille',(0,1.73,.68),(.65,.04,.23),dark)
+ for x in (-.26,-.13,0,.13,.26):rod('Grille ribs',(x,1.76,.58),(x,1.76,.78),.012,steel)
+ for y in (-.8,-.35):
+  for x in (-.2,.2):ball('Strapped rooftop cargo',(x,y,2.02),(.20,.23,.19),cloth)
+ for side in (-1,1):
+  for y in (-1.2,-.6,0,.6,1.2):
+   for z in (.60,.87):box('Armor rivet',(side*.70,y,z),(.025,.03,.03),ochre)
+
 def bike():
  for y in (-.7,.7):wheel(0,y,.29,.32)
  rod('Motorbike frame',(0,-.65,.35),(0,.4,.7),.07,steel);rod('Front fork',(0,.7,.3),(0,.4,.9),.045,steel)
  box('Fuel tank',(0,.13,.78),(.42,.55,.30),rust);box('Seat',(0,-.35,.84),(.35,.50,.11),dark)
  rod('Handlebar',(-.35,.42,1.02),(.35,.42,1.02),.035,steel)
  box('Engine',(0,-.05,.43),(.35,.38,.30),steel)
- box('Rider torso',(0,-.2,1.15),(.46,.32,.57),cloth)
+ ball('Rider torso',(0,-.2,1.15),(.23,.16,.31),cloth)
  ball('Helmet',(0,-.16,1.60),(.23,.22,.25),dark)
  box('Visor',(0,.035,1.59),(.32,.035,.10),glass)
+ for z in (.37,.43,.49):box('Engine cooling fin',(0,-.05,z),(.39,.36,.022),steel)
+ rod('Chrome exhaust',(-.26,-.68,.35),(-.26,.02,.35),.042,steel)
+ box('Rear supply pack',(0,-.72,.83),(.40,.30,.32),cloth)
+ rod('Front suspension',(-.10,.66,.33),(-.10,.43,.86),.025,ochre)
+
  for s in (-1,1):
   rod('Arm',(s*.22,-.13,1.32),(s*.30,.4,1.02),.075,cloth)
   rod('Leg',(s*.17,-.30,.96),(s*.30,.05,.48),.08,cloth)
@@ -80,6 +108,7 @@ bpy.ops.object.camera_add(location=(6,-6,6.7));camera=bpy.context.object;camera.
 for p,power,size in (((-3,-4,7),650,5),((4,2,5),400,4)):
  bpy.ops.object.light_add(type='AREA',location=p);o=bpy.context.object;o.data.energy=power;o.data.size=size;o.rotation_euler=(Vector((0,0,.5))-o.location).to_track_quat('-Z','Y').to_euler()
 for name,build,scale in (('Camp',camp,5.6),('Bus',bus,4.6),('Bike',bike,3.1),('Dust',cloud,3.8)):
+ if name in ('Camp','Dust') and not os.environ.get('ASH_INCLUDE_LEGACY_LANDMARKS'):continue
  build();meshes=[o for o in scene.objects if o.type=='MESH']
  for heading in range(8 if name in ('Bus','Bike') else 1):
   angle=heading*math.tau/8
@@ -92,4 +121,4 @@ for name,build,scale in (('Camp',camp,5.6),('Bus',bus,4.6),('Bike',bike,3.1),('D
    o.rotation_euler=(rotation.to_3x3()@Euler(o['base_rotation']).to_matrix()).to_euler()
   camera.data.ortho_scale=scale;scene.render.filepath=os.path.join(out,name+(str(heading) if name in ('Bus','Bike') else '')+'.png');bpy.ops.render.render(write_still=True)
  for o in meshes:bpy.data.objects.remove(o,do_unlink=True)
-print('PASS original camp, dust and eight bus/bike headings')
+print('PASS weathered bus and motorcycle, eight headings each; camp/dust unchanged unless explicitly requested')

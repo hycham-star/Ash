@@ -109,11 +109,14 @@ namespace Ash.Editor
                     if(building=="Headquarters")RealisticAssets.Headquarters(buildingRoot.transform);
                     else RealisticAssets.Building(buildingRoot.transform,building,new Vector2(3,2.6f));
                     var props=buildingRoot.GetComponentInChildren<WastelandBuildingProps>();
-                    Require(props!=null,"Missing wasteland environment kit: "+building);
-                    var meshes=props.GetComponentsInChildren<MeshFilter>();
-                    Require(meshes.Length>0 && meshes.Sum(mesh=>mesh.sharedMesh.triangles.Length/3)<3500,"Props must use combined low-poly meshes: "+building);
-                    Require(props.GetComponentsInChildren<Collider>().Length==0,"Environment props must not intercept building selection.");
-                    var renderers=props.GetComponentsInChildren<MeshRenderer>();var centres=renderers.Select(renderer=>renderer.bounds.center).ToArray();
+                    bool authored=building=="Headquarters" || building=="Workshop" || building=="Barracks";
+                    Require(authored?props==null:props!=null,"Authored buildings must own their details without duplicate legacy roof props: "+building);
+                    var detailRoot=authored?buildingRoot.transform:props.transform;
+                    var meshes=detailRoot.GetComponentsInChildren<MeshFilter>();
+                    long triangles=meshes.Sum(filter=>Enumerable.Range(0,filter.sharedMesh.subMeshCount).Sum(i=>(long)filter.sharedMesh.GetIndexCount(i)/3));
+                    Require(meshes.Length>0 && triangles<(authored?20000:3500),"Building details exceed the mesh budget: "+building);
+                    Require(detailRoot.GetComponentsInChildren<Collider>().Length==0,"Environment props must not intercept building selection.");
+                    var renderers=detailRoot.GetComponentsInChildren<MeshRenderer>();var centres=renderers.Select(renderer=>renderer.bounds.center).ToArray();
                     buildingRoot.transform.localPosition+=Vector3.right*2;
                     for(int i=0;i<renderers.Length;i++)Require(Vector3.Distance(renderers[i].bounds.center-centres[i],Vector3.right*2)<.001f,"Props detached during building relocation.");
                 }

@@ -8,7 +8,7 @@ from mathutils import Vector
 
 root = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else os.getcwd()
 characters = ('Engineer', 'Sentry', 'MaraFlint', 'JonasReed', 'SeraVale', 'BramHolt', 'IlyraVoss', 'KadeRook', 'AshaSol', 'OrinAshcroft')
-for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden', 'CavalryMount') + characters:
+for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden', 'SalvageTruck', 'CavalryMount') + characters:
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
     for action in list(bpy.data.actions):
@@ -26,6 +26,11 @@ for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop'
     coords = [o.matrix_world @ Vector(v) for o in meshes for v in o.bound_box]
     dims = [max(v[i] for v in coords) - min(v[i] for v in coords) for i in range(3)]
     assert max(dims) < 6, f'{name}: unexpected scale {dims}'
+    limits = {'Headquarters':(2.3,2.1), 'Workshop':(1.7,1.6), 'Barracks':(1.5,1.3)}
+    if name in limits:
+        assert max(abs(v.x) for v in coords)<=limits[name][0]+.001 and max(abs(v.y) for v in coords)<=limits[name][1]+.001, f'{name}: decorative geometry exceeds saved building footprint'
+        print('PASS authored details fit existing movable footprint', name)
+
     if name == 'Scavenger' or name in characters:
         rigs = [o for o in bpy.context.scene.objects if o.type == 'ARMATURE']
         assert len(rigs) == 1 and len(rigs[0].data.bones) == 11, 'Invalid skeleton'

@@ -128,6 +128,7 @@ namespace Ash
             for (int i = 0; i < 12; i++) art.Box(world,"Road marking",new Vector3(0,.11f,-7+i*1.2f),new Vector3(.09f,.012f,.45f),SettlementArt.Amber);
             Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),"Headquarters",BuildingKind.Headquarters);
             Building("WORKSHOP","A salvaged warehouse of tools, spare parts, and forgotten machines.",new Vector3(3,0,2.5f),new Vector3(3,2.3f,2.8f),"Workshop");
+            RealisticAssets.SalvageTruck(world,new Vector3(6.7f,.06f,.2f),-35);
             Building("BARRACKS","Prepare each hero’s independent army here. Select a hero, choose fighter types and use the slider or FILL.",new Vector3(-3.3f,0,-4),new Vector3(3,1.8f,2.6f),"Barracks");
             Building("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f),"WaterStation",BuildingKind.WaterStation);
             Building("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.9f,2.5f),"FoodGarden",BuildingKind.FoodGarden);
