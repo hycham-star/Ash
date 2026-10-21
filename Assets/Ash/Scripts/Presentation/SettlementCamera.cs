@@ -122,7 +122,7 @@ namespace Ash
             if(Ground(previous,out var before) && Ground(point,out var after))
             {
                 transform.position+=before-after;var offset=transform.position-panOrigin;
-                transform.position=panOrigin+new Vector3(Mathf.Clamp(offset.x,-24,24),0,Mathf.Clamp(offset.z,-26,26));
+                transform.position=panOrigin+new Vector3(Mathf.Clamp(offset.x,-SettlementLayout.HalfWidth-6,SettlementLayout.HalfWidth+6),0,Mathf.Clamp(offset.z,-SettlementLayout.HalfDepth-6,SettlementLayout.HalfDepth+6));
             }
             previous=point;
         }

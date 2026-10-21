@@ -22,7 +22,7 @@ internal static class PlacementChecks
         var fragments=new HeroFragmentWallet(definitions.Select(d=>d.Id));var map=new ScavengingService(resources,915);
         var progress=new ProgressPersistence(armies,resources,fragments,buildings,map);var codec=new Codec();
         buildings.ValidatePlacement(buildings.CapturePlacement());
-        Check(buildings.CapturePlacement().Positions.Length==18,"six core buildings and twelve development identities have stable saved IDs");
+        Check(buildings.CapturePlacement().Positions.Length==30,"six core buildings and twenty-four development identities have stable saved IDs");
         Check(SettlementPlacementCatalog.Snap(1.24f)==1 && SettlementPlacementCatalog.Snap(-1.25f)==-1.5f,"half-unit snapping is symmetric");
         var detached=buildings.CapturePlacement();detached.Positions[0].X=99;
         Check(buildings.Position("core-headquarters").X==-3,"position snapshots are detached");
@@ -30,7 +30,7 @@ internal static class PlacementChecks
         Check(buildings.CanMoveBuilding("core-workshop",-3,3)==PlacementResult.Overlap,"other building footprint blocks move");
         Check(buildings.MoveBuilding("core-workshop",-3,3)==PlacementResult.Overlap && codec.Encode(progress.Capture())==before,"invalid overlap leaves every domain unchanged");
         Check(buildings.MoveBuilding("core-workshop",100,0)==PlacementResult.OutsideWalls,"outside settlement walls rejected");
-        Check(buildings.MoveBuilding("core-foodgarden",0,-17.5f)==PlacementResult.GateBlocked,"gate approach stays clear");
+        Check(buildings.MoveBuilding("core-foodgarden",0,-29.5f)==PlacementResult.GateBlocked,"gate approach stays clear");
         Check(buildings.MoveBuilding("unknown",0,0)==PlacementResult.UnknownBuilding,"unknown placement ID rejected");
         Check(buildings.MoveBuilding("core-workshop",float.NaN,0)==PlacementResult.OutsideWalls && buildings.MoveBuilding("core-workshop",0,float.PositiveInfinity)==PlacementResult.OutsideWalls,"non-finite move coordinates rejected");
         buildings.BuildPlot("plot-01",PlotKind.Farm);buildings.AdvanceDevelopment(63);
@@ -51,7 +51,7 @@ internal static class PlacementChecks
             s=>s.Positions[0].Id="unknown",s=>s.Positions[0].Id=s.Positions[1].Id,
             s=>s.Positions[0].X=float.NaN,s=>s.Positions[0].Z=float.NegativeInfinity,
             s=>s.Positions[0].X=40,s=>{s.Positions[0].X=s.Positions[1].X;s.Positions[0].Z=s.Positions[1].Z;},
-            s=>{var p=s.Positions.Single(p=>p.Id=="core-foodgarden");p.X=0;p.Z=-17.5f;}
+            s=>{var p=s.Positions.Single(p=>p.Id=="core-foodgarden");p.X=0;p.Z=-29.5f;}
         })
         {
             var broken=progress.Capture();mutate(broken.Placement);Reject(()=>progress.Restore(broken),"malformed layout rejected before restore");

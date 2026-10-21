@@ -32,9 +32,9 @@ namespace Ash.Editor
             Scene scene=default;Texture2D rawAtlas=null;
             string directory=Path.Combine(Path.GetTempPath(),"Ashlands-map-validation-"+Guid.NewGuid().ToString("N"));
             try {
-                var pixels=Resources.Load<TextAsset>("Map/OverworldAtlasPixels");
+                var pixels=Resources.Load<TextAsset>("Map/IsometricOverworldAtlasPixels");
                 Require(pixels!=null,"Missing bundled raw atlas backup.");rawAtlas=MapLandmarkArt.CreateAtlasFromPixels(pixels.bytes);
-                Require(rawAtlas.width==768 && rawAtlas.height==512 && rawAtlas.filterMode==FilterMode.Bilinear,"Raw atlas backup failed native texture decoding.");
+                Require(rawAtlas.width==MapLandmarkArt.AtlasWidth && rawAtlas.height==MapLandmarkArt.AtlasHeight && rawAtlas.filterMode==FilterMode.Bilinear,"Raw atlas backup failed native texture decoding.");
                 scene=EditorSceneManager.OpenPreviewScene(PrepareProject.SettlementScene);
                 var manager=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GameManager>(true)).Single();
                 manager.Initialize(); Require(!manager.PersistenceActive,"Validation must not touch the real save slot.");
@@ -58,7 +58,7 @@ namespace Ash.Editor
                 Require(!map.gameObject.activeSelf && map.GetComponentsInChildren<Button>(true).Length>=24,"Map UI controls incomplete.");
                 map.Show();
                 var landmarks=map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Miniature landmark").ToArray();
-                Require(landmarks.Length==16 && landmarks.All(image=>image.texture!=null && image.texture.width==768 && !image.raycastTarget),"Miniature landmarks are missing or blocking site buttons.");
+                Require(landmarks.Length==16 && landmarks.All(image=>image.texture!=null && image.texture.width==MapLandmarkArt.AtlasWidth && !image.raycastTarget),"Miniature landmarks are missing or blocking site buttons.");
                 Require(map.GetComponentsInChildren<RawImage>(true).Count(image=>image.name=="Rusty enemy base" && image.texture!=null)==WorldRegions.CampCount,"Clickable world camps missing.");
                 var terrain=map.GetComponentsInChildren<RawImage>(true).Single(image=>image.name=="Textured wasteland");
                 Require(terrain.texture.width==WorldRegions.TileCount*4 && landmarks.Select(image=>image.texture).Distinct().Count()==1,"Overworld must use tiled biome terrain and one shared landmark atlas.");

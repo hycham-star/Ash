@@ -88,7 +88,7 @@ namespace Ash
         private static PlacementResult CheckPlacement(BuildingFootprint moving,float x,float z,SettlementPlacementState state,SettlementDevelopmentState development)
         {
             if(Math.Abs(x)+moving.Width/2>SettlementLayout.HalfWidth-1 || Math.Abs(z)+moving.Depth/2>SettlementLayout.HalfDepth-1)return PlacementResult.OutsideWalls;
-            if(SettlementPlacementCatalog.Intersects(x,z,moving.Width,moving.Depth,0,-18.5f,6,3))return PlacementResult.GateBlocked;
+            if(SettlementPlacementCatalog.Intersects(x,z,moving.Width,moving.Depth,0,-(SettlementLayout.HalfDepth-1.5f),6,3))return PlacementResult.GateBlocked;
             foreach(var p in state.Positions)
             {
                 if(p.Id==moving.Id || !HasBuilding(p.Id,development))continue;var other=SettlementPlacementCatalog.Find(p.Id);

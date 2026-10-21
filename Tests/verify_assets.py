@@ -89,3 +89,12 @@ raw_pixels = raw_atlas.read_bytes()
 assert len(raw_pixels) == 768 * 512 * 4, "Invalid raw overworld atlas dimensions"
 assert min(raw_pixels[3::4]) == 0 and max(raw_pixels[3::4]) == 255, "Blank or opaque raw atlas"
 print("PASS complete raw overworld atlas backup (768 x 512 RGBA).")
+
+from PIL import Image
+iso_path = assets / "Ash/Resources/Map/IsometricOverworldAtlas.png"
+iso = Image.open(iso_path).convert("RGBA")
+assert iso.size == (1152, 768), "Invalid isometric atlas dimensions"
+iso_raw = (assets / "Ash/Resources/Map/IsometricOverworldAtlasPixels.bytes").read_bytes()
+assert iso_raw == iso.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes(), "Isometric backup must match PNG exactly"
+assert Image.open(assets / "Ash/Resources/Map/Settlement.png").size == (384,384)
+print("PASS isometric landmark atlas, settlement icon and exact raw pixel backup.")

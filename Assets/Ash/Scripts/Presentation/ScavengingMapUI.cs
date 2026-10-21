@@ -78,7 +78,7 @@ namespace Ash
             terrain=terrainRoot.GetComponent<RawImage>();terrain.raycastTarget=false;
             var home=Control(map,"HOME",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-16),new Vector2(28,16),SelectHome);
             homeMarker=(RectTransform)home.transform;home.gameObject.name="Ember Outpost — enter settlement";
-            var homeLabel=home.GetComponentInChildren<Text>(true);homeLabel.fontSize=10;homeLabel.rectTransform.anchorMax=new Vector2(1,.20f);
+            var homeLabel=home.GetComponentInChildren<Text>(true);homeLabel.text="";
             var homeIcon=Icon(home.transform,"Settlement tile",null,new Vector2(64,64));homeIcon.rectTransform.anchoredPosition=new Vector2(0,9);MapLandmarkArt.Apply(homeIcon,5);
             markerRoot=new GameObject("Scavenging sites",typeof(RectTransform)).GetComponent<RectTransform>(); markerRoot.SetParent(map,false); markerRoot.anchorMin=Vector2.zero; markerRoot.anchorMax=Vector2.one; markerRoot.offsetMin=markerRoot.offsetMax=Vector2.zero;
             scroll=viewport.gameObject.AddComponent<ScrollRect>(); scroll.viewport=viewport; scroll.content=map; scroll.horizontal=scroll.vertical=true; scroll.movementType=ScrollRect.MovementType.Clamped;

@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 9;
+        public const int Version = 10;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -75,6 +75,37 @@ namespace Ash
             public WorldMapState WorldMap;
             public SettlementPlacementState Placement;
         }
+        private static SettlementDevelopmentState ExpandLegacyDevelopment(SettlementDevelopmentState saved)
+        {
+            if(saved?.Plots==null || (saved.Plots.Length!=12 && saved.Plots.Length!=SettlementLayout.Plots.Count))throw new ArgumentException("Incomplete legacy construction state.");
+            var expanded=SettlementDevelopmentState.Fresh();expanded.Population=saved.Population;expanded.GrowthSeconds=saved.GrowthSeconds;
+            var seen=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var source in saved.Plots)
+            {
+                if(source==null || !seen.Add(source.Id))throw new ArgumentException("Duplicate legacy plot.");
+                var target=Array.Find(expanded.Plots,p=>p.Id==source.Id);if(target==null)throw new ArgumentException("Unknown legacy plot.");
+                int index=Array.IndexOf(expanded.Plots,target);
+                if(index>=12 && (source.Kind!=PlotKind.Empty || source.Level!=0 || source.Stored!=0 || source.Seconds!=0))throw new ArgumentException("Legacy expansion plot must be empty.");
+                if((int)source.Kind>(int)PlotKind.Scrapyard)throw new ArgumentException("Unknown legacy building type.");
+                target.Kind=source.Kind;target.Level=source.Level;target.Stored=source.Stored;target.Seconds=source.Seconds;
+            }
+            for(int i=0;i<12;i++)if(!seen.Contains(expanded.Plots[i].Id))throw new ArgumentException("Missing legacy plot.");
+            return expanded;
+        }
+        private static SettlementPlacementState ExpandLegacyPlacement(SettlementPlacementState saved)
+        {
+            if(saved?.Positions==null || (saved.Positions.Length!=18 && saved.Positions.Length!=SettlementPlacementCatalog.Buildings.Count))throw new ArgumentException("Incomplete legacy placement state.");
+            var expanded=SettlementPlacementState.Fresh();var seen=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var source in saved.Positions)
+            {
+                if(source==null || !seen.Add(source.Id))throw new ArgumentException("Duplicate legacy position.");
+                var target=Array.Find(expanded.Positions,p=>p.Id==source.Id);if(target==null)throw new ArgumentException("Unknown legacy position.");
+                if(Array.IndexOf(expanded.Positions,target)>=18 && (target.X!=source.X || target.Z!=source.Z))throw new ArgumentException("Invalid legacy expansion position.");
+                target.X=source.X;target.Z=source.Z;
+            }
+            for(int i=0;i<18;i++)if(!seen.Contains(expanded.Positions[i].Id))throw new ArgumentException("Missing legacy position.");
+            return expanded;
+        }
         private Candidate Prepare(ProgressState state)
         {
             if(state==null) throw new ArgumentException("Missing progress document.");
@@ -92,8 +123,10 @@ namespace Ash
             buildings.Validate(savedBuildings);
             var savedDevelopment=state.Version<7?SettlementDevelopmentState.Fresh():state.Development;
             int headquarters=0;foreach(var b in savedBuildings)if(b.Kind==BuildingKind.Headquarters)headquarters=b.Level;
+            if(state.Version>=7 && state.Version<10)savedDevelopment=ExpandLegacyDevelopment(savedDevelopment);
             buildings.ValidateDevelopment(savedDevelopment,headquarters);
             var savedPlacement=state.Version<9?SettlementPlacementState.Fresh():state.Placement;
+            if(state.Version==9)savedPlacement=ExpandLegacyPlacement(savedPlacement);
             buildings.ValidatePlacement(savedPlacement,savedDevelopment);
             ScavengingState savedScavenging;
             if(state.Version<3) {

@@ -37,6 +37,17 @@ namespace Ash.Editor
                 ui.Show(SettlementLayout.Plots[2].Id);FindButton("WELL").onClick.Invoke();FindButton("BUILD ").onClick.Invoke();
                 ui.Show(SettlementLayout.Plots[3].Id);FindButton("SCRAPYARD").onClick.Invoke();FindButton("BUILD ").onClick.Invoke();
                 Require(service.EmployedResidents==8 && service.FreeResidents==13,"Well/scrapyard resident staffing incorrect.");
+                manager.Resources.Add(ResourceType.Food,200);manager.Resources.Add(ResourceType.Water,200);
+                var types=new[]{PlotKind.InfantryCenter,PlotKind.BikerCenter,PlotKind.ArmyCenter};var labels=new[]{"INFANTRY","BIKER","ARMY"};
+                for(int i=0;i<types.Length;i++)
+                {
+                    string id=SettlementLayout.Plots[4+i].Id;ui.Show(id);FindButton(labels[i]).onClick.Invoke();FindButton("BUILD ").onClick.Invoke();
+                    Require(service.Plot(id).Kind==types[i],"Training center construction failed.");
+                    var fighter=manager.Training.Fighter(types[i]);int before=manager.HeroArmies.Available(fighter.Definition.Id);
+                    ui.GetComponentsInChildren<Slider>(true).Single().value=2;FindButton("TRAIN ").onClick.Invoke();
+                    Require(manager.HeroArmies.Available(fighter.Definition.Id)==before+2,"Training button must add chosen fighter quantity to reserve.");
+                }
+                Require(service.HousingCapacity==50 && service.EmployedResidents==14,"Training centers must employ residents without adding housing.");
                 var progress=new ProgressPersistence(manager.HeroArmies,manager.Resources,manager.Fragments,service,manager.Scavenging,manager.OfflineScavenging);var codec=new UnityProgressCodec();var store=new LocalSaveStore(directory,codec,progress.Validate);var saved=progress.Capture();string exact=codec.Encode(saved);store.Save(saved);
                 ui.Show(SettlementLayout.Plots[0].Id);FindButton("COLLECT ").onClick.Invoke();Require(service.Plot(SettlementLayout.Plots[0].Id).Stored==0,"Actual collect button failed.");
                 progress.Restore(store.Load().State);progress.NotifyRestored();Require(codec.Encode(progress.Capture())==exact,"Native development disk round trip changed progression.");

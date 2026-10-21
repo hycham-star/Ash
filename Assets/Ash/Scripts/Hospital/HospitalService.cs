@@ -94,7 +94,7 @@ namespace Ash
                     if(completed.Count>0){healed.AddRange(completed);patients.RemoveAll(p=>p.Status==PatientStatus.Healing && p.Work==WorkRequired);returned=true;Admit();}
                     changed=true;
                 }
-                var reservePlan=armies.PrepareHealingReturn(healed);armies.CommitHealingReturn(reservePlan);committed=true;
+                var reservePlan=armies.PrepareReserveAddition(healed);armies.CommitReserveAddition(reservePlan);committed=true;
                 if(changed)Notify(false,returned);
             }finally{if(!committed)patients=original;commanding=false;}
         }

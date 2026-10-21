@@ -33,7 +33,12 @@ namespace Ash.Editor
                 Set("presentation",presentation);Set("font",Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));Call("BuildUI");Call("Refresh");
                 var barracks=new GameObject("Disposable barracks marker").AddComponent<SettlementBuilding>();barracks.transform.SetParent(presentation.transform,false);barracks.Configure("BARRACKS","",placementId:"core-barracks");
                 Call("Inspect",barracks);
-                Require(((GameObject)Field("heroPanel")).activeSelf && ((Text)Field("heroHeading")).text.Contains("BARRACKS"),"Barracks inspection did not open army preparation.");
+                var roster=(GameObject)Field("barracksPanel");
+                Require(roster.activeSelf && roster.GetComponentsInChildren<RawImage>(true).Count(image=>image.name=="Barracks hero portrait" && image.texture!=null)==8,"Barracks must list eight illustrated heroes.");
+                roster.GetComponentsInChildren<Button>(true).Single(button=>button.name=="Barracks hero • "+manager.Heroes[0].InstanceId).onClick.Invoke();
+                Require(((GameObject)Field("heroPanel")).activeSelf && ((Text)Field("heroHeading")).text.Contains("BARRACKS"),"Selected barracks hero did not open army preparation.");
+                Call("CloseHeroPanel");Require(roster.activeSelf,"Closing preparation must return to hero roster.");
+                Call("PrepareSelectedHero");
                 void Fill(int heroIndex,int fighterIndex)
                 {
                     Set("selectedHero",heroIndex);Set("selectedFighter",fighterIndex);Call("Refresh");
@@ -69,7 +74,7 @@ namespace Ash.Editor
                 Control("Raid hero • "+first.InstanceId).onClick.Invoke();
                 picker.GetComponentsInChildren<Button>(true).Single(button=>button.name=="X").onClick.Invoke();
                 Require(manager.WorldMap.Capture().Missions.Length==1 && manager.WorldMap.Mission(first.InstanceId)==null,"Cancelling selection dispatched an extra army.");
-                Set("selectedHero",1);Call("ShowBarracks");Require(!((Text)Field("fillFightersLabel")).transform.parent.GetComponent<Button>().interactable,"Barracks must not refill a deployed army.");
+                Set("selectedHero",1);Call("PrepareSelectedHero");Require(!((Text)Field("fillFightersLabel")).transform.parent.GetComponent<Button>().interactable,"Barracks must not refill a deployed army.");
                 Require(!manager.PersistenceActive,"Validation unexpectedly opened player persistence.");
                 Debug.Log("PASS Unity raid preparation: clickable barracks, independent army fills, RAID/SCOUT-only camp actions, eight illustrated hero choices, empty/deployed guards, prepare-selected-hero navigation, explicit selected-hero/camp dispatch and cancel isolation. Disposable preview only; player saves untouched. Verify layout and touch on device.");
             }

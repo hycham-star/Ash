@@ -43,17 +43,17 @@ namespace Ash
             else if(!hospital.Uses(resources))throw new InvalidOperationException("Army hospital is bound to another resource ledger.");
             return hospital;
         }
-        internal Dictionary<string,int> PrepareHealingReturn(IEnumerable<FighterState> healed)
+        internal Dictionary<string,int> PrepareReserveAddition(IEnumerable<FighterState> healed)
         {
             var plan=new Dictionary<string,int>(StringComparer.Ordinal);
             foreach(var p in healed)
             {
-                if(!fighters.TryGetValue(p.DefinitionId,out var fighter) || fighter.Level!=p.Level || p.Quantity<=0)throw new ArgumentException("Unknown recovered fighter.");
+                if(!fighters.TryGetValue(p.DefinitionId,out var fighter) || fighter.Level!=p.Level || p.Quantity<=0)throw new ArgumentException("Unknown reserve fighter.");
                 int current=plan.TryGetValue(p.DefinitionId,out int value)?value:reserve[p.DefinitionId];plan[p.DefinitionId]=checked(current+p.Quantity);
             }
             return plan;
         }
-        internal void CommitHealingReturn(Dictionary<string,int> plan){foreach(var p in plan)reserve[p.Key]=p.Value;}
+        internal void CommitReserveAddition(Dictionary<string,int> plan){foreach(var p in plan)reserve[p.Key]=p.Value;}
         public int Available(string fighterId) => fighterId != null && reserve.TryGetValue(fighterId, out int quantity) ? quantity : 0;
         public HeroData FindHero(string heroId) => heroId != null && heroes.TryGetValue(heroId, out var hero) ? hero : null;
 

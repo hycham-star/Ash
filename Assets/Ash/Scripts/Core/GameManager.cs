@@ -20,6 +20,7 @@ namespace Ash
         public HeroFragmentWallet Fragments { get; private set; }
         public BattleManager Battles { get; private set; }
         public HospitalService Hospital {get;private set;}
+        public FighterTrainingService Training {get;private set;}
         public BuildingService Buildings { get; private set; }
         public ScavengingService Scavenging { get; private set; }
         public WorldMapService WorldMap {get;private set;}
@@ -221,6 +222,7 @@ namespace Ash
             Hospital=service.GetHospital(resources);
             var battles = new BattleManager(service, resources, fragments);
             Buildings = new BuildingService(resources);
+            Training=new FighterTrainingService(service,resources,Buildings,Hospital);
             Scavenging = new ScavengingService(resources,NewMapSeed());
             WorldMap=new WorldMapService(service,Scavenging,resources,Buildings,battles);
             OfflineScavenging = new OfflineScavenging(Scavenging);

@@ -18,7 +18,7 @@ internal static class DevelopmentChecks
         void Reject<T>(Action action,string name)where T:Exception{try{action();}catch(T){C(true,name);return;}throw new Exception("FAIL expected "+typeof(T).Name+": "+name);}
         ResourceManager Money(int amount=100000)=>new ResourceManager(new[]{new ResourceAmount(ResourceType.Scrap,amount),new ResourceAmount(ResourceType.Lumber,amount),new ResourceAmount(ResourceType.Food,amount),new ResourceAmount(ResourceType.Water,amount)});
         var codec=new Codec();var money=Money();var b=new BuildingService(money);string[] ids=SettlementLayout.Plots.Select(p=>p.Id).ToArray();
-        C(ids.Length==12 && ids.Distinct().Count()==12 && b.Population==20 && b.HousingCapacity==30 && b.FreeResidents==20,"twelve stable plots and initial resident population");
+        C(ids.Length==24 && ids.Distinct().Count()==24 && b.Population==20 && b.HousingCapacity==30 && b.FreeResidents==20,"twenty-four stable plots and initial resident population");
         C(SettlementLayout.Plots.All(p=>Math.Abs(p.X)+3<SettlementLayout.HalfWidth && Math.Abs(p.Z)+3<SettlementLayout.HalfDepth),"plot footprints stay within expanded walls");
         C(SettlementLayout.Plots.All(a=>SettlementLayout.Plots.All(z=>a==z || Math.Abs(a.X-z.X)>=6 || Math.Abs(a.Z-z.Z)>=6)),"plot footprints do not overlap");
         b.ValidateDevelopment(b.CaptureDevelopment(),1);int scrap=money.Get(ResourceType.Scrap),lumber=money.Get(ResourceType.Lumber);

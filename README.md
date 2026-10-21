@@ -1,10 +1,12 @@
 # Ashlands: Rise of the Remnants
 
-The world map now uses a **flat 2D tile atlas**, a 201×201 coordinate grid, **256 camps**, and three biome/threat zones. Launching a raid hides the camp/hero panels and bottom controls; **CONTROLS** restores them. Original saved sites/workers and camps stay in place. Run **Ashlands > Validate Overworld Map** once after this update. See [overworld design, compatibility and preview](Docs/Overworld.md).
+The settlement now has a **56×64 walled area and 24 building plots**. **CONSTRUCTION** replaces the Population shortcut and offers housing, producers, and Infantry/Biker/Army training centers. Tap the existing **Barracks** for an illustrated list of heroes, then select one to adjust or fill its independent army. Paid training adds fighters to the existing reserve. The world map again uses **2.5D isometric miniature landmarks**, including a settlement icon, while retaining the coordinate grid, 256 camps and saved missions. Save schema **10** expands older settlements without resetting progress.
+
+Outside Play, run **Ashlands > Validate Construction and Barracks** once, then **Open Settlement Scene > Play**. See [construction, training and verification](Docs/ConstructionAndBarracks.md). Native Unity validation and Android rendering still require the editor/device.
 
 Camp actions are **RAID** and **SCOUT**. RAID opens an eight-hero selection panel and requires **LAUNCH RAID** before dispatch. Tap the settlement **Barracks** to prepare each hero’s independent army with the existing sliders and FILL. Empty/deployed armies cannot launch. After this update, run **Ashlands > Validate Raid Preparation** once outside Play; normal launches need only **Open Settlement Scene > Play**. See [raid preparation](Docs/RaidPreparation.md).
 
-Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
+Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking or monetization is implemented. Training currently completes immediately after payment.
 
 ## Zoom navigation and movable settlement buildings
 
@@ -36,7 +38,7 @@ Open with Unity **6000.3.26f1**. Outside Play, run **Ashlands > Validate 2.5D Is
 
 ## Expanded settlement and population
 
-The settlement now has a **36×40 walled area and 12 building plots**. Tap a plot or the **POP / FREE** button to construct housing, farms, water wells or scrapyards. Civilian residents grow with housing, Food and Water, and staff new producers. Construction, upgrades and output save with existing progression in **schema 9**. Run **Ashlands > Validate Settlement Development** and **Validate Settlement Presentation** outside Play. See [construction rules and test steps](Docs/SettlementDevelopment.md).
+The settlement now has a **56×64 walled area and 24 building plots**. Tap a plot or the **CONSTRUCTION** button to construct housing, farms, water wells or scrapyards. Civilian residents grow with housing, Food and Water, and staff new producers. Construction, upgrades and output save with existing progression in **schema 9**. Run **Ashlands > Validate Settlement Development** and **Validate Settlement Presentation** outside Play. See [construction rules and test steps](Docs/SettlementDevelopment.md).
 
 ## Hospital
 

@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace Ash
 {
-    public enum PlotKind { Empty, Housing, Farm, WaterWell, Scrapyard }
+    public enum PlotKind { Empty, Housing, Farm, WaterWell, Scrapyard, InfantryCenter, BikerCenter, ArmyCenter }
     public sealed class SettlementPlotDefinition
     {
         public string Id {get;}public int X {get;}public int Z {get;}
@@ -12,7 +12,7 @@ namespace Ash
     }
     public static class SettlementLayout
     {
-        public const int HalfWidth=18,HalfDepth=20;
+        public const int HalfWidth=28,HalfDepth=32;
         public static ReadOnlyCollection<SettlementPlotDefinition> Plots {get;}=Create();
         private static ReadOnlyCollection<SettlementPlotDefinition> Create()
         {
@@ -20,6 +20,8 @@ namespace Ash
             void Add(int x,int z){plots.Add(new SettlementPlotDefinition("plot-"+(plots.Count+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture),x,z));}
             foreach(int z in new[]{-14,14})foreach(int x in new[]{-12,0,12})Add(x,z);
             foreach(int x in new[]{-12,12})foreach(int z in new[]{-6,2,8})Add(x,z);
+            foreach(int z in new[]{-25,25})foreach(int x in new[]{-21,-7,7,21})Add(x,z);
+            foreach(int x in new[]{-23,23})foreach(int z in new[]{-12,12})Add(x,z);
             return plots.AsReadOnly();
         }
     }
@@ -49,9 +51,14 @@ namespace Ash
         public int GrowthSeconds=>development.GrowthSeconds;
         public static string PlotName(PlotKind kind)
         {
-            switch(kind){case PlotKind.Empty:return "Empty plot";case PlotKind.Housing:return "Housing";case PlotKind.Farm:return "Farm";case PlotKind.WaterWell:return "Water Well";case PlotKind.Scrapyard:return "Scrapyard";default:throw new ArgumentOutOfRangeException(nameof(kind));}
+            switch(kind){case PlotKind.Empty:return "Empty plot";case PlotKind.Housing:return "Housing";case PlotKind.Farm:return "Farm";case PlotKind.WaterWell:return "Water Well";case PlotKind.Scrapyard:return "Scrapyard";case PlotKind.InfantryCenter:return "Infantry Center";case PlotKind.BikerCenter:return "Biker Center";case PlotKind.ArmyCenter:return "Army Center";default:throw new ArgumentOutOfRangeException(nameof(kind));}
         }
-        public static int WorkersRequired(PlotKind kind){PlotName(kind);return kind==PlotKind.Farm || kind==PlotKind.Scrapyard?3:kind==PlotKind.WaterWell?2:0;}
+        public static int WorkersRequired(PlotKind kind){PlotName(kind);return IsTraining(kind)?2:kind==PlotKind.Farm || kind==PlotKind.Scrapyard?3:kind==PlotKind.WaterWell?2:0;}
+        public static bool IsTraining(PlotKind kind)=>kind==PlotKind.InfantryCenter || kind==PlotKind.BikerCenter || kind==PlotKind.ArmyCenter;
+        public static FighterType TrainedType(PlotKind kind)
+        {
+            switch(kind){case PlotKind.InfantryCenter:return FighterType.Melee;case PlotKind.BikerCenter:return FighterType.Biker;case PlotKind.ArmyCenter:return FighterType.Sharpshooter;default:throw new ArgumentException("Not a training center.");}
+        }
         public static ResourceType PlotProduct(PlotKind kind)
         {switch(kind){case PlotKind.Farm:return ResourceType.Food;case PlotKind.WaterWell:return ResourceType.Water;case PlotKind.Scrapyard:return ResourceType.Scrap;default:throw new ArgumentException("Plot does not produce resources.");}}
         public static int PlotRate(PlotKind kind,int level)=>kind==PlotKind.Farm?10*level:kind==PlotKind.WaterWell?8*level:kind==PlotKind.Scrapyard?6*level:0;
@@ -62,6 +69,7 @@ namespace Ash
         public ResourceAmount[] PlotBuildCost(PlotKind kind)
         {
             PlotName(kind);if(kind==PlotKind.Empty)throw new ArgumentException("Choose a building type.");
+            if(IsTraining(kind))return new[]{new ResourceAmount(ResourceType.Scrap,40),new ResourceAmount(ResourceType.Lumber,25)};
             return new[]{new ResourceAmount(ResourceType.Scrap,kind==PlotKind.WaterWell?25:kind==PlotKind.Scrapyard?30:20),new ResourceAmount(ResourceType.Lumber,kind==PlotKind.Housing || kind==PlotKind.Scrapyard?15:10)};
         }
         public BuildingCommandResult CanBuildPlot(string id,PlotKind kind)
@@ -142,7 +150,7 @@ namespace Ash
                 if(p==null || p.Id==null || !known.Remove(p.Id) || !Enum.IsDefined(typeof(PlotKind),p.Kind))throw new ArgumentException("Invalid or duplicate settlement plot.");
                 if(p.Kind==PlotKind.Empty){if(p.Level!=0 || p.Stored!=0 || p.Seconds!=0)throw new ArgumentException("Empty plot cannot contain production.");continue;}
                 if(p.Level<1 || p.Level>MaximumPlotLevel || p.Level>headquartersLevel || p.Stored<0 || p.Seconds<0 || p.Seconds>=60)throw new ArgumentException("Invalid plot level or production.");
-                int rate=PlotRate(p.Kind,p.Level);if(rate==0){if(p.Stored!=0 || p.Seconds!=0)throw new ArgumentException("Housing does not produce resources.");capacity+=p.Level*ResidentsPerHouseLevel;}
+                int rate=PlotRate(p.Kind,p.Level);if(rate==0){if(p.Stored!=0 || p.Seconds!=0)throw new ArgumentException("Non-production building contains resource stock.");if(p.Kind==PlotKind.Housing)capacity+=p.Level*ResidentsPerHouseLevel;}
                 else if(p.Stored>rate*5 || (p.Stored==rate*5 && p.Seconds!=0))throw new ArgumentException("Invalid plot storage.");
                 employed+=WorkersRequired(p.Kind);
             }
