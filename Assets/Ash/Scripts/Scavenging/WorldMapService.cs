@@ -48,6 +48,7 @@ namespace Ash
         {
             get{if(layout==null || layoutSeed!=scavenging.Seed){layout=GenerateCamps(scavenging.Capture());layoutSeed=scavenging.Seed;}return layout;}
         }
+        public IReadOnlyList<HeroData> Heroes=>armies.Heroes;
         public WorldCamp[] Camps=>(WorldCamp[])Layout.Clone();
         public bool IsDeployed(string heroId)=>missions.Exists(m=>m.HeroId==heroId);
         public MapMission Mission(string heroId){var m=missions.Find(item=>item.HeroId==heroId);return m==null?null:Copy(m);}

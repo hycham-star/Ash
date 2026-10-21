@@ -45,7 +45,7 @@ namespace Ash
             Refresh();
             if(!opened) { Fit(); Locate(); opened=true; }
         }
-        public void Hide() { gameObject.SetActive(false); }
+        public void Hide() { CloseRaidPicker();gameObject.SetActive(false); }
         private void OnDestroy() { if(service!=null)service.Changed-=Refresh; if(worldService!=null)worldService.Changed-=Refresh; if(terrainTexture!=null)SettlementArt.Release(terrainTexture); }
         public void ShowOfflineSummary(string message) { if(!string.IsNullOrEmpty(message))feedback.text=message; }
         private RectTransform Rect(Transform parent,string title,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)
@@ -88,7 +88,7 @@ namespace Ash
             Control(transform,"−",Vector2.zero,new Vector2(.16f,0),new Vector2(8,74),new Vector2(-3,110),()=> { teamSize=Mathf.Max(1,teamSize-1);Refresh(); });
             var team=Rect(transform,"Selected team",new Vector2(.16f,0),new Vector2(.84f,0),new Vector2(3,74),new Vector2(-3,110),ink);teamSelection=Label(team,"",14);
             Control(transform,"+",new Vector2(.84f,0),new Vector2(1,0),new Vector2(3,74),new Vector2(-8,110),()=> { teamSize=Mathf.Min(ScavengingService.MaximumWorkersPerSite,teamSize+1);Refresh(); });
-            var status=Rect(transform,"Scavenging status",Vector2.zero,new Vector2(1,0),new Vector2(8,43),new Vector2(-8,68),ink); feedback=Label(status,"Drag to explore • Tap a resource site",12);
+            var status=Rect(transform,"Scavenging status",Vector2.zero,new Vector2(.76f,0),new Vector2(8,43),new Vector2(-8,68),ink); feedback=Label(status,"Drag to explore • Tap a resource site",12);
             feedback.resizeTextForBestFit=true; feedback.resizeTextMinSize=9; feedback.resizeTextMaxSize=12;
             assign=Control(transform,"COLLECT",Vector2.zero,new Vector2(.25f,0),new Vector2(8,5),new Vector2(-2,41),()=>Command(()=>service.Assign(selected,teamSize)));
             armyGather=Control(transform,"GATHER",new Vector2(.25f,0),new Vector2(.5f,0),new Vector2(2,5),new Vector2(-2,41),()=>WorldCommand(()=>worldService.Dispatch(CurrentHero.InstanceId,selected,MapMissionKind.Gather)));

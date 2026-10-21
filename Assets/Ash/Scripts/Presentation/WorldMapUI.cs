@@ -11,6 +11,9 @@ namespace Ash
         private Func<HeroData> heroSelection;
         private Action<int> cycleHero;
         private Action<CombatResult> showRaidResult;
+        private Action<string> selectHero;
+        private Action prepareArmies;
+        private Button raidReport;
         private Button armyGather;
         private GameObject campPanel;
         private Text campDetails,heroLabel;
@@ -45,10 +48,10 @@ namespace Ash
         private HeroData CurrentHero=>heroSelection?.Invoke();
         private float MarkerScale=>Mathf.Clamp(side/1000,.55f,3.5f);
         public float MapSize=>side;
-        public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult)
+        public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult,Action<string> select=null,Action prepare=null)
         {
             if(worldService!=null)worldService.Changed-=Refresh;
-            worldService=world;heroSelection=selectedHero;cycleHero=cycle;showRaidResult=showResult;
+            worldService=world;heroSelection=selectedHero;cycleHero=cycle;showRaidResult=showResult;selectHero=select;prepareArmies=prepare;
             worldService.Changed+=Refresh;Refresh();
         }
         private void BuildWorldControls()
@@ -62,9 +65,12 @@ namespace Ash
             var description=Rect(card,"Scout information",new Vector2(0,.30f),new Vector2(.9f,1),new Vector2(2,2),new Vector2(-2,-2),ink);
             Control(card,"X",Vector2.one,Vector2.one,new Vector2(-32,-30),new Vector2(-3,-3),()=>{selectedCampId=null;Refresh();});
             campDetails=Label(description,"",14);campDetails.alignment=TextAnchor.MiddleLeft;campDetails.resizeTextForBestFit=true;campDetails.resizeTextMinSize=10;campDetails.resizeTextMaxSize=14;
-            Control(card,"SCOUT",Vector2.zero,new Vector2(.33f,.29f),new Vector2(3,3),new Vector2(-2,-2),()=>WorldCommand(()=>worldService.Scout(selectedCampId)));
-            Control(card,"RAID",new Vector2(.33f,0),new Vector2(.66f,.29f),new Vector2(2,3),new Vector2(-2,-2),()=>WorldCommand(()=>worldService.Dispatch(CurrentHero.InstanceId,selectedCampId,MapMissionKind.Raid)));
-            Control(card,"RESULTS",new Vector2(.66f,0),new Vector2(1,.29f),new Vector2(2,3),new Vector2(-3,-2),()=>{if(worldService?.LastRaid!=null)showRaidResult?.Invoke(worldService.LastRaid);else feedback.text="No raid result in this session yet.";});
+            Control(card,"SCOUT",Vector2.zero,new Vector2(.5f,.29f),new Vector2(3,3),new Vector2(-2,-2),()=>WorldCommand(()=>worldService.Scout(selectedCampId)));
+            Control(card,"RAID",new Vector2(.5f,0),new Vector2(1,.29f),new Vector2(2,3),new Vector2(-2,-2),OpenRaidPicker);
+            raidReport=Control(transform,"RAID REPORT",new Vector2(.76f,0),new Vector2(1,0),new Vector2(2,43),new Vector2(-8,68),()=>{if(worldService?.LastRaid!=null)showRaidResult?.Invoke(worldService.LastRaid);});
+            raidReport.GetComponentInChildren<Text>(true).fontSize=10;
+            raidReport.gameObject.SetActive(false);
+            BuildRaidPicker();
             campPanel.SetActive(false);
         }
         private void WorldCommand(Action command)
@@ -121,7 +127,7 @@ namespace Ash
             if(campSelected)
             {
                 var camp=worldService.Camp(selectedCampId);var encounter=worldService.Encounter(camp.Id);
-                string info=camp.Name+" • "+camp.Id+"\nSCOUT to reveal strength. RAID with selected hero.";
+                string info=camp.Name+" • "+camp.Id+"\nSCOUT to reveal strength. RAID to choose a hero.";
                 if(worldService.IsScouted(camp.Id) && encounter!=null)
                 {
                     info=camp.Name+" • Lv "+camp.Level+" • "+encounter.Name;
@@ -132,8 +138,10 @@ namespace Ash
                 campDetails.text=info+"\n"+worldService.Report;
             }
             homeMarker.GetComponent<Image>().color=homeSelected?new Color32(163,124,49,255):new Color32(111,78,43,255);
+            raidReport.gameObject.SetActive(worldService.LastRaid!=null);
             RefreshGatheringSites();
             RefreshConvoys();
+            RefreshRaidPicker();
         }
         private void RefreshGatheringSites()
         {
@@ -221,6 +229,7 @@ namespace Ash
         }
         public void ZoomAt(float factor,Vector2 screenPoint)
         {
+            if(raidPicker!=null && raidPicker.activeSelf)return;
             if(factor<=0 || float.IsNaN(factor) || float.IsInfinity(factor) || Time.unscaledTime<homeTransitionReadyAt)return;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(viewport,screenPoint,null,out var point);
             var old=map.anchoredPosition;float before=side;SetSize(side*factor);
@@ -236,6 +245,7 @@ namespace Ash
         }
         private void Update()
         {
+            if(raidPicker!=null && raidPicker.activeSelf){if(Input.GetKeyDown(KeyCode.Escape))CloseRaidPicker();return;}
             if(homeSelected && map.anchoredPosition.magnitude>Mathf.Min(viewport.rect.width,viewport.rect.height)*.25f){homeSelected=false;Refresh();}
             if(Input.touchCount==2)
             {
@@ -251,6 +261,6 @@ namespace Ash
             else if(!scroll.enabled)scroll.enabled=true;
             RefreshConvoys();
         }
-        private void OnDisable(){if(scroll!=null)scroll.enabled=true;}
+        private void OnDisable(){if(scroll!=null)scroll.enabled=true;CloseRaidPicker();}
     }
 }

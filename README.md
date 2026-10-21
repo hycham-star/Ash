@@ -1,5 +1,7 @@
 # Ashlands: Rise of the Remnants
 
+Camp actions are **RAID** and **SCOUT**. RAID opens an eight-hero selection panel and requires **LAUNCH RAID** before dispatch. Tap the settlement **Barracks** to prepare each hero’s independent army with the existing sliders and FILL. Empty/deployed armies cannot launch. After this update, run **Ashlands > Validate Raid Preparation** once outside Play; normal launches need only **Open Settlement Scene > Play**. See [raid preparation](Docs/RaidPreparation.md).
+
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
 
 ## Zoom navigation and movable settlement buildings

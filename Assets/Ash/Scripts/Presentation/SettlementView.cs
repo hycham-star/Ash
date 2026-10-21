@@ -32,7 +32,7 @@ namespace Ash
         private GameObject developmentWorld;
         private SettlementArt developmentArt;
         private string plotVisualSignature;
-        private Text populationLabel;
+        private Text populationLabel,heroHeading;
         private int selectedHero, selectedCamp, selectedFighter, renderedHero = -1;
         private Image heroPortraitFrame;
         private Slider fighterQuantity;
@@ -127,7 +127,7 @@ namespace Ash
             for (int i = 0; i < 12; i++) art.Box(world,"Road marking",new Vector3(0,.11f,-7+i*1.2f),new Vector3(.09f,.012f,.45f),SettlementArt.Amber);
             Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),"Headquarters",BuildingKind.Headquarters);
             Building("WORKSHOP","A salvaged warehouse of tools, spare parts, and forgotten machines.",new Vector3(3,0,2.5f),new Vector3(3,2.3f,2.8f),"Workshop");
-            Building("BARRACKS","Open HEROES to assign reserve fighters to your chosen survivor.",new Vector3(-3.3f,0,-4),new Vector3(3,1.8f,2.6f),"Barracks");
+            Building("BARRACKS","Prepare each hero’s independent army here. Select a hero, choose fighter types and use the slider or FILL.",new Vector3(-3.3f,0,-4),new Vector3(3,1.8f,2.6f),"Barracks");
             Building("WATER STATION","Protected tanks hold the outpost's water. Expeditions can bring back more.",new Vector3(3.4f,0,-4),new Vector3(3,2.6f,2.6f),"WaterStation",BuildingKind.WaterStation);
             Building("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.9f,2.5f),"FoodGarden",BuildingKind.FoodGarden);
             var clinic=Marker("HOSPITAL","Heal wounded fighters; upgrade beds and recovery speed.",new Vector3(-3,0,6.5f),new Vector3(3,2.5f,2.5f));
@@ -280,6 +280,7 @@ namespace Ash
                 controls.FocusOn(building.transform.position,8);
             }
             else if(building.PlotId!=null)ShowDevelopment(building.PlotId);
+            else if(building.PlacementId=="core-barracks")ShowBarracks();
             else if(building.IsHospital)ShowHospital();
             else if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
         }
@@ -436,7 +437,8 @@ namespace Ash
             CancelReset(); heroPanel.SetActive(false); raidPanel.SetActive(false); buildingPanel.SetActive(false);
             scavengingMap.Show(); scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); scavengingMap.transform.SetAsLastSibling();
         }
-        private void ShowHeroes(bool visible) { developmentUI.Hide();hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); Refresh(); }
+        private void ShowBarracks(){ShowHeroes(true);heroHeading.text="BARRACKS • ARMY PREPARATION";}
+        private void ShowHeroes(bool visible) { heroHeading.text="SURVIVOR DOSSIER"; developmentUI.Hide();hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); Refresh(); }
         private void ShowRaid()=>ShowMap();
         private void ShowWorldRaidResult(CombatResult outcome)
         {
@@ -447,6 +449,7 @@ namespace Ash
         private int MaximumReinforcements()
         {
             var hero=gameManager.Heroes[selectedHero];var fighter=gameManager.Units[selectedFighter];
+            if(gameManager.WorldMap.IsDeployed(hero.InstanceId))return 0;
             return Math.Min(Math.Max(0,hero.Army.Capacity-hero.Army.TotalUnits),gameManager.HeroArmies.Available(fighter.Definition.Id));
         }
         private void RefreshFighterControls()
@@ -523,7 +526,8 @@ namespace Ash
             Button(ui,"WASTELAND RAID",.5f,0,1,0,4,14,-12,76,20,ShowRaid);
             heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.88f),Vector2.zero,Vector2.zero,ink).gameObject;
             var heroRoot=heroPanel.GetComponent<RectTransform>();
-            TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear).color=SettlementArt.Amber;
+            heroHeading=TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear);heroHeading.color=SettlementArt.Amber;
+            heroHeading.resizeTextForBestFit=true;heroHeading.resizeTextMinSize=14;heroHeading.resizeTextMaxSize=25;
             Button(heroRoot,"X",.8f,1,1,1,4,-62,-12,-12,()=>ShowHeroes(false));
             var portraitRect=Panel(heroRoot,"Original portrait",new Vector2(0,1),new Vector2(.38f,1),new Vector2(18,-294),new Vector2(-6,-82),new Color32(51,68,73,255));
             heroPortraitFrame=portraitRect.GetComponent<Image>();
@@ -582,7 +586,7 @@ namespace Ash
             collectBuilding=Button(buildingRoot,"COLLECT",.5f,0,1,0,4,14,-12,70,18,CollectBuilding);
             buildingPanel.SetActive(false);
             scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font,gameManager.SaveProgress,()=>gameManager.SaveStatus);
-            scavengingMap.ConfigureWorld(gameManager.WorldMap,()=>gameManager.Heroes[selectedHero],delta=>{selectedHero=(selectedHero+delta+gameManager.Heroes.Count)%gameManager.Heroes.Count;Refresh();},ShowWorldRaidResult);
+            scavengingMap.ConfigureWorld(gameManager.WorldMap,()=>gameManager.Heroes[selectedHero],delta=>{selectedHero=(selectedHero+delta+gameManager.Heroes.Count)%gameManager.Heroes.Count;Refresh();},ShowWorldRaidResult,id=>{for(int i=0;i<gameManager.Heroes.Count;i++)if(gameManager.Heroes[i].InstanceId==id){selectedHero=i;Refresh();break;}},ShowBarracks);
             scavengingMap.SettlementRequested+=ReturnFromWorldMap;
             hospitalUI=HospitalUI.Create(ui,gameManager,font);
             developmentUI=DevelopmentUI.Create(ui,gameManager,font);
