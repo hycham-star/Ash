@@ -13,6 +13,8 @@ namespace Ash.Editor
     {
         [MenuItem("Ashlands/Validate Overworld Map")]
         public static void ValidateOverworld(){Run();RaidPreparationValidation.Run();}
+        [MenuItem("Ashlands/Validate Wasteland World Presentation")]
+        public static void ValidateWorldPresentation(){Run();RaidPreparationValidation.Run();}
         [MenuItem("Ashlands/Validate World Map")]
         public static void ValidateWorldMap()=>Run();
         [Serializable]
@@ -61,10 +63,19 @@ namespace Ash.Editor
                 Require(landmarks.Length==16 && landmarks.All(image=>image.texture!=null && image.texture.width==MapLandmarkArt.AtlasWidth && !image.raycastTarget),"Miniature landmarks are missing or blocking site buttons.");
                 Require(map.GetComponentsInChildren<RawImage>(true).Count(image=>image.name=="Rusty enemy base" && image.texture!=null)==WorldRegions.CampCount,"Clickable world camps missing.");
                 var terrain=map.GetComponentsInChildren<RawImage>(true).Single(image=>image.name=="Textured wasteland");
+                var groundPixels=Resources.Load<TextAsset>("Map/WastelandTerrainPixels");
+                Require(groundPixels!=null && groundPixels.bytes.Length==1024*1024*4,"Painted wasteland ground backup is missing.");
+                var overview=map.GetComponentsInChildren<RawImage>(true).Single(image=>image.name=="Live region overview");
+                Require(overview.texture==terrain.texture && !overview.raycastTarget,"Overview must share actual terrain without intercepting map gestures.");
+                Require(map.GetComponentsInChildren<WastelandMetalFrame>(true).Length>10 && map.GetComponentsInChildren<WastelandMetalFrame>(true).All(frame=>!frame.raycastTarget),"World interface skin is missing or blocks input.");
+                Require(landmarks.All(image=>image.rectTransform.parent.GetComponentInChildren<WastelandMetalFrame>(true)==null),"Resource hit areas must not receive opaque interface frames.");
+                Require(CampIconsSafe(map),"Camp hit areas must stay transparent and clickable.");
                 Require(terrain.texture.width==WorldRegions.TileCount*4 && landmarks.Select(image=>image.texture).Distinct().Count()==1,"Overworld must use tiled biome terrain and one shared landmark atlas.");
                 var campIcons=map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Rusty enemy base").ToArray();
                 Require(campIcons.Count(image=>image.rectTransform.parent.gameObject.activeSelf)<=9,"Far zoom must reduce camp clutter.");
                 map.ZoomBy(100);Require(map.MapSize==10000 && landmarks.All(image=>image.rectTransform.parent.GetComponent<RectTransform>().rect.width>150),"Close zoom does not enlarge resource landmarks.");
+                var viewfinder=map.GetComponentsInChildren<RectTransform>(true).Single(rect=>rect.name=="Visible map bounds");
+                Require(viewfinder.anchorMax.x>viewfinder.anchorMin.x && viewfinder.anchorMax.x-viewfinder.anchorMin.x<.5f,"Overview viewfinder must contract with zoom.");
                 Require(campIcons.Count(image=>image.rectTransform.parent.gameObject.activeSelf)<WorldRegions.CampCount,"Offscreen camp markers were not culled at close zoom.");
                 map.ZoomBy(.001f);Require(map.MapSize>=200 && map.MapSize<10000,"Map cannot zoom out again.");
                 string campId=manager.WorldMap.Camps[0].Id;
@@ -117,6 +128,10 @@ namespace Ash.Editor
                 if(scene.IsValid() && scene.isLoaded)EditorSceneManager.ClosePreviewScene(scene);
                 if(Directory.Exists(directory))Directory.Delete(directory,true);
             }
+        }
+        private static bool CampIconsSafe(ScavengingMapUI map)
+        {
+            return map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Rusty enemy base").All(image=>image.rectTransform.parent.GetComponentInChildren<WastelandMetalFrame>(true)==null && image.rectTransform.parent.GetComponent<Button>()!=null);
         }
         private static void Require(bool condition,string message) { if(!condition)throw new InvalidOperationException(message); }
     }

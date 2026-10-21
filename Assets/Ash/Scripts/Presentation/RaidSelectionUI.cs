@@ -76,6 +76,7 @@ namespace Ash
                 var hero=row.Hero;bool busy=worldService.IsDeployed(hero.InstanceId),chosen=hero.InstanceId==raidHeroId;
                 row.Button.interactable=!busy;
                 row.Button.GetComponent<Image>().color=chosen?new Color32(99,91,49,255):new Color32(44,54,56,255);
+                var frame=row.Button.GetComponentInChildren<WastelandMetalFrame>(true);if(frame!=null)frame.color=chosen?new Color(1,.78f,.45f):Color.white;
                 var text=new StringBuilder(HeroRarityColors.Text(hero.Definition.DisplayName,hero.Definition.Rarity));
                 text.Append(" • Lv ").Append(hero.Level).Append("\nArmy ").Append(hero.Army.TotalUnits).Append('/').Append(hero.Army.Capacity).Append(" • Power ").Append(hero.Army.Power.ToString("0.#"));
                 foreach(var stack in hero.Army.Units)text.Append(" • ").Append(stack.Unit.Definition.Type).Append(' ').Append(stack.Count);

@@ -105,3 +105,9 @@ assert (assets / "Ash/Resources/HUD/WastelandHUDPixels.bytes").read_bytes() == h
 assert hud.getextrema()[3] == (0,255), "HUD artwork must retain transparent icons and opaque frame centers"
 assert (assets / "Ash/Resources/HUD/OutpostTitle.ttf").read_bytes()[:4] == b'\x00\x01\x00\x00', "Invalid bundled TrueType font"
 print("PASS HUD atlas, alpha, exact RGBA backup and bundled font signature.")
+
+terrain = Image.open(assets / "Ash/Resources/Map/WastelandTerrain.png").convert("RGBA")
+assert terrain.size == (1024,1024), "Painted wasteland terrain must be 1024px"
+assert (assets / "Ash/Resources/Map/WastelandTerrainPixels.bytes").read_bytes() == terrain.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes(), "Terrain RGBA backup must match source art exactly"
+assert len(terrain.resize((32,32)).getcolors(1024) or []) > 500, "Terrain illustration lost its colour detail"
+print("PASS painted wasteland terrain and exact RGBA backup.")

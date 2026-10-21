@@ -198,3 +198,5 @@ Unity -batchmode -quit -projectPath /workspace/Ash -executeMethod Ash.Editor.Pre
 Output: `Builds/Ashlands.apk`; signing/store configuration is not included. The application identifier remains `com.ash.afterthefall`.
 
 See [local persistence](Docs/LocalPersistence.md) for storage and recovery details. See [PvE combat architecture](Docs/PvECombat.md) for formulas, state settlement, and limitations. Earlier milestone documents are historical records.
+
+The world map shares the rusty settlement HUD and now uses a painted desert terrain with a live overview. See [Wasteland world presentation](Docs/WastelandWorldPresentation.md) for the native validation menu, art packing and preview limitations.

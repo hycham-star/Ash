@@ -61,6 +61,10 @@ namespace Ash
         {
             const int tilePixels=4,size=WorldRegions.TileCount*tilePixels;
             var pixels=new Color32[size*size];
+            // Bundled painting is ground decoration only. Site IDs, coordinates, regions and routes stay in services.
+            var paintedAsset=Resources.Load<TextAsset>("Map/WastelandTerrainPixels");
+            var painted=paintedAsset!=null?paintedAsset.bytes:null;
+            if(painted==null || painted.Length!=1024*1024*4)throw new System.InvalidOperationException("Missing wasteland ground artwork. Keep Resources/Map/WastelandTerrainPixels.bytes from the complete project.");
             var elevation=new float[size*size];
             var threats=new int[WorldRegions.TileCount*WorldRegions.TileCount];
             var camps=WorldMapService.GenerateCamps(ScavengingService.Generate(seed),true);
@@ -88,9 +92,13 @@ namespace Ash
                 float road=Mathf.Min(track,cross),edge=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.004f,.012f,road));
                 color=Color.Lerp(color,((Color)new Color32(145,125,91,255))*(.86f+detail*.20f),edge*.72f);
                 float rut=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.0005f,.0017f,Mathf.Abs(road-.003f)));color*=1-rut*.13f;
+                int artIndex=((y*1024/size)*1024+x*1024/size)*4;
+                Color painting=new Color32(painted[artIndex],painted[artIndex+1],painted[artIndex+2],255);
+                // Preserve fine painted relief while a gentle seed-based tint identifies region changes.
+                color=Color.Lerp(painting,color,.12f);
                 color.a=1;pixels[y*size+x]=color;
             }
-            var texture=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Textured 2.5D overworld terrain",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};
+            var texture=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Painted wasteland overworld terrain",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};
             texture.SetPixels32(pixels);texture.Apply(false,true);return texture;
         }
     }

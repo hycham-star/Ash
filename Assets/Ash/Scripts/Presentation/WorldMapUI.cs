@@ -46,7 +46,7 @@ namespace Ash
         private readonly Dictionary<string,RectTransform> convoys=new Dictionary<string,RectTransform>();
         private readonly Dictionary<string,Texture2D> convoyTextures=new Dictionary<string,Texture2D>();
         private HeroData CurrentHero=>heroSelection?.Invoke();
-        private float MarkerScale=>Mathf.Clamp(side/1600,.28f,3.5f);
+        private float MarkerScale=>Mathf.Clamp(side/1600,.65f,3.5f);
         public float MapSize=>side;
         public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult,Action<string> select=null,Action prepare=null)
         {
@@ -95,7 +95,7 @@ namespace Ash
             if(worldService==null || CurrentHero==null){armyGather.interactable=false;return;}
             if(campMarkers.Count==0 || campSeed!=service.Seed)
             {
-                foreach(var marker in campMarkers.Values)SettlementArt.Release(marker.gameObject);
+                foreach(var marker in campMarkers.Values){captionPlates.Remove(marker.GetComponentInChildren<Text>(true));SettlementArt.Release(marker.gameObject);}
                 campMarkers.Clear();campSeed=service.Seed;selectedCampId=null;
                 foreach(var camp in MapCamps)
                 {
@@ -104,7 +104,7 @@ namespace Ash
                     button.gameObject.name="Enemy base • "+id;button.GetComponent<Image>().color=new Color32(0,0,0,0);
                     var label=button.GetComponentInChildren<Text>(true);label.fontSize=10;label.rectTransform.anchorMax=new Vector2(1,.20f);label.rectTransform.offsetMin=label.rectTransform.offsetMax=Vector2.zero;
                     var icon=Icon(button.transform,"Rusty enemy base",null,new Vector2(64,56));MapLandmarkArt.Apply(icon,4);icon.rectTransform.anchoredPosition=new Vector2(0,5);
-                    campMarkers.Add(id,(RectTransform)button.transform);
+                    StyleLandmarkCaption(label);campMarkers.Add(id,(RectTransform)button.transform);
                 }
                 PositionWorldMarkers();
             }
@@ -121,7 +121,7 @@ namespace Ash
             recall.gameObject.SetActive(true);
             foreach(var camp in MapCamps)
             {
-                var marker=campMarkers[camp.Id];marker.GetComponentInChildren<Text>(true).text=worldService.IsScouted(camp.Id)?"CAMP Lv"+camp.Level:"CAMP ?";
+                var marker=campMarkers[camp.Id];marker.GetComponentInChildren<Text>(true).text=worldService.IsScouted(camp.Id)?"RAIDERS • "+camp.Level:"RAIDERS • ?";
                 marker.GetComponent<Image>().color=camp.Id==selectedCampId?new Color32(160,72,40,130):new Color32(0,0,0,0);
             }
             if(campSelected)
@@ -167,7 +167,7 @@ namespace Ash
             foreach(var camp in MapCamps)
             {
                 if(!campMarkers.TryGetValue(camp.Id,out var marker))continue;
-                float scale=Mathf.Clamp(side/2400,.10f,3);
+                float scale=Mathf.Clamp(side/1800,.55f,3);
                 marker.anchoredPosition=MapPoint(camp.X,camp.Z);marker.sizeDelta=new Vector2(64,70)*scale;
                 var icon=marker.GetComponentInChildren<RawImage>(true);icon.rectTransform.sizeDelta=new Vector2(64,56)*scale;icon.rectTransform.anchoredPosition=new Vector2(0,5)*scale;
                 marker.GetComponentInChildren<Text>(true).enabled=side>=2500;
@@ -247,7 +247,7 @@ namespace Ash
         private void ClampMap()
         {
             var p=map.anchoredPosition;float x=Mathf.Max(0,(side-viewport.rect.width)/2),y=Mathf.Max(0,(side-viewport.rect.height)/2);
-            map.anchoredPosition=new Vector2(Mathf.Clamp(p.x,-x,x),Mathf.Clamp(p.y,-y,y));
+            map.anchoredPosition=new Vector2(Mathf.Clamp(p.x,-x,x),Mathf.Clamp(p.y,-y,y));RefreshWorldOverview();
         }
         private void Update()
         {
@@ -265,7 +265,7 @@ namespace Ash
                 }
             }
             else if(!scroll.enabled)scroll.enabled=true;
-            RefreshConvoys();RefreshMapCoordinates();CullMapMarkers();
+            RefreshConvoys();RefreshMapCoordinates();CullMapMarkers();RefreshWorldOverview();
         }
         private void OnDisable(){if(scroll!=null)scroll.enabled=true;CloseRaidPicker();}
     }
