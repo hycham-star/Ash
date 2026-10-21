@@ -86,7 +86,7 @@ namespace Ash
                 var color=Color.Lerp(dark,light,broad)*(.88f+detail*.18f)*relief;
                 float track=Mathf.Abs(u-(.46f+.1f*Mathf.Sin(v*8))),cross=Mathf.Abs(v-(.51f+.07f*Mathf.Sin(u*11)));
                 float road=Mathf.Min(track,cross),edge=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.004f,.012f,road));
-                color=Color.Lerp(color,new Color32(145,125,91,255)*(.86f+detail*.20f),edge*.72f);
+                color=Color.Lerp(color,((Color)new Color32(145,125,91,255))*(.86f+detail*.20f),edge*.72f);
                 float rut=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.0005f,.0017f,Mathf.Abs(road-.003f)));color*=1-rut*.13f;
                 color.a=1;pixels[y*size+x]=color;
             }
