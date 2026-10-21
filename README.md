@@ -1,5 +1,7 @@
 # Ashlands: Rise of the Remnants
 
+Graphics now use **weathered isometric map miniatures**: worn stone wells, planted vegetable beds, rusty salvage yards, irregular woodlands, patched enemy camps and a fortified home icon. Settlement buildings/characters receive less flat lighting, restrained highlights and deeper contact shadows; procedural scenery receives the main sun's shadows and continuous surface variation. The world terrain adds shaded relief and worn tracks. Gameplay and save formats are unchanged. Outside Play run **Ashlands > Validate Realistic Visuals**, then **Open Settlement Scene > Play**. See [graphics update and verification](Docs/WeatheredGraphics.md).
+
 The settlement now has a **56×64 walled area and 24 building plots**. **CONSTRUCTION** replaces the Population shortcut and offers housing, producers, and Infantry/Biker/Army training centers. Tap the existing **Barracks** for an illustrated list of heroes, then select one to adjust or fill its independent army. Paid training adds fighters to the existing reserve. The world map again uses **2.5D isometric miniature landmarks**, including a settlement icon, while retaining the coordinate grid, 256 camps and saved missions. Save schema **10** expands older settlements without resetting progress.
 
 Outside Play, run **Ashlands > Validate Construction and Barracks** once, then **Open Settlement Scene > Play**. See [construction, training and verification](Docs/ConstructionAndBarracks.md). Native Unity validation and Android rendering still require the editor/device.

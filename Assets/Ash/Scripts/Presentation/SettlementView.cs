@@ -39,6 +39,7 @@ namespace Ash
         private Text fighterQuantityLabel, addFightersLabel, fillFightersLabel;
         private readonly List<Text> fighterTypeLabels=new List<Text>();
         private Color oldAmbient;
+        private UnityEngine.Rendering.AmbientMode oldAmbientMode;
         private float navigationReadyAt;
         private CanvasGroup navigationCover;
         private float oldShadowDistance;
@@ -59,7 +60,7 @@ namespace Ash
             art = new SettlementArt(); font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             presentation = new GameObject("Original Ashlands Settlement");
             world = new GameObject("Settlement World").transform; world.SetParent(presentation.transform,false);
-            oldAmbient = RenderSettings.ambientLight; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,160); RenderSettings.ambientLight = new Color(.58f,.59f,.55f);
+            oldAmbientMode=RenderSettings.ambientMode; oldAmbient = RenderSettings.ambientLight; RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,160); RenderSettings.ambientLight = new Color(.40f,.43f,.47f);
             BuildWorld(); BuildUI(); BuildPortrait();
             gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh; gameManager.Buildings.Changed += Refresh;
             gameManager.SaveStatusChanged += UpdateSaveStatus; gameManager.OfflineProgressChanged += ShowOfflineSummary; UpdateSaveStatus();
@@ -75,7 +76,7 @@ namespace Ash
             if (presentation != null) Destroy(presentation);
             developmentArt?.Dispose();
             art?.Dispose();
-            if (art != null) { RenderSettings.ambientLight = oldAmbient; QualitySettings.shadowDistance = oldShadowDistance; }
+            if (art != null) { RenderSettings.ambientMode=oldAmbientMode; RenderSettings.ambientLight = oldAmbient; QualitySettings.shadowDistance = oldShadowDistance; }
         }
         private void Update()
         {
@@ -118,8 +119,8 @@ namespace Ash
             controls.PlacementAllowed=(building,point)=>{var p=world.InverseTransformPoint(point);return gameManager.Buildings.CanMoveBuilding(building.PlacementId,p.x,p.z)==PlacementResult.Success;};
             var sun = new GameObject("Late Afternoon Sun",typeof(Light)).GetComponent<Light>(); sun.transform.SetParent(presentation.transform,false);
             sun.cullingMask=~((1<<PortraitLayer)|(1<<VisualBattlePlayback.Layer));
-            sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(48,-38,0); sun.intensity = 1.15f;
-            sun.color = new Color(1,.9f,.73f); sun.shadows = LightShadows.Soft;
+            sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(48,-38,0); sun.intensity = 1.08f;
+            sun.color = new Color(1,.91f,.79f); sun.shadows = LightShadows.Soft; sun.shadowStrength=.82f; sun.shadowBias=.025f; sun.shadowNormalBias=.25f;
             art.Box(world,"Ashland terrain",new Vector3(0,-.25f,0),new Vector3(120,.45f,120),SettlementArt.Sand);
             art.Box(world,"Settlement slab",new Vector3(0,0,0),new Vector3(SettlementLayout.HalfWidth*2,.12f,SettlementLayout.HalfDepth*2),new Color32(144,130,101,255));
             art.Box(world,"North south road",new Vector3(0,.08f,0),new Vector3(1.8f,.03f,SettlementLayout.HalfDepth*2-1),new Color32(96,100,93,255));

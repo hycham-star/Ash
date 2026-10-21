@@ -53,7 +53,10 @@ namespace Ash
             var shader = srp ? Shader.Find("Universal Render Pipeline/Lit") : UnityEngine.Resources.Load<Shader>("AshSettlement");
             if (shader == null || !shader.isSupported) throw new InvalidOperationException("Settlement shader missing or unsupported. Keep Assets/Ash/Resources/AshSettlement.shader in the build.");
             var material = new Material(shader) { color = color };
-            if(material.HasProperty("_Weathering"))material.SetFloat("_Weathering",color==Sand?.22f:.08f);
+            bool earth=color==Sand || color==new Color32(144,130,101,255);
+            if(material.HasProperty("_Weathering"))material.SetFloat("_Weathering",earth?.32f:.18f);
+            if(material.HasProperty("_Ground"))material.SetFloat("_Ground",earth?1:0);
+            if(material.HasProperty("_Specular"))material.SetFloat("_Specular",color==Metal || color==Rust?.11f:.025f);
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
             if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", .12f);
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", .12f);

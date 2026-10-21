@@ -61,18 +61,33 @@ namespace Ash
         {
             const int tilePixels=4,size=WorldRegions.TileCount*tilePixels;
             var pixels=new Color32[size*size];
+            var elevation=new float[size*size];
+            var threats=new int[WorldRegions.TileCount*WorldRegions.TileCount];
             var camps=WorldMapService.GenerateCamps(ScavengingService.Generate(seed),true);
             float offset=(seed&65535)*.013f;
+            // Region lookup once per world tile; visual relief never changes saved map coordinates.
+            for(int z=0;z<WorldRegions.TileCount;z++)for(int x=0;x<WorldRegions.TileCount;x++)
+                threats[z*WorldRegions.TileCount+x]=WorldRegions.ThreatAt(camps,x-WorldRegions.HalfSize,z-WorldRegions.HalfSize);
             for(int y=0;y<size;y++)for(int x=0;x<size;x++)
             {
                 float u=x/(float)size,v=y/(float)size;
-                int threat=WorldRegions.ThreatAt(camps,x/tilePixels-WorldRegions.HalfSize,y/tilePixels-WorldRegions.HalfSize);
-                float broad=Mathf.PerlinNoise(u*7+offset,v*7+offset),detail=Mathf.PerlinNoise(u*61+offset,v*61+offset);
+                elevation[y*size+x]=Mathf.PerlinNoise(u*9+offset,v*9+offset)*.8f+Mathf.PerlinNoise(u*28+offset,v*28+offset)*.2f;
+            }
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            {
+                float u=x/(float)size,v=y/(float)size;
+                int threat=threats[y/tilePixels*WorldRegions.TileCount+x/tilePixels];
+                float broad=elevation[y*size+x],detail=Mathf.PerlinNoise(u*93+offset,v*93+offset);
+                float dx=elevation[y*size+Mathf.Min(x+1,size-1)]-elevation[y*size+Mathf.Max(x-1,0)];
+                float dz=elevation[Mathf.Min(y+1,size-1)*size+x]-elevation[Mathf.Max(y-1,0)*size+x];
+                float relief=Mathf.Clamp(1+dx*9-dz*7,.78f,1.18f);
                 Color dark=threat==1?new Color32(70,85,55,255):threat==2?new Color32(108,81,50,255):new Color32(73,77,73,255);
                 Color light=threat==1?new Color32(142,126,88,255):threat==2?new Color32(160,135,89,255):new Color32(124,122,104,255);
-                var color=Color.Lerp(dark,light,broad)*(.89f+detail*.19f);
+                var color=Color.Lerp(dark,light,broad)*(.88f+detail*.18f)*relief;
                 float track=Mathf.Abs(u-(.46f+.1f*Mathf.Sin(v*8))),cross=Mathf.Abs(v-(.51f+.07f*Mathf.Sin(u*11)));
-                if(Mathf.Min(track,cross)<.009f)color=Color.Lerp(color,new Color32(163,145,107,255),.55f);
+                float road=Mathf.Min(track,cross),edge=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.004f,.012f,road));
+                color=Color.Lerp(color,new Color32(145,125,91,255)*(.86f+detail*.20f),edge*.72f);
+                float rut=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.0005f,.0017f,Mathf.Abs(road-.003f)));color*=1-rut*.13f;
                 color.a=1;pixels[y*size+x]=color;
             }
             var texture=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Textured 2.5D overworld terrain",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};

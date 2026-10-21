@@ -1,6 +1,12 @@
 Shader "Ash/Settlement Mobile"
 {
-    Properties { _Color ("Color", Color) = (1,1,1,1) _Weathering ("Surface variation", Range(0,0.3)) = 0.08 }
+    Properties
+    {
+        _Color ("Color", Color) = (1,1,1,1)
+        _Weathering ("Surface variation", Range(0,0.5)) = 0.16
+        _Ground ("Earth surface", Range(0,1)) = 0
+        _Specular ("Worn metal highlight", Range(0,0.3)) = 0.035
+    }
     SubShader
     {
         Tags { "RenderType"="Opaque" "Queue"="Geometry" }
@@ -10,37 +16,51 @@ Shader "Ash/Settlement Mobile"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 2.0
+            #pragma target 3.0
+            #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
             #pragma multi_compile_fog
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
+            #include "AutoLight.cginc"
             fixed4 _Color;
-            half _Weathering;
-            struct Input { float4 vertex : POSITION; float3 normal : NORMAL; };
-            struct Output { float4 position : SV_POSITION; half3 light : TEXCOORD0; UNITY_FOG_COORDS(1) float3 world : TEXCOORD2; };
-            Output vert(Input v)
+            half _Weathering, _Ground, _Specular;
+            struct appdata { float4 vertex:POSITION; float3 normal:NORMAL; };
+            struct v2f { float4 pos:SV_POSITION; float3 world:TEXCOORD0; half3 normal:TEXCOORD1; SHADOW_COORDS(2) UNITY_FOG_COORDS(3) };
+            float hash(float2 p) { return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }
+            float noise(float2 p)
             {
-                Output o;
-                o.position = UnityObjectToClipPos(v.vertex);
-                o.world = mul(unity_ObjectToWorld,v.vertex).xyz;
-                half3 normal = UnityObjectToWorldNormal(v.normal);
-                half diffuse = saturate((dot(normal, normalize(_WorldSpaceLightPos0.xyz))+.12h)/1.12h);
-                o.light = max(UNITY_LIGHTMODEL_AMBIENT.rgb, half3(.28,.28,.28)) + _LightColor0.rgb * diffuse;
-                UNITY_TRANSFER_FOG(o, o.position);
-                return o;
+                float2 a=floor(p),f=frac(p);f=f*f*(3-2*f);
+                return lerp(lerp(hash(a),hash(a+float2(1,0)),f.x),lerp(hash(a+float2(0,1)),hash(a+1),f.x),f.y);
             }
-            fixed4 frag(Output i) : SV_Target
+            v2f vert(appdata v)
             {
-                float3 cell=floor(i.world*6);
-                half grain=frac(sin(dot(cell,float3(12.9898,39.346,78.233)))*43758.5453);
-                half broad=sin(i.world.x*.63+sin(i.world.z*.47))*.5h+.5h;
-                half surface=1-_Weathering*(.65h*grain+.35h*broad);
-                fixed4 color = fixed4(_Color.rgb * i.light * surface, _Color.a);
-                UNITY_APPLY_FOG(i.fogCoord, color);
-                return color;
+                v2f o;o.pos=UnityObjectToClipPos(v.vertex);o.world=mul(unity_ObjectToWorld,v.vertex).xyz;
+                o.normal=UnityObjectToWorldNormal(v.normal);
+                TRANSFER_SHADOW(o);UNITY_TRANSFER_FOG(o,o.pos);return o;
+            }
+            fixed4 frag(v2f i):SV_Target
+            {
+                half3 n=normalize(i.normal),light=normalize(_WorldSpaceLightPos0.xyz);
+                half shadow=SHADOW_ATTENUATION(i);
+                half diffuse=saturate((dot(n,light)+.06h)/1.06h);
+                half3 ambient=max(ShadeSH9(half4(n,1)),half3(.18,.19,.21));
+                // Continuous world-space wear avoids the previous square, pixel-like grain.
+                float2 surface=i.world.xz+i.world.y*float2(.73,.31);
+                half broad=noise(surface*.52),grain=noise(surface*13);
+                half wear=1-_Weathering*(.75h*broad+.25h*grain);
+                half3 albedo=_Color.rgb*wear;
+                half earth=_Ground*saturate(n.y);
+                half soil=noise(i.world.xz*2.1);
+                half gravel=smoothstep(.82,.94,grain);
+                albedo*=lerp(half3(1,1,1),lerp(half3(.78,.74,.65),half3(1.12,1.06,.89),soil)+gravel*.1h,earth);
+                half3 view=normalize(_WorldSpaceCameraPos-i.world);
+                half spec=pow(saturate(dot(n,normalize(light+view))),20)*_Specular*(1-earth)*shadow;
+                fixed4 color=fixed4(albedo*(ambient+_LightColor0.rgb*diffuse*shadow)+_LightColor0.rgb*spec,_Color.a);
+                UNITY_APPLY_FOG(i.fogCoord,color);return color;
             }
             ENDCG
         }
+        UsePass "Legacy Shaders/VertexLit/SHADOWCASTER"
     }
     Fallback Off
 }

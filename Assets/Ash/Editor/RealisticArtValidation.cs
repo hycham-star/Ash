@@ -31,11 +31,16 @@ namespace Ash.Editor
                     var texture=Resources.Load<Texture2D>("Map/"+asset);
                     Require(texture!=null && texture.width==384 && texture.height==384,"Missing convoy/camp image: "+asset);
                 }
-                foreach(var name in new[]{"AshDetail","AshContact","AshRaidDust"})
+                foreach(var name in new[]{"AshSettlement","AshDetail","AshContact","AshRaidDust"})
                 {
                     var shader=Resources.Load<Shader>(name);
                     Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Missing or invalid shader: "+name);
                 }
+                var atlas=Resources.Load<Texture2D>("Map/IsometricOverworldAtlas");
+                Require(atlas!=null && atlas.width==MapLandmarkArt.AtlasWidth && atlas.height==MapLandmarkArt.AtlasHeight,"Isometric atlas must retain its six cells.");
+                var home=Resources.Load<Texture2D>("Map/Settlement");Require(home!=null && home.width==384 && home.height==384,"Missing miniature settlement icon.");
+                var raw=Resources.Load<TextAsset>("Map/IsometricOverworldAtlasPixels");
+                Require(raw!=null && raw.bytes.Length==MapLandmarkArt.AtlasWidth*MapLandmarkArt.AtlasHeight*4,"Missing complete atlas raw backup.");
                 foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","CavalryMount","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
                 {
                     var model=Resources.Load<GameObject>("Art/"+name);
