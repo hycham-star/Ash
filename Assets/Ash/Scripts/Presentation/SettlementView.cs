@@ -20,7 +20,7 @@ namespace Ash
         private SettlementCamera controls;
         private RawImage heroIllustration;
         private Font font;
-        private Text resources, selection, heroStats, raidHeader, campButton, toast, leaderLabel, saveStatus, resetButton;
+        private Text heroStats, raidHeader, campButton, toast, leaderLabel, saveStatus, resetButton;
         private float resetDeadline;
         private BuildingKind selectedBuilding;
         private Text buildingStats, upgradeBuilding, collectBuilding;
@@ -65,7 +65,7 @@ namespace Ash
             controls.FocusOn(new Vector3(0,0,1),18);
             gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh; gameManager.Buildings.Changed += Refresh;
             gameManager.SaveStatusChanged += UpdateSaveStatus; gameManager.OfflineProgressChanged += ShowOfflineSummary; UpdateSaveStatus();
-            Refresh(); selection.text = "THE EMBER OUTPOST\nTap a building to inspect • Drag to explore"; ShowOfflineSummary();
+            Refresh(); ShowOfflineSummary();
         }
         private void OnDestroy()
         {
@@ -74,7 +74,8 @@ namespace Ash
             if (gameManager != null) { gameManager.SaveStatusChanged -= UpdateSaveStatus; gameManager.OfflineProgressChanged -= ShowOfflineSummary; }
             if (controls != null) controls.BuildingSelected -= Inspect;
             if(controls!=null){controls.WorldMapRequested-=ShowMapFromZoom;controls.MoveStarted-=BeginBuildingMove;controls.MoveRequested-=CommitBuildingMove;controls.MoveCancelled-=CancelBuildingMove;}
-            if (presentation != null) Destroy(presentation);
+            if (presentation != null) { presentation.SetActive(false); Destroy(presentation); }
+            ReleaseWastelandHUD();
             developmentArt?.Dispose();
             districtArt?.Dispose();
             art?.Dispose();
@@ -86,7 +87,7 @@ namespace Ash
         }
         private void ShowOfflineSummary() { if(gameManager.OfflineSummary.Length==0)return; if(toast!=null)toast.text=gameManager.OfflineSummary; if(scavengingMap!=null)scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); }
         private void UpdateSaveStatus() { if(saveStatus!=null)saveStatus.text=gameManager.SaveStatus; }
-        private void CancelReset() { resetDeadline=0; if(resetButton!=null)resetButton.text="RESET"; }
+        private void CancelReset() { resetDeadline=0; if(resetButton!=null)resetButton.text="RESET"; if(saveStatus!=null)saveStatus.text=gameManager.SaveStatus; }
         private void SaveProgress()
         {
             CancelReset(); gameManager.SaveProgress(); toast.text=gameManager.SaveStatus;
@@ -102,6 +103,7 @@ namespace Ash
             if(resetDeadline<=Time.unscaledTime)
             {
                 resetDeadline=Time.unscaledTime+8; resetButton.text="CONFIRM";
+                if(saveStatus!=null)saveStatus.text="Erase all saved progress? Click CONFIRM within 8 seconds.";
                 toast.text="Erase all saved progress? Click CONFIRM again within 8 seconds."; return;
             }
             CancelReset();
@@ -259,7 +261,7 @@ namespace Ash
         }
         private void Inspect(SettlementBuilding building)
         {
-            selection.text = building.DisplayName+"\n"+building.Description;
+            if(toast!=null)toast.text=building.DisplayName;
             if(building.IsSpot)
             {
                 var occupant=gameManager.Buildings.BuildingAt(building.transform.localPosition.x,building.transform.localPosition.z);
@@ -275,7 +277,7 @@ namespace Ash
             else if(building.IsHospital)ShowHospital();
             else if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
         }
-        private bool SettlementInputAllowed()=>Time.unscaledTime>=navigationReadyAt && (barracksPanel==null || !barracksPanel.activeSelf)
+        private bool SettlementInputAllowed()=>Time.unscaledTime>=navigationReadyAt && (utilityPanel==null || !utilityPanel.activeSelf) && (barracksPanel==null || !barracksPanel.activeSelf)
             && (heroPanel==null || !heroPanel.activeSelf) && (raidPanel==null || !raidPanel.activeSelf)
             && (buildingPanel==null || !buildingPanel.activeSelf) && (scavengingMap==null || !scavengingMap.gameObject.activeSelf)
             && (hospitalUI==null || !hospitalUI.gameObject.activeSelf) && (developmentUI==null || !developmentUI.gameObject.activeSelf);
@@ -392,8 +394,7 @@ namespace Ash
         private void Refresh()
         {
             var hero = gameManager.Heroes[selectedHero];
-            resources.text = "FOOD  "+gameManager.Resources.Get(ResourceType.Food)+"   WATER  "+gameManager.Resources.Get(ResourceType.Water)+"   SCRAP  "+gameManager.Resources.Get(ResourceType.Scrap)
-                +"\nLUMBER  "+gameManager.Resources.Get(ResourceType.Lumber)+"   FUEL  "+gameManager.Resources.Get(ResourceType.Fuel);
+            RefreshWastelandHUD(hero);
             leaderLabel.text = HeroRarityColors.Text(hero.Definition.DisplayName.ToUpperInvariant(),hero.Definition.Rarity)+" • Lv "+hero.Level+" • "+hero.Army.TotalUnits+"/"+hero.Army.Capacity;
             var text = new StringBuilder(HeroRarityColors.Text(hero.Definition.DisplayName+"\n"+hero.Definition.Rarity,hero.Definition.Rarity)+" • "+hero.Definition.Specialization+"\n\n");
             text.Append("LEVEL ").Append(hero.Level).Append("    XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
@@ -497,28 +498,7 @@ namespace Ash
             if (FindFirstObjectByType<EventSystem>()==null) new GameObject("Settlement Input",typeof(EventSystem),typeof(StandaloneInputModule)).transform.SetParent(presentation.transform,false);
             ui=new GameObject("Safe Area",typeof(RectTransform)).GetComponent<RectTransform>(); ui.SetParent(canvas.transform,false);
             var safe=Screen.safeArea; ui.anchorMin=new Vector2(safe.xMin/Screen.width,safe.yMin/Screen.height); ui.anchorMax=new Vector2(safe.xMax/Screen.width,safe.yMax/Screen.height); ui.offsetMin=ui.offsetMax=Vector2.zero;
-            resources=TextPanel(ui,0,1,1,1,12,-104,-12,-12,23,"",ink);
-            Button(ui,"HOME",.79f,1,1,1,4,-119,-12,-83,()=>controls.ResetView());
-            var resourceRect=resources.GetComponent<RectTransform>(); resourceRect.anchorMin=new Vector2(0,1); resourceRect.anchorMax=Vector2.one;
-            resourceRect.offsetMin=new Vector2(12,-77); resourceRect.offsetMax=new Vector2(-12,-4);
-            resources.fontSize=18;resources.resizeTextForBestFit=true;resources.resizeTextMinSize=11;resources.resizeTextMaxSize=18;
-            var statusObject=new GameObject("Local save status",typeof(RectTransform),typeof(Text)); statusObject.transform.SetParent(resources.transform.parent,false);
-            var statusRect=statusObject.GetComponent<RectTransform>(); statusRect.anchorMin=Vector2.zero; statusRect.anchorMax=new Vector2(1,0); statusRect.offsetMin=new Vector2(12,4); statusRect.offsetMax=new Vector2(-12,24);
-            saveStatus=statusObject.GetComponent<Text>(); saveStatus.font=font; saveStatus.fontSize=13; saveStatus.color=SettlementArt.Amber; saveStatus.raycastTarget=false; saveStatus.alignment=TextAnchor.MiddleLeft;
-            Button(ui,"SAVE",0,1,.26f,1,12,-119,-4,-83,SaveProgress);
-            Button(ui,"LOAD",.26f,1,.52f,1,4,-119,-4,-83,LoadProgress);
-            resetButton=Button(ui,"RESET",.52f,1,.78f,1,4,-119,-4,-83,RequestReset);
-            selection=TextPanel(ui,0,0,1,0,12,154,-12,185,12,"",Color.clear);
-            selection.transform.parent.gameObject.SetActive(false);
-            Button(ui,"CONSTRUCTION",0,0,.38f,0,12,105,-4,149,13,()=>ShowDevelopment());
-            Button(ui,"BUILDINGS",.38f,0,.59f,0,4,105,-4,149,12,()=>ShowBuilding(BuildingKind.Headquarters));
-            Button(ui,"HOSPITAL",.59f,0,.80f,0,4,105,-4,149,12,ShowHospital);
-            Button(ui,"MAP",.80f,0,1,0,4,105,-12,149,15,ShowMap);
-            leaderLabel=TextPanel(ui,0,0,.55f,0,12,64,-4,99,15,"",new Color32(41,57,59,246));
-            leaderLabel.resizeTextForBestFit=true;leaderLabel.resizeTextMinSize=10;leaderLabel.resizeTextMaxSize=14;
-            Button(ui,"VIEW HERO",.55f,0,1,0,4,64,-12,99,14,()=>ShowHeroes(true));
-            Button(ui,"HEROES",0,0,.5f,0,12,14,-4,58,19,()=>ShowHeroes(true));
-            Button(ui,"WASTELAND RAID",.5f,0,1,0,4,14,-12,58,17,ShowRaid);
+            BuildWastelandHUD();
             heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.88f),Vector2.zero,Vector2.zero,ink).gameObject;
             var heroRoot=heroPanel.GetComponent<RectTransform>();
             heroHeading=TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear);heroHeading.color=SettlementArt.Amber;
@@ -586,15 +566,21 @@ namespace Ash
             hospitalUI=HospitalUI.Create(ui,gameManager,font);
             developmentUI=DevelopmentUI.Create(ui,gameManager,font);
             developmentUI.PlotSelected+=id=>{var p=gameManager.Buildings.Position(id);controls.FocusOn(new Vector3(p.X,0,p.Z),8);};
+            WastelandHudSkin.Frame(scavengingMap.GetComponent<RectTransform>(),10);
+            WastelandHudSkin.Frame(hospitalUI.GetComponent<RectTransform>(),10);
+            WastelandHudSkin.Frame(developmentUI.GetComponent<RectTransform>(),10);
             BuildBarracksRoster();
-            toast=TextPanel(ui,0,0,1,0,12,154,-12,185,12,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
+            toast=TextPanel(ui,.28f,0,1,0,4,100,-4,140,12,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
             toast.resizeTextForBestFit=true; toast.resizeTextMinSize=9; toast.resizeTextMaxSize=15;
         }
         private RectTransform Panel(Transform parent,string name,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)
         {
             var obj=new GameObject(name,typeof(RectTransform),typeof(Image)); obj.transform.SetParent(parent,false);
             var rect=obj.GetComponent<RectTransform>(); rect.anchorMin=min; rect.anchorMax=max; rect.offsetMin=lower; rect.offsetMax=upper;
-            obj.GetComponent<Image>().color=color; return rect;
+            obj.GetComponent<Image>().color=color;
+            if(color.a>.5f && (name=="HUD panel" || name=="Hero dossier" || name=="Wasteland raid" || name=="Building management" || name=="Barracks hero roster"))
+            {obj.GetComponent<Image>().color=new Color32(24,21,17,250);WastelandHudSkin.Frame(rect,9);}
+            return rect;
         }
         private Text TextPanel(Transform parent,float x0,float y0,float x1,float y1,float l,float b,float r,float t,int size,string value,Color background)
         {
@@ -610,7 +596,7 @@ namespace Ash
         private Text Button(Transform parent,string title,float x0,float y0,float x1,float y1,float l,float b,float r,float t,int size,Action action)
         {
             var text=TextPanel(parent,x0,y0,x1,y1,l,b,r,t,size,title,new Color32(111,78,43,255)); text.alignment=TextAnchor.MiddleCenter;
-            var button=text.transform.parent.gameObject.AddComponent<UnityEngine.UI.Button>(); button.targetGraphic=text.transform.parent.GetComponent<Image>(); button.onClick.AddListener(()=>action()); return text;
+            var button=text.transform.parent.gameObject.AddComponent<UnityEngine.UI.Button>(); button.targetGraphic=(Graphic)text.transform.parent.GetComponentInChildren<WastelandMetalFrame>()??text.transform.parent.GetComponent<Image>(); button.onClick.AddListener(()=>action()); return text;
         }
     }
 }

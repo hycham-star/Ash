@@ -8,6 +8,7 @@ namespace Ash.Editor
         [MenuItem("Ashlands/Validate Town Presentation")]
         public static void Run()
         {
+            WastelandHudValidation.Run();
             RealisticArtValidation.Run();
             SettlementValidation.Run();
             SettlementInteractionValidation.Run();

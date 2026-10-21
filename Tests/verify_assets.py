@@ -98,3 +98,10 @@ iso_raw = (assets / "Ash/Resources/Map/IsometricOverworldAtlasPixels.bytes").rea
 assert iso_raw == iso.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes(), "Isometric backup must match PNG exactly"
 assert Image.open(assets / "Ash/Resources/Map/Settlement.png").size == (384,384)
 print("PASS isometric landmark atlas, settlement icon and exact raw pixel backup.")
+
+hud = Image.open(assets / "Ash/Resources/HUD/WastelandHUD.png").convert("RGBA")
+assert hud.size == (1280,1280), "HUD must preserve its sixteen 320px cells"
+assert (assets / "Ash/Resources/HUD/WastelandHUDPixels.bytes").read_bytes() == hud.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes(), "HUD fallback pixels differ from PNG"
+assert hud.getextrema()[3] == (0,255), "HUD artwork must retain transparent icons and opaque frame centers"
+assert (assets / "Ash/Resources/HUD/OutpostTitle.ttf").read_bytes()[:4] == b'\x00\x01\x00\x00', "Invalid bundled TrueType font"
+print("PASS HUD atlas, alpha, exact RGBA backup and bundled font signature.")

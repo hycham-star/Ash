@@ -25,6 +25,7 @@ namespace Ash
         private readonly Dictionary<string,Text> labels=new Dictionary<string,Text>();
         private RawImage terrain;
         private Texture2D terrainTexture;
+        public Texture2D OverviewTexture=>terrainTexture;
         private readonly Color ink=new Color32(24,32,35,255);
         public static ScavengingMapUI Create(Transform parent,ScavengingService service,Font font,Func<bool> save = null,Func<string> saveStatus = null)
         {

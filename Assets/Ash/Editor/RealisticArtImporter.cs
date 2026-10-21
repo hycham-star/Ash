@@ -7,6 +7,13 @@ namespace Ash.Editor
     {
         private void OnPreprocessTexture()
         {
+            if(assetPath.StartsWith("Assets/Ash/Resources/HUD/",StringComparison.Ordinal) && assetPath.EndsWith(".png",StringComparison.OrdinalIgnoreCase))
+            {
+                var hud=(TextureImporter)assetImporter;hud.textureType=TextureImporterType.Default;hud.sRGBTexture=true;
+                hud.maxTextureSize=2048;hud.npotScale=TextureImporterNPOTScale.None;hud.mipmapEnabled=false;
+                hud.wrapMode=UnityEngine.TextureWrapMode.Clamp;hud.filterMode=UnityEngine.FilterMode.Bilinear;
+                hud.alphaSource=TextureImporterAlphaSource.FromInput;hud.alphaIsTransparency=true;hud.textureCompression=TextureImporterCompression.CompressedHQ;return;
+            }
             if(assetPath.StartsWith("Assets/Ash/Resources/Portraits/",StringComparison.Ordinal) && assetPath.EndsWith(".png",StringComparison.OrdinalIgnoreCase))
             {
                 var portrait=(TextureImporter)assetImporter;
