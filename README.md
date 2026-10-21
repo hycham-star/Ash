@@ -1,5 +1,7 @@
 # Ashlands: Rise of the Remnants
 
+The world map now uses a **flat 2D tile atlas**, a 201×201 coordinate grid, **256 camps**, and three biome/threat zones. Launching a raid hides the camp/hero panels and bottom controls; **CONTROLS** restores them. Original saved sites/workers and camps stay in place. Run **Ashlands > Validate Overworld Map** once after this update. See [overworld design, compatibility and preview](Docs/Overworld.md).
+
 Camp actions are **RAID** and **SCOUT**. RAID opens an eight-hero selection panel and requires **LAUNCH RAID** before dispatch. Tap the settlement **Barracks** to prepare each hero’s independent army with the existing sliders and FILL. Empty/deployed armies cannot launch. After this update, run **Ashlands > Validate Raid Preparation** once outside Play; normal launches need only **Open Settlement Scene > Play**. See [raid preparation](Docs/RaidPreparation.md).
 
 Portrait Android strategy prototype with original textured settlement and character art. Gameplay includes heroes with independent armies, deterministic PvE, local saves, settlement production, and world-map scavenging. No PvP, networking, monetization, or training simulation is implemented.
@@ -165,7 +167,7 @@ dotnet run --project Tests/Rules/Rules.csproj
 python3 Tests/verify_assets.py
 ```
 
-**681 regular checks passed**, including world missions, hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
+**691 regular checks passed**, including world missions, hospital recovery and the prior gameplay checks. The preceding migration fix also checked the uploaded legacy files without modifying them; see its historical report. Combat coverage includes actual encounter assets, all three counters, abilities and cooldown/duration, deterministic input ordering/replay, simultaneous casualties, previews, rewards and overflow rollback, observer errors, and reentrant battle prevention. The console suite compiles the actual pure C# sources and reads known authored asset fields; it is not a general Unity YAML importer.
 
 GUID/scene reference checks passed. **New offline compilation/import, native timestamp migration, pause/focus lifecycle, summary UI, and Android build are unverified in the cloud**: the Unity Editor is not installed in the cloud environment.
 

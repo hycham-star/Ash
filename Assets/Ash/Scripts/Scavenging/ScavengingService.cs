@@ -72,7 +72,10 @@ namespace Ash
                 Id="site-"+(i+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture), Resource=types[i%types.Length],
                 X=-90+cells[i]%10*20+Next(9)-4, Z=-90+cells[i]/10*20+Next(9)-4, Remaining=InitialDeposit
             };
-            return new ScavengingState { Seed=seed,Sites=sites };
+            var map=new ScavengingState { Seed=seed,Sites=sites };
+            var regions=WorldMapService.GenerateCamps(map,true);
+            foreach(var site in sites)site.Remaining=InitialDeposit*WorldRegions.ThreatAt(regions,site.X,site.Z);
+            return map;
         }
         private ScavengingSiteState Find(string id)
         {
@@ -155,7 +158,7 @@ namespace Ash
                 if(site==null || site.Id==null || !known.TryGetValue(site.Id,out var original))throw new ArgumentException("Unknown or duplicate map site.");
                 known.Remove(site.Id);
                 if(site.Resource!=original.Resource || site.X!=original.X || site.Z!=original.Z || site.Remaining<0 || site.Stored<0
-                    || site.Stored>SiteCapacity || site.Remaining>InitialDeposit-site.Stored || site.Workers<0 || site.Workers>MaximumWorkersPerSite
+                    || site.Stored>SiteCapacity || site.Remaining>original.Remaining-site.Stored || site.Workers<0 || site.Workers>MaximumWorkersPerSite
                     || site.Work<0 || site.Work>=60 || ((site.Remaining==0 || site.Stored>=CarryCapacity(Math.Max(1,site.Workers))) && site.Work!=0))
                     throw new ArgumentException("Invalid scavenging site state.");
                 workers+=site.Workers;

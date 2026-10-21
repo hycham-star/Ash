@@ -197,9 +197,16 @@ namespace Ash
                     || (m.Phase==MapMissionPhase.Returning && m.Elapsed>travel))throw new ArgumentException("Invalid mission phase/cargo/time.");
                 if(gather){carried.TryGetValue(m.TargetId,out long cargo);carried[m.TargetId]=cargo+m.Cargo;}
             }
-            foreach(var site in map.Sites)if(carried.TryGetValue(site.Id,out long cargo) && cargo+site.Remaining+site.Stored>ScavengingService.InitialDeposit)throw new ArgumentException("Army cargo exceeds harvested deposit.");
+            var deposits=ScavengingService.Generate(map.Seed);
+            foreach(var site in map.Sites)
+            {
+                if(site==null)throw new ArgumentException("Missing map site.");
+                var original=Array.Find(deposits.Sites,item=>item.Id==site.Id);
+                if(original==null)throw new ArgumentException("Unknown map site.");
+                if(carried.TryGetValue(site.Id,out long cargo) && cargo+site.Remaining+site.Stored>original.Remaining)throw new ArgumentException("Army cargo exceeds harvested deposit.");
+            }
         }
-        public static WorldCamp[] GenerateCamps(ScavengingState map)
+        public static WorldCamp[] GenerateCamps(ScavengingState map,bool legacyOnly=false)
         {
             uint random=(uint)map.Seed^0xA51C29u;
             int Next(int max){unchecked{random^=random<<13;random^=random>>17;random^=random<<5;}return (int)(random%(uint)max);}
@@ -216,6 +223,20 @@ namespace Ash
                 if(camps.Count==9)break;
             }
             if(camps.Count!=9)throw new InvalidOperationException("Unable to place enemy camps.");
+            if(legacyOnly)return camps.ToArray();
+            var anchors=camps.ToArray();var extra=new List<int>();for(int i=0;i<625;i++)extra.Add(i);
+            for(int i=extra.Count-1;i>0;i--){int j=Next(i+1);int temporary=extra[i];extra[i]=extra[j];extra[j]=temporary;}
+            foreach(int cell in extra)
+            {
+                int x=-96+cell%25*8,z=-96+cell/25*8;if(x*x+z*z<900)continue;
+                bool clear=true;foreach(var site in map.Sites)if((site.X-x)*(site.X-x)+(site.Z-z)*(site.Z-z)<225){clear=false;break;}
+                if(!clear)continue;
+                foreach(var camp in camps)if((camp.X-x)*(camp.X-x)+(camp.Z-z)*(camp.Z-z)<64){clear=false;break;}
+                if(!clear)continue;
+                camps.Add(new WorldCamp("camp-"+(camps.Count+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture),x,z,WorldRegions.ThreatAt(anchors,x,z)-1));
+                if(camps.Count==WorldRegions.CampCount)break;
+            }
+            if(camps.Count!=WorldRegions.CampCount)throw new InvalidOperationException("Unable to place overworld camps.");
             return camps.ToArray();
         }
         private static MapMission Copy(MapMission m)=>new MapMission{HeroId=m.HeroId,TargetId=m.TargetId,Kind=m.Kind,Phase=m.Phase,Elapsed=m.Elapsed,Cargo=m.Cargo,Work=m.Work};

@@ -19,8 +19,8 @@ namespace Ash.Editor
             if(assetPath.StartsWith("Assets/Ash/Resources/Map/",StringComparison.Ordinal) && assetPath.EndsWith(".png",StringComparison.OrdinalIgnoreCase))
             {
                 var landmark=(TextureImporter)assetImporter;
-                landmark.textureType=TextureImporterType.Default;landmark.sRGBTexture=true;landmark.maxTextureSize=512;
-                landmark.mipmapEnabled=true;landmark.wrapMode=UnityEngine.TextureWrapMode.Clamp;
+                landmark.textureType=TextureImporterType.Default;landmark.sRGBTexture=true;landmark.maxTextureSize=assetPath.EndsWith("OverworldAtlas.png",StringComparison.Ordinal)?1024:512;
+                landmark.mipmapEnabled=!assetPath.EndsWith("OverworldAtlas.png",StringComparison.Ordinal);landmark.wrapMode=UnityEngine.TextureWrapMode.Clamp;
                 landmark.npotScale=TextureImporterNPOTScale.None;
                 landmark.alphaSource=TextureImporterAlphaSource.FromInput;landmark.alphaIsTransparency=true;
                 landmark.filterMode=UnityEngine.FilterMode.Bilinear;landmark.textureCompression=TextureImporterCompression.Compressed;

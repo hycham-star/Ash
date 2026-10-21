@@ -5,6 +5,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Assets/Ash/Scripts/Scavenging/WorldRegions.cs" Link="WorldRegions.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Buildings/SettlementPlacement.cs" Link="SettlementPlacement.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Scavenging/WorldMapService.cs" Link="WorldMapService.cs" />
     <Compile Include="../../Assets/Ash/Scripts/Buildings/SettlementDevelopment.cs" Link="SettlementDevelopment.cs" />

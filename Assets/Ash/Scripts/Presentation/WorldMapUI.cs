@@ -26,7 +26,7 @@ namespace Ash
         private bool homeSelected;
         private void SelectHome()
         {
-            homeSelected=true;selectedCampId=null;scroll.StopMovement();
+            SetMapTravelView(false);homeSelected=true;selectedCampId=null;scroll.StopMovement();
             SetSize(Mathf.Max(side,1200));map.anchoredPosition=Vector2.zero;
             homeMarker.SetAsLastSibling();Refresh();
             feedback.text="HOME selected • Zoom in or press + to enter settlement.";
@@ -46,7 +46,7 @@ namespace Ash
         private readonly Dictionary<string,RectTransform> convoys=new Dictionary<string,RectTransform>();
         private readonly Dictionary<string,Texture2D> convoyTextures=new Dictionary<string,Texture2D>();
         private HeroData CurrentHero=>heroSelection?.Invoke();
-        private float MarkerScale=>Mathf.Clamp(side/1000,.55f,3.5f);
+        private float MarkerScale=>Mathf.Clamp(side/1600,.28f,3.5f);
         public float MapSize=>side;
         public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult,Action<string> select=null,Action prepare=null)
         {
@@ -97,29 +97,29 @@ namespace Ash
             {
                 foreach(var marker in campMarkers.Values)SettlementArt.Release(marker.gameObject);
                 campMarkers.Clear();campSeed=service.Seed;selectedCampId=null;
-                foreach(var camp in worldService.Camps)
+                foreach(var camp in MapCamps)
                 {
                     string id=camp.Id;
-                    var button=Control(markerRoot,"CAMP ?",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-32,-35),new Vector2(32,35),()=>{selectedCampId=id;homeSelected=false;Refresh();});
+                    var button=Control(markerRoot,"CAMP ?",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-32,-35),new Vector2(32,35),()=>{SetMapTravelView(false);selectedCampId=id;homeSelected=false;Refresh();});
                     button.gameObject.name="Enemy base • "+id;button.GetComponent<Image>().color=new Color32(0,0,0,0);
                     var label=button.GetComponentInChildren<Text>(true);label.fontSize=10;label.rectTransform.anchorMax=new Vector2(1,.20f);label.rectTransform.offsetMin=label.rectTransform.offsetMax=Vector2.zero;
-                    var icon=Icon(button.transform,"Rusty enemy base",Resources.Load<Texture2D>("Map/Camp"),new Vector2(64,56));icon.rectTransform.anchoredPosition=new Vector2(0,5);
+                    var icon=Icon(button.transform,"Rusty enemy base",null,new Vector2(64,56));MapLandmarkArt.Apply(icon,4);icon.rectTransform.anchoredPosition=new Vector2(0,5);
                     campMarkers.Add(id,(RectTransform)button.transform);
                 }
                 PositionWorldMarkers();
             }
             var hero=CurrentHero;var mission=worldService.Mission(hero.InstanceId);
             heroLabel.text=HeroRarityColors.Text(hero.Definition.DisplayName,hero.Definition.Rarity)+" • "+hero.Army.TotalUnits+" fighters • "+(mission==null?"HOME":mission.Phase.ToString());
-            workforce.text="Civilians: "+service.FreeWorkers+" field-ready • "+worldService.AvailableResidents+" residents free • Pinch / scroll / + to zoom";
+            RefreshMapCoordinates();
             armyGather.interactable=mission==null && hero.Army.TotalUnits>0 && service.Site(selected).Remaining>0;
             recall.interactable=mission!=null || service.Site(selected).Workers>0;
-            teamSelection.text=MapLandmarkArt.Name(service.Site(selected).Resource)+" • "+teamSize+" civilians • Deposit "+service.Site(selected).Remaining;
+            teamSelection.text=MapLandmarkArt.Name(service.Site(selected).Resource)+" ["+service.Site(selected).X+","+service.Site(selected).Z+"] • "+teamSize+" / "+service.FreeWorkers+" civilians • "+service.Site(selected).Remaining+" left";
             if(mission!=null && selectedCampId==null)heroLabel.text+=" • Cargo "+mission.Cargo+"/"+WorldMapService.Capacity(hero);
             bool campSelected=selectedCampId!=null;campPanel.SetActive(campSelected);
             assign.gameObject.SetActive(!campSelected);armyGather.gameObject.SetActive(!campSelected);collect.gameObject.SetActive(!campSelected);
             // Recall remains available during camp selection, including the return trip.
             recall.gameObject.SetActive(true);
-            foreach(var camp in worldService.Camps)
+            foreach(var camp in MapCamps)
             {
                 var marker=campMarkers[camp.Id];marker.GetComponentInChildren<Text>(true).text=worldService.IsScouted(camp.Id)?"CAMP Lv"+camp.Level:"CAMP ?";
                 marker.GetComponent<Image>().color=camp.Id==selectedCampId?new Color32(160,72,40,130):new Color32(0,0,0,0);
@@ -127,7 +127,7 @@ namespace Ash
             if(campSelected)
             {
                 var camp=worldService.Camp(selectedCampId);var encounter=worldService.Encounter(camp.Id);
-                string info=camp.Name+" • "+camp.Id+"\nSCOUT to reveal strength. RAID to choose a hero.";
+                string info=camp.Name+" • X "+camp.X+" / Y "+camp.Z+"\nSCOUT to reveal strength. RAID to choose a hero.";
                 if(worldService.IsScouted(camp.Id) && encounter!=null)
                 {
                     info=camp.Name+" • Lv "+camp.Level+" • "+encounter.Name;
@@ -137,11 +137,11 @@ namespace Ash
                 }
                 campDetails.text=info+"\n"+worldService.Report;
             }
-            homeMarker.GetComponent<Image>().color=homeSelected?new Color32(163,124,49,255):new Color32(111,78,43,255);
+            homeMarker.GetComponent<Image>().color=homeSelected?new Color32(163,124,49,110):new Color32(0,0,0,0);
             raidReport.gameObject.SetActive(worldService.LastRaid!=null);
             RefreshGatheringSites();
             RefreshConvoys();
-            RefreshRaidPicker();
+            RefreshRaidPicker();CullMapMarkers();
         }
         private void RefreshGatheringSites()
         {
@@ -158,17 +158,23 @@ namespace Ash
         }
         private void PositionWorldMarkers()
         {
-            if(homeMarker!=null)homeMarker.sizeDelta=new Vector2(56,32)*Mathf.Clamp(MarkerScale,.65f,2);
+            if(homeMarker!=null)
+            {
+                float scale=Mathf.Clamp(MarkerScale,.65f,2);homeMarker.sizeDelta=new Vector2(64,80)*scale;
+                var icon=homeMarker.GetComponentInChildren<RawImage>(true);icon.rectTransform.sizeDelta=new Vector2(64,64)*scale;icon.rectTransform.anchoredPosition=new Vector2(0,9)*scale;
+            }
             if(worldService==null)return;
-            foreach(var camp in worldService.Camps)
+            foreach(var camp in MapCamps)
             {
                 if(!campMarkers.TryGetValue(camp.Id,out var marker))continue;
-                marker.anchoredPosition=MapPoint(camp.X,camp.Z);marker.sizeDelta=new Vector2(64,70)*MarkerScale;
-                var icon=marker.GetComponentInChildren<RawImage>(true);icon.rectTransform.sizeDelta=new Vector2(64,56)*MarkerScale;icon.rectTransform.anchoredPosition=new Vector2(0,5)*MarkerScale;
+                float scale=Mathf.Clamp(side/2400,.10f,3);
+                marker.anchoredPosition=MapPoint(camp.X,camp.Z);marker.sizeDelta=new Vector2(64,70)*scale;
+                var icon=marker.GetComponentInChildren<RawImage>(true);icon.rectTransform.sizeDelta=new Vector2(64,56)*scale;icon.rectTransform.anchoredPosition=new Vector2(0,5)*scale;
+                marker.GetComponentInChildren<Text>(true).enabled=side>=2500;
             }
-            RefreshConvoys();
+            RefreshConvoys();CullMapMarkers();
         }
-        private Vector2 MapPoint(int x,int z)=>new Vector2(x,z)*(side-100)/200;
+        private Vector2 MapPoint(int x,int z)=>new Vector2(x,z)*(side-32)/WorldRegions.TileCount;
         private Texture2D ConvoyTexture(string name)
         {
             if(!convoyTextures.TryGetValue(name,out var texture)){texture=Resources.Load<Texture2D>("Map/"+name);convoyTextures.Add(name,texture);}return texture;
@@ -202,7 +208,7 @@ namespace Ash
                 int heading=Heading(direction);bool dust=mission.Phase==MapMissionPhase.Dust;
                 var bus=root.Find("Army bus").GetComponent<RawImage>();var bike=root.Find("Hero bike").GetComponent<RawImage>();var cloud=root.Find("Raid dust").GetComponent<RawImage>();
                 bus.texture=ConvoyTexture("Bus"+heading);bike.texture=ConvoyTexture("Bike"+heading);
-                float size=Mathf.Clamp(MarkerScale,.65f,2.5f);bus.rectTransform.sizeDelta=new Vector2(70,70)*size;bike.rectTransform.sizeDelta=new Vector2(36,36)*size;
+                float size=Mathf.Clamp(MarkerScale,.25f,1.6f);bus.rectTransform.sizeDelta=new Vector2(70,70)*size;bike.rectTransform.sizeDelta=new Vector2(36,36)*size;
                 root.Find("Convoy hero").GetComponent<RectTransform>().anchoredPosition=new Vector2(0,-35*size);
                 bike.rectTransform.anchoredPosition=direction*26*size;
                 bus.enabled=bike.enabled=!dust;cloud.enabled=dust;
@@ -233,9 +239,9 @@ namespace Ash
             if(factor<=0 || float.IsNaN(factor) || float.IsInfinity(factor) || Time.unscaledTime<homeTransitionReadyAt)return;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(viewport,screenPoint,null,out var point);
             var old=map.anchoredPosition;float before=side;SetSize(side*factor);
-            float ratio=(side-100)/(before-100);map.anchoredPosition=point-(point-old)*ratio;ClampMap();scroll.StopMovement();
+            float ratio=(side-32)/(before-32);map.anchoredPosition=point-(point-old)*ratio;ClampMap();scroll.StopMovement();
             // Only home-entry zoom navigates. Other sites/camps can still zoom all the way in.
-            float distanceFromHome=(point-old).magnitude*200/(before-100);
+            float distanceFromHome=(point-old).magnitude*WorldRegions.TileCount/(before-32);
             if(SettlementRequested!=null && factor>1 && side>=1600 && (homeSelected || distanceFromHome<18))RequestSettlement();
         }
         private void ClampMap()
@@ -259,7 +265,7 @@ namespace Ash
                 }
             }
             else if(!scroll.enabled)scroll.enabled=true;
-            RefreshConvoys();
+            RefreshConvoys();RefreshMapCoordinates();CullMapMarkers();
         }
         private void OnDisable(){if(scroll!=null)scroll.enabled=true;CloseRaidPicker();}
     }

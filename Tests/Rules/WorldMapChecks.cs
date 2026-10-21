@@ -20,7 +20,7 @@ internal static class WorldMapChecks
         var progress=new ProgressPersistence(armies,resources,fragments,buildings,scavenging);
         var hero=roster[0];string fighter=units[0].Id;var site=scavenging.Capture().Sites[0];
         var camps=world.Camps;
-        Check(camps.Length==9 && camps.Select(c=>c.Level).Distinct().Count()==3,"nine camps in three difficulty tiers");
+        Check(camps.Length==WorldRegions.CampCount && camps.Select(c=>c.Level).Distinct().Count()==3,"256 grid camps in three difficulty regions");
         Check(camps.Select(c=>c.Id+":"+c.X+":"+c.Z).SequenceEqual(world.Camps.Select(c=>c.Id+":"+c.X+":"+c.Z)),"stable camp IDs and coordinates");
         Check(camps.All(c=>scavenging.Capture().Sites.All(s=>(s.X-c.X)*(s.X-c.X)+(s.Z-c.Z)*(s.Z-c.Z)>=225)),"camps do not overlap resource nodes");
         for(int seed=1;seed<=100;seed++)WorldMapService.GenerateCamps(ScavengingService.Generate(seed));
@@ -41,7 +41,7 @@ internal static class WorldMapChecks
         int travel=world.TravelSeconds(world.Mission(hero.InstanceId));world.Advance(travel);
         Check(world.Mission(hero.InstanceId).Phase==MapMissionPhase.Gathering,"arrival starts gathering");
         world.Advance(12);int cargo=world.Mission(hero.InstanceId).Cargo;
-        Check(cargo>0 && scavenging.Site(site.Id).Remaining==1000-cargo,"cargo comes from finite deposit");
+        Check(cargo>0 && scavenging.Site(site.Id).Remaining==site.Remaining-cargo,"cargo comes from finite deposit");
         int balance=resources.Get(site.Resource);world.Recall(hero.InstanceId);world.Advance(travel);
         Check(!world.IsDeployed(hero.InstanceId) && resources.Get(site.Resource)==balance+cargo,"recall delivers partial cargo on return");
         Check(hero.Army.TotalUnits==10 && hero.Xp==0,"peaceful gathering preserves fighters and XP");
@@ -57,8 +57,8 @@ internal static class WorldMapChecks
         var clone=world.Capture();clone.Missions[0].Cargo=5001;Reject(()=>WorldMapService.Validate(clone,armies,scavenging.Capture()),"invalid cargo rejected");
         clone=world.Capture();clone.Missions=new[]{clone.Missions[0],clone.Missions[0]};Reject(()=>WorldMapService.Validate(clone,armies,scavenging.Capture()),"duplicate deployment rejected");
         clone=world.Capture();clone.Missions[0].TargetId="camp-01";Reject(()=>WorldMapService.Validate(clone,armies,scavenging.Capture()),"resource mission cannot target camp");
-        clone=world.Capture();clone.Scouted=new[]{"camp-99"};Reject(()=>WorldMapService.Validate(clone,armies,scavenging.Capture()),"unknown scouting report rejected");
-        clone=world.Capture();clone.Missions[0].Cargo=100;var tamperedMap=scavenging.Capture();tamperedMap.Sites.First(s=>s.Id==site.Id).Remaining=1000;
+        clone=world.Capture();clone.Scouted=new[]{"camp-9999"};Reject(()=>WorldMapService.Validate(clone,armies,scavenging.Capture()),"unknown scouting report rejected");
+        clone=world.Capture();clone.Missions[0].Cargo=100;var tamperedMap=scavenging.Capture();tamperedMap.Sites.First(s=>s.Id==site.Id).Remaining=ScavengingService.Generate(scavenging.Seed).Sites.First(s=>s.Id==site.Id).Remaining;
         Reject(()=>WorldMapService.Validate(clone,armies,tamperedMap),"carried resources must have left finite deposit");
         Reject(()=>world.Advance(-1),"negative mission time rejected");
         world.Recall(hero.InstanceId);world.Advance(100);
@@ -97,6 +97,19 @@ internal static class WorldMapChecks
         int pending=world.Mission(hero.InstanceId).Cargo;resources.TrySpend(new[]{new ResourceAmount(second.Resource,pending)});world.Advance(1,false);
         Check(!world.IsDeployed(hero.InstanceId) && resources.Get(second.Resource)==int.MaxValue,"protected cargo delivers once balance has room");
         progress.Validate(progress.Capture());Check(true,"completed mission snapshot validates");
+        var generated=ScavengingService.Generate(4821);var legacyCamps=WorldMapService.GenerateCamps(generated,true);
+        Check(camps.Take(9).Select(c=>c.Id+":"+c.X+":"+c.Z+":"+c.Level).SequenceEqual(legacyCamps.Select(c=>c.Id+":"+c.X+":"+c.Z+":"+c.Level)),"overworld expansion preserves all original camp IDs, coordinates and strength");
+        Check(camps.All(c=>c.Level==WorldRegions.ThreatAt(camps,c.X,c.Z)),"every enemy camp matches its region threat level");
+        Check(camps.Select(c=>c.X+":"+c.Z).Distinct().Count()==WorldRegions.CampCount,"all 256 camp tiles are unique");
+        Check(camps.All(c=>camps.All(other=>c==other || (c.X-other.X)*(c.X-other.X)+(c.Z-other.Z)*(c.Z-other.Z)>=64)),"camp footprints remain separated at close zoom");
+        Check(WorldRegions.ThreatAt(camps,0,0)==1 && WorldRegions.Name(1)!=WorldRegions.Name(2) && WorldRegions.Name(2)!=WorldRegions.Name(3),"home remains in grassland with three distinct biome names");
+        Check(generated.Sites.All(s=>s.Remaining==ScavengingService.InitialDeposit*WorldRegions.ThreatAt(camps,s.X,s.Z)),"new resource deposits contain 1000, 2000 or 3000 by region level");
+        var oldMap=ScavengingService.Generate(4821);foreach(var node in oldMap.Sites)node.Remaining=1000;oldMap.Sites[0].Workers=2;
+        var migrated=new ScavengingService(new ResourceManager(),4821);migrated.Validate(oldMap);migrated.RestoreValidated(oldMap);
+        Check(migrated.Capture().Sites.All(s=>s.Remaining==1000) && migrated.Site(oldMap.Sites[0].Id).Workers==2,"legacy deposits and worker assignments restore without refill or regeneration");
+        Check(WorldRegions.Tile(3.49f)==3 && WorldRegions.Tile(-3.5f)==-4 && WorldRegions.Tile(float.MaxValue)==100 && WorldRegions.Tile(float.MinValue)==-100,"tile selection rounds consistently and clamps extreme coordinates");
+        Check(Math.Abs(WorldRegions.Normalized(0)-.5f)<.000001f && WorldRegions.Normalized(-100)>0 && WorldRegions.Normalized(100)<1,"tile-centre normalization matches atlas and marker coordinates");
+        Reject(()=>WorldRegions.Tile(float.NaN),"nonfinite grid coordinates rejected");
         return count;
     }
 }

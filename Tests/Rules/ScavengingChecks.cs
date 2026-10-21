@@ -57,8 +57,9 @@ internal static class ScavengingChecks
         busy.Recall(water);C(busy.Assign(lumber,5)==ScavengingResult.Success && busy.FreeWorkers==0,"recalled team can be sent to another center");
         var snapshot=busy.Capture();snapshot.Sites[0].Workers=0;C(busy.Site(food).Workers==5,"snapshots detach from live assignments");
         var stock=new ResourceManager();var depleted=new ScavengingService(stock,125);
-        for(int i=0;i<2;i++){depleted.Assign(food,5);depleted.Advance(int.MaxValue);}
-        C(depleted.Site(food).Remaining==0 && stock.Get(ResourceType.Food)==1000 && depleted.FreeWorkers==10,"finite deposit delivers exactly two five-worker loads without overflow");
+        int deposit=depleted.Site(food).Remaining;
+        for(int i=0;i<deposit/500;i++){depleted.Assign(food,5);depleted.Advance(int.MaxValue);}
+        C(depleted.Site(food).Remaining==0 && stock.Get(ResourceType.Food)==deposit && depleted.FreeWorkers==10,"finite regional deposit delivers complete five-worker loads without overflow");
         C(depleted.Assign(food)==ScavengingResult.Exhausted,"empty center cannot launch a new trip");
         var cappedLedger=new ResourceManager();var capped=new ScavengingService(cappedLedger,125);capped.Assign(food);capped.Advance(599);
         C(capped.Site(food).Stored==99 && capped.Site(food).Workers==1 && cappedLedger.Get(ResourceType.Food)==0,"worker stays gathering until exact carrying threshold");
@@ -123,7 +124,7 @@ internal static class ScavengingChecks
         foreach(int version in new[] { 1,2 }) {
             var legacy=codec.Decode(exact); legacy.Version=version; legacy.Scavenging=null; legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray(); if(version==1)legacy.Buildings=null;
             progress.Restore(legacy);
-            C(resources.Get(ResourceType.Lumber)==0 && scavenging.FreeWorkers==10 && scavenging.Capture().Sites.All(s=>s.Remaining==1000),"legacy migration adds empty Lumber ledger and unassigned random map");
+            C(resources.Get(ResourceType.Lumber)==0 && scavenging.FreeWorkers==10 && scavenging.Capture().Sites.All(s=>s.Remaining==ScavengingService.Generate(scavenging.Seed).Sites.Single(original=>original.Id==s.Id).Remaining),"legacy migration adds empty Lumber ledger and unassigned random map");
             C(armies.Heroes[0].Army.TotalUnits==5 && resources.Get(ResourceType.Scrap)==60 && buildings.Level(BuildingKind.Headquarters)==(version==1 ? 1 : 2),"legacy migration preserves armies and existing compatible building/resource progression");
         }
         string directory=Path.Combine(Path.GetTempPath(),"ash-scavenging-"+Guid.NewGuid().ToString("N"));

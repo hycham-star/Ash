@@ -94,7 +94,7 @@ namespace Ash
             WorldCommand(()=>
             {
                 worldService.Dispatch(hero,camp,MapMissionKind.Raid);
-                SelectWorldHero(hero);CloseRaidPicker();
+                SelectWorldHero(hero);selectedCampId=null;CloseRaidPicker();SetMapTravelView(true);
             });
         }
         private void CloseRaidPicker()

@@ -7,7 +7,7 @@
 3. Open the world map and tap an enemy camp. Its actions are **SCOUT** and **RAID** (plus X to dismiss).
 4. SCOUT reveals the existing camp report without dispatching an army.
 5. RAID opens **CHOOSE HERO**. Scroll through all eight illustrated heroes to see level, fighter count/capacity, power, composition and availability.
-6. Choose a prepared hero and press **LAUNCH RAID**. Only that hero's independent army dispatches to the selected camp. Opening the picker, choosing a row or cancelling never dispatches.
+6. Choose a prepared hero and press **LAUNCH RAID**. Only that hero's independent army dispatches to the selected camp. The camp/hero panels and bottom map controls hide during travel; CONTROLS restores them. Opening the picker, choosing a row or cancelling never dispatches.
 
 An empty army cannot launch. Deployed heroes are disabled. If preparation is needed, choose a hero and tap **PREPARE AT BARRACKS**; the preparation screen opens with that same hero selected. Return to the map and use RAID again when ready. The selected camp is retained during preparation. No new barracks, duplicate army service, combat system or networking is introduced.
 
