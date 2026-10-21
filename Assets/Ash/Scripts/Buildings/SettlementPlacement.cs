@@ -23,7 +23,7 @@ namespace Ash
         public string Id {get;} public float X {get;} public float Z {get;} public float Width {get;} public float Depth {get;}
         internal BuildingFootprint(string id,float x,float z,float width,float depth){Id=id;X=x;Z=z;Width=width;Depth=depth;}
     }
-    public enum PlacementResult { Success, UnknownBuilding, OutsideWalls, Overlap, GateBlocked }
+    public enum PlacementResult { Success, UnknownBuilding, OutsideWalls, Overlap, GateBlocked, EmptyPlot }
     public static class SettlementPlacementCatalog
     {
         public static ReadOnlyCollection<BuildingFootprint> Buildings {get;}=Create();
@@ -68,7 +68,8 @@ namespace Ash
             if(float.IsNaN(x)||float.IsNaN(z)||float.IsInfinity(x)||float.IsInfinity(z))return PlacementResult.OutsideWalls;
             BuildingFootprint moving=null;foreach(var d in SettlementPlacementCatalog.Buildings)if(d.Id==id)moving=d;
             if(moving==null)return PlacementResult.UnknownBuilding;
-            return CheckPlacement(moving,SettlementPlacementCatalog.Snap(x),SettlementPlacementCatalog.Snap(z),placement);
+            if(!HasBuilding(id,development))return PlacementResult.EmptyPlot;
+            return CheckPlacement(moving,SettlementPlacementCatalog.Snap(x),SettlementPlacementCatalog.Snap(z),placement,development);
         }
         public PlacementResult MoveBuilding(string id,float x,float z)
         {
@@ -84,27 +85,42 @@ namespace Ash
             }
             return PlacementResult.UnknownBuilding;
         }
-        private static PlacementResult CheckPlacement(BuildingFootprint moving,float x,float z,SettlementPlacementState state)
+        private static PlacementResult CheckPlacement(BuildingFootprint moving,float x,float z,SettlementPlacementState state,SettlementDevelopmentState development)
         {
             if(Math.Abs(x)+moving.Width/2>SettlementLayout.HalfWidth-1 || Math.Abs(z)+moving.Depth/2>SettlementLayout.HalfDepth-1)return PlacementResult.OutsideWalls;
             if(SettlementPlacementCatalog.Intersects(x,z,moving.Width,moving.Depth,0,-18.5f,6,3))return PlacementResult.GateBlocked;
             foreach(var p in state.Positions)
             {
-                if(p.Id==moving.Id)continue;var other=SettlementPlacementCatalog.Find(p.Id);
+                if(p.Id==moving.Id || !HasBuilding(p.Id,development))continue;var other=SettlementPlacementCatalog.Find(p.Id);
                 if(SettlementPlacementCatalog.Intersects(x,z,moving.Width,moving.Depth,p.X,p.Z,other.Width,other.Depth))return PlacementResult.Overlap;
             }
             return PlacementResult.Success;
         }
-        public void ValidatePlacement(SettlementPlacementState state)
+        private static bool HasBuilding(string id,SettlementDevelopmentState development)
+        {
+            foreach(var plot in development.Plots)if(plot.Id==id)return plot.Kind!=PlotKind.Empty;
+            return true;
+        }
+        public string BuildingAt(float x,float z)
+        {
+            foreach(var p in placement.Positions)
+            {
+                if(!HasBuilding(p.Id,development))continue;var footprint=SettlementPlacementCatalog.Find(p.Id);
+                if(Math.Abs(p.X-x)<footprint.Width/2 && Math.Abs(p.Z-z)<footprint.Depth/2)return p.Id;
+            }
+            return null;
+        }
+        public void ValidatePlacement(SettlementPlacementState state,SettlementDevelopmentState savedDevelopment=null)
         {
             if(state?.Positions==null || state.Positions.Length!=SettlementPlacementCatalog.Buildings.Count)throw new ArgumentException("Incomplete settlement positions.");
             var seen=new HashSet<string>(StringComparer.Ordinal);
             foreach(var p in state.Positions)
             {
                 if(p==null || p.Id==null || !seen.Add(p.Id) || float.IsNaN(p.X)||float.IsNaN(p.Z)||float.IsInfinity(p.X)||float.IsInfinity(p.Z))throw new ArgumentException("Invalid/duplicate settlement position.");
-                SettlementPlacementCatalog.Find(p.Id);
+                var footprint=SettlementPlacementCatalog.Find(p.Id);
+                if(Math.Abs(p.X)+footprint.Width/2>SettlementLayout.HalfWidth-1 || Math.Abs(p.Z)+footprint.Depth/2>SettlementLayout.HalfDepth-1)throw new ArgumentException("Settlement position leaves walls: "+p.Id);
             }
-            foreach(var p in state.Positions)if(CheckPlacement(SettlementPlacementCatalog.Find(p.Id),p.X,p.Z,state)!=PlacementResult.Success)throw new ArgumentException("Settlement position overlaps, blocks gate or leaves walls: "+p.Id);
+            foreach(var p in state.Positions)if(HasBuilding(p.Id,savedDevelopment??development) && CheckPlacement(SettlementPlacementCatalog.Find(p.Id),p.X,p.Z,state,savedDevelopment??development)!=PlacementResult.Success)throw new ArgumentException("Settlement position overlaps, blocks gate or leaves walls: "+p.Id);
         }
         internal void RestorePlacementValidated(SettlementPlacementState saved)
         {

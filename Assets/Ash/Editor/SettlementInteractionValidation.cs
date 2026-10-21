@@ -36,11 +36,16 @@ namespace Ash.Editor
                 Require(manager.Buildings.MoveBuilding(hq.PlacementId,-6,3)==PlacementResult.Success,"Valid headquarters move rejected.");Call("SyncPlacement");
                 Require(Vector3.Distance(hq.transform.localPosition,new Vector3(-6,0,3))<.001f,"Saved core move did not update visual root.");
                 manager.Resources.Add(ResourceType.Lumber,100);Require(manager.Buildings.BuildPlot("plot-01",PlotKind.Farm)==BuildingCommandResult.Success,"Could not build validation farm.");Call("RefreshPlots");
-                var plot=world.GetComponentsInChildren<SettlementBuilding>().Single(b=>b.PlotId=="plot-01");
+                var plot=world.GetComponentsInChildren<SettlementBuilding>().Single(b=>b.PlacementId=="plot-01");
                 Require(plot.GetComponentsInChildren<MeshFilter>().Any(mesh=>mesh.name=="Combined settlement geometry"),"Plot props were combined outside their movable building root.");
+                var pad=world.GetComponentsInChildren<SettlementBuilding>().Single(b=>b.IsSpot && b.PlotId=="plot-01");
+                var padPosition=pad.transform.position;
+                Require(pad.PlacementId==null && world.GetComponentsInChildren<Canvas>().Length==0,"Fixed spots must not move or display plot labels.");
                 var geometry=plot.GetComponentsInChildren<MeshRenderer>();var before=geometry.Select(r=>r.bounds.center).ToArray();
                 Require(manager.Buildings.MoveBuilding("plot-01",-12,-16)==PlacementResult.Success,"Valid plot move rejected.");Call("SyncPlacement");
                 for(int i=0;i<geometry.Length;i++)Require(Vector3.Distance(geometry[i].bounds.center-before[i],new Vector3(0,0,-2))<.002f,"Plot decoration or model did not move with its building.");
+                Require(pad.transform.position==padPosition,"Moving a building also moved its ground spot.");
+                Require(manager.Buildings.MoveBuilding("core-headquarters",0,-14)==PlacementResult.Success,"Core building cannot move onto an empty spot.");Call("SyncPlacement");
                 var progress=new ProgressPersistence(manager.HeroArmies,manager.Resources,manager.Fragments,manager.Buildings,manager.Scavenging,manager.OfflineScavenging);
                 var codec=new UnityProgressCodec();var store=new LocalSaveStore(directory,codec,progress.Validate);var saved=progress.Capture();store.Save(saved);
                 var reset=progress.Capture();reset.Placement=SettlementPlacementState.Fresh();progress.Restore(reset);
@@ -54,6 +59,13 @@ namespace Ash.Editor
                 var terrain=(RectTransform)typeof(ScavengingMapUI).GetField("map",flags).GetValue(map);
                 map.ZoomAt(100,RectTransformUtility.WorldToScreenPoint(null,terrain.TransformPoint(Vector3.zero)));
                 Require(homeRequests==1,"Zooming into world-map home did not request settlement entry.");
+                Require(!map.GetComponentsInChildren<Transform>(true).Any(item=>item.name=="Site details"),"Removed map text panel is still present.");
+                var viewport=(RectTransform)typeof(ScavengingMapUI).GetField("viewport",flags).GetValue(map);
+                Require(viewport.offsetMin.y==200,"Map did not reclaim removed panel space.");
+                typeof(ScavengingMapUI).GetField("homeTransitionReadyAt",flags).SetValue(map,0f);
+                map.GetComponentsInChildren<UnityEngine.UI.Button>(true).Single(button=>button.name=="Ember Outpost — enter settlement").onClick.Invoke();
+                Require(homeRequests==1,"Selecting HOME should center it before zoom entry.");
+                map.ZoomBy(2);Require(homeRequests==2,"HOME selection plus button zoom failed to enter settlement.");
                 Debug.Log("PASS Unity settlement interaction: overview/world and home-entry zoom events, movable core/plot roots and combined props, native JsonUtility/disk layout round trip, version-eight migration. Temporary saves only. Verify actual 1.5-second hold, drag colours, invalid drops, pinch handoff and fades in Play/on phone.");
             }
             catch(Exception error){Debug.LogException(error);if(Application.isBatchMode)EditorApplication.Exit(1);throw;}

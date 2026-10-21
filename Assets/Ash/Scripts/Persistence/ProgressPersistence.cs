@@ -94,7 +94,7 @@ namespace Ash
             int headquarters=0;foreach(var b in savedBuildings)if(b.Kind==BuildingKind.Headquarters)headquarters=b.Level;
             buildings.ValidateDevelopment(savedDevelopment,headquarters);
             var savedPlacement=state.Version<9?SettlementPlacementState.Fresh():state.Placement;
-            buildings.ValidatePlacement(savedPlacement);
+            buildings.ValidatePlacement(savedPlacement,savedDevelopment);
             ScavengingState savedScavenging;
             if(state.Version<3) {
                 if(state.Scavenging!=null)throw new ArgumentException("Unexpected scavenging in legacy save.");

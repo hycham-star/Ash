@@ -193,15 +193,21 @@ namespace Ash
             developmentWorld=new GameObject("Settlement building plots");developmentWorld.transform.SetParent(world,false);
             foreach(var definition in SettlementLayout.Plots)
             {
-                var p=gameManager.Buildings.Plot(definition.Id);var position=gameManager.Buildings.Position(p.Id);var root=new GameObject(p.Id+" "+BuildingService.PlotName(p.Kind)).transform;root.SetParent(developmentWorld.transform,false);root.localPosition=new Vector3(position.X,0,position.Z);
-                root.gameObject.AddComponent<SettlementBuilding>().Configure(BuildingService.PlotName(p.Kind),"Settlement plot "+p.Id,plotId:p.Id);
-                var collider=root.gameObject.AddComponent<BoxCollider>();collider.center=new Vector3(0,1.6f,0);collider.size=new Vector3(6,3.2f,6);
-                developmentArt.Box(root,"Plot foundation",new Vector3(0,.06f,0),new Vector3(6,.08f,6),new Color32(125,115,91,255));
+                var p=gameManager.Buildings.Plot(definition.Id);
+                var pad=new GameObject("Fixed building spot "+definition.Id).transform;pad.SetParent(developmentWorld.transform,false);pad.localPosition=new Vector3(definition.X,0,definition.Z);
+                pad.gameObject.AddComponent<SettlementBuilding>().Configure("Building spot","",plotId:definition.Id,movable:false,spot:true);
+                var padCollider=pad.gameObject.AddComponent<BoxCollider>();padCollider.center=new Vector3(0,.10f,0);padCollider.size=new Vector3(6,.10f,6);
+                developmentArt.Box(pad,"Plot foundation",new Vector3(0,.06f,0),new Vector3(6,.08f,6),new Color32(125,115,91,255));
                 for(int side=0;side<2;side++)
                 {
-                    developmentArt.Box(root,"Plot side marker",new Vector3(side==0?-2.9f:2.9f,.13f,0),new Vector3(.08f,.08f,5.8f),SettlementArt.Amber);
-                    developmentArt.Box(root,"Plot end marker",new Vector3(0,.13f,side==0?-2.9f:2.9f),new Vector3(5.8f,.08f,.08f),SettlementArt.Amber);
+                    developmentArt.Box(pad,"Plot side marker",new Vector3(side==0?-2.9f:2.9f,.13f,0),new Vector3(.08f,.08f,5.8f),SettlementArt.Timber);
+                    developmentArt.Box(pad,"Plot end marker",new Vector3(0,.13f,side==0?-2.9f:2.9f),new Vector3(5.8f,.08f,.08f),SettlementArt.Timber);
                 }
+                developmentArt.Combine(pad);
+                if(p.Kind==PlotKind.Empty)continue;
+                var position=gameManager.Buildings.Position(p.Id);
+                var root=new GameObject(p.Id+" "+BuildingService.PlotName(p.Kind)).transform;root.SetParent(developmentWorld.transform,false);root.localPosition=new Vector3(position.X,0,position.Z);
+                root.gameObject.AddComponent<SettlementBuilding>().Configure(BuildingService.PlotName(p.Kind),"",plotId:p.Id);
                 if(p.Kind!=PlotKind.Empty)
                 {
                     string asset=p.Kind==PlotKind.Farm?"FoodGarden":p.Kind==PlotKind.WaterWell?"WaterStation":p.Kind==PlotKind.Scrapyard?"Workshop":"Barracks";
@@ -219,13 +225,25 @@ namespace Ash
                         developmentArt.Box(root,"Well hand pump",new Vector3(-1.9f,1.36f,-1.7f),new Vector3(.65f,.08f,.08f),SettlementArt.Metal);
                     }
                 }
-                var labelRoot=new GameObject("Plot label",typeof(RectTransform),typeof(Canvas));labelRoot.transform.SetParent(root,false);labelRoot.transform.localPosition=new Vector3(0,.5f,-2.6f);labelRoot.transform.rotation=controls.transform.rotation;labelRoot.transform.localScale=Vector3.one*.015f;
-                var canvas=labelRoot.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=controls.GetComponent<Camera>();labelRoot.GetComponent<RectTransform>().sizeDelta=new Vector2(300,65);
-                var textRoot=new GameObject("Text",typeof(RectTransform),typeof(Text));textRoot.transform.SetParent(labelRoot.transform,false);var rect=textRoot.GetComponent<RectTransform>();rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
-                var text=textRoot.GetComponent<Text>();text.font=font;text.fontSize=24;text.alignment=TextAnchor.MiddleCenter;text.color=new Color32(255,231,170,255);text.raycastTarget=false;
-                text.text=p.Id.ToUpperInvariant()+" • "+(p.Kind==PlotKind.Empty?"TAP TO BUILD":BuildingService.PlotName(p.Kind)+" Lv"+p.Level);
                 developmentArt.Combine(root);
+                FitBuildingCollider(root);
             }
+        }
+        private static void FitBuildingCollider(Transform root)
+        {
+            var bounds=new Bounds(Vector3.up,Vector3.zero);bool first=true;
+            foreach(var renderer in root.GetComponentsInChildren<MeshRenderer>())
+            {
+                if(renderer.name=="Soft contact grounding")continue;
+                var b=renderer.bounds;
+                for(int corner=0;corner<8;corner++)
+                {
+                    var point=root.InverseTransformPoint(b.center+Vector3.Scale(b.extents,new Vector3((corner&1)==0?-1:1,(corner&2)==0?-1:1,(corner&4)==0?-1:1)));
+                    if(first){bounds=new Bounds(point,Vector3.zero);first=false;}else bounds.Encapsulate(point);
+                }
+            }
+            var collider=root.gameObject.AddComponent<BoxCollider>();collider.center=bounds.center;
+            collider.size=new Vector3(Mathf.Max(1,bounds.size.x),Mathf.Max(.5f,bounds.size.y),Mathf.Max(1,bounds.size.z));
         }
         private Transform Marker(string title,string description,Vector3 position,Vector3 size,BuildingKind? kind=null)
         {
@@ -251,7 +269,17 @@ namespace Ash
         private void Inspect(SettlementBuilding building)
         {
             selection.text = building.DisplayName+"\n"+building.Description;
-            if(building.PlotId!=null)ShowDevelopment(building.PlotId);
+            if(building.IsSpot)
+            {
+                var occupant=gameManager.Buildings.BuildingAt(building.transform.localPosition.x,building.transform.localPosition.z);
+                if(occupant!=null)
+                {
+                    foreach(var item in world.GetComponentsInChildren<SettlementBuilding>())if(item.PlacementId==occupant){Inspect(item);return;}
+                }
+                ShowDevelopment();developmentUI.ShowSpot(building.PlotId);
+                controls.FocusOn(building.transform.position,8);
+            }
+            else if(building.PlotId!=null)ShowDevelopment(building.PlotId);
             else if(building.IsHospital)ShowHospital();
             else if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
         }

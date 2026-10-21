@@ -65,18 +65,30 @@ namespace Ash
             return new[]{new ResourceAmount(ResourceType.Scrap,kind==PlotKind.WaterWell?25:kind==PlotKind.Scrapyard?30:20),new ResourceAmount(ResourceType.Lumber,kind==PlotKind.Housing || kind==PlotKind.Scrapyard?15:10)};
         }
         public BuildingCommandResult CanBuildPlot(string id,PlotKind kind)
+            =>CanBuildPlotAt(id,kind,Position(id).X,Position(id).Z);
+        public BuildingCommandResult CanBuildPlotAt(string id,PlotKind kind,float x,float z)
         {
             var p=FindPlot(id);if(!Enum.IsDefined(typeof(PlotKind),kind) || kind==PlotKind.Empty)return BuildingCommandResult.InvalidPlotType;
             if(p.Kind!=PlotKind.Empty)return BuildingCommandResult.PlotOccupied;
+            if(float.IsNaN(x)||float.IsNaN(z)||float.IsInfinity(x)||float.IsInfinity(z))return BuildingCommandResult.PlotOccupied;
+            if(CheckPlacement(SettlementPlacementCatalog.Find(id),SettlementPlacementCatalog.Snap(x),SettlementPlacementCatalog.Snap(z),placement,development)!=PlacementResult.Success)return BuildingCommandResult.PlotOccupied;
             if(FreeResidents<WorkersRequired(kind))return BuildingCommandResult.InsufficientResidents;
             foreach(var cost in PlotBuildCost(kind))if(resources.Get(cost.Type)<cost.Amount)return BuildingCommandResult.InsufficientResources;
             return BuildingCommandResult.Success;
         }
         private void DebitPlot(ResourceAmount[] costs){var plan=new Dictionary<ResourceType,int>();foreach(var cost in costs)plan[cost.Type]=resources.Get(cost.Type)-cost.Amount;resources.CommitAdditionSilently(plan);}
         public BuildingCommandResult BuildPlot(string id,PlotKind kind)
+            =>BuildPlotAt(id,kind,Position(id).X,Position(id).Z);
+        public BuildingCommandResult BuildPlotAt(string id,PlotKind kind,float x,float z)
         {
-            if(commanding)throw new InvalidOperationException("Building command already running.");var result=CanBuildPlot(id,kind);if(result!=BuildingCommandResult.Success)return result;commanding=true;
-            try{DebitPlot(PlotBuildCost(kind));var p=FindPlot(id);p.Kind=kind;p.Level=1;Notify(true);return BuildingCommandResult.Success;}finally{commanding=false;}
+            if(commanding)throw new InvalidOperationException("Building command already running.");var result=CanBuildPlotAt(id,kind,x,z);if(result!=BuildingCommandResult.Success)return result;commanding=true;
+            try
+            {
+                DebitPlot(PlotBuildCost(kind));var p=FindPlot(id);p.Kind=kind;p.Level=1;
+                foreach(var position in placement.Positions)if(position.Id==id){position.X=SettlementPlacementCatalog.Snap(x);position.Z=SettlementPlacementCatalog.Snap(z);}
+                Notify(true);return BuildingCommandResult.Success;
+            }
+            finally{commanding=false;}
         }
         public ResourceAmount[] PlotUpgradeCost(string id)
         {

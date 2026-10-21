@@ -1,38 +1,25 @@
-# Zoom navigation and long-press building movement
+# Settlement movement and world map navigation
 
-## Settlement ↔ world map
+Short-tap a building to inspect it. To move, close its panel and press directly on the building for **1.5 seconds**, then drag and release. Starting buildings and constructed buildings both move. Green placement outline means valid; red means overlap, outside walls or blocked gate. Invalid drops restore the original position. Pinching, Escape or focus loss cancels the preview.
 
-Zoom out of the settlement with the mouse wheel or by pinching your fingers together. After passing the full-settlement overview by 20%, the view opens the world map centred on home, with a short fade. This is the same live GameManager session: armies, gathering and production continue, with no scene reload or duplicate rewards.
+## Fixed ground spots
 
-On the world map, zoom in over **HOME** to enter the settlement again. Only zoom centred within 18 world units of home triggers entry, at map canvas size 3,200 or above. Resource sites and camps remain available for close inspection elsewhere up to size 10,000. You can also tap HOME. MAP and WASTELAND RAID buttons remain available. A brief cooldown and lift-before-new-gesture rule prevent the same pinch from bouncing between views.
+The twelve ground pads are stationary and have no text labels. They are separate objects from constructed buildings. Empty pads cannot be dragged and do not block building placement. Building colliders fit the visible building, rather than selecting an entire six-by-six ground plot. Props and contact shadows remain attached to the building.
 
-## Move settlement buildings
+A starting building can move onto a vacant pad. A constructed building can move elsewhere without taking its ground pad. Occupied ground blocks construction. Tapping a pad inspects its actual occupant. After moving a constructed building away, its original spot can receive a new building: development identities remain stable, while the selected ground position controls where a free identity is constructed. The prototype retains its maximum of twelve development buildings. Levels, stored output and production timers are preserved on movement.
 
-1. Press and hold a settlement building with one finger or the left mouse button for **1.5 seconds**, without starting a pan.
-2. When the placement outline appears, drag to another position.
-3. **Green** means the position is valid. **Red** means another footprint, a wall boundary or the gate approach blocks it.
-4. Release to place and save. An invalid release restores the previous position. Releasing over the HUD also cancels.
+Buildings snap to the half-unit grid and remain inside the walls. Walls, roads, gate and towers stay fixed. Road decorations and NPC patrols do not reroute.
 
-A short tap still inspects a building. A drag before the hold threshold still pans the camera. Holding without dragging does not move or save anything. A second finger/pinch, Escape, cancelled touch, focus loss or application pause cancels placement and restores the original position. Modal panels block settlement gestures.
+## Settlement and world navigation
 
-All six core buildings (Headquarters, Workshop, Barracks, Water Station, Food Garden, Hospital) and twelve development plots have stable placement IDs. Empty plot pads can be moved too; their reserved area prevents later construction overlap. Walls, gate, guard towers, roads and scenery remain fixed. Positions snap to a half-unit grid; footprints must stay one unit inside the walls, avoid each other, and leave the six-unit-wide gate approach clear. Touching footprint edges is allowed. Moving is free and instant; it changes no levels, stock, workers, production timers, wounded, resources or armies. Decorative roads and NPC patrol paths do not reroute.
+Zoom out beyond the settlement overview by 20% to open the world map. On the map, tap **HOME** to select and center it, then zoom in (pinch, wheel or **+**) to enter the settlement. HOME selection raises the map size to at least 1,200; entry occurs at size 1,600 or above. Zooming directly over HOME also enters. Selecting another site/camp or panning away clears home selection so distant sites remain available at close zoom. No scene reload or duplicate GameManager is used.
 
-Meshes, signs, labels and contact shadows remain attached to the moved building. Plot geometry is combined per building instead of across the whole settlement. Plot/HQ focus uses saved positions. Production refresh does not override an active drag preview, and a preview is never written to disk before a successful release.
+The large resource-site information panel is removed. The map gains 110 reference UI units vertically. Team size and deposit quantity remain on the compact controls, with army cargo beside the selected hero. Camp scouting information remains available when a camp is selected.
 
-## Persistence
+## Persistence and validation
 
-Progress schema **9** adds a detached placement DTO, with all eighteen IDs and X/Z coordinates, to the existing atomic save. Versions 1–8 receive their previous default settlement positions while retaining all supported progression, including illustrations, fighter identities, missions, hospital and population. Current saves reject missing/duplicate IDs, non-finite coordinates, overlap and invalid bounds before changing live state. Reset restores the default layout with the rest of progression.
+Existing schema-nine saves remain compatible. Placement validation uses the saved development snapshot, rather than the current live building types, to check occupied footprints. Saved positions retain stable IDs; fixed pad positions come from the authored layout. No reset is needed.
 
-## Validation
+Run **Ashlands → Validate Settlement Interaction** once after this update, outside Play mode. It checks fixed pads, missing labels, movable building meshes, starting-building placement on a vacant spot, native disk round trips, legacy migration, compact map layout and HOME selection plus zoom entry. Normal launches only require **Open Settlement Scene → Play**.
 
-**670 gameplay checks passed**, including 56 new placement checks for all eighteen movable IDs, snapping/bounds/gate/overlap, detached snapshots, preserved production, malformed/atomic restoration, schema-eight migration and disk restart. Syntax/asset checks do not compile Unity APIs or exercise physical gestures.
-
-In Unity **6000.3.26f1**, outside Play, run **Ashlands > Validate Settlement Interaction**, then **Validate Local Save Load** and **Validate Settlement Presentation**. The new native validator checks zoom navigation events, core/plot visual roots and combined geometry, native JsonUtility/disk placement restoration, and migration in a disposable preview and unique temporary save directory. It has not been executed in the cloud; it never opens player saves.
-
-Then test in Play and on Android:
-
-1. Zoom out from a close settlement view until world-map home appears. Reverse zoom at home to return. Check no transition loop while fingers remain down. Zoom at a distant resource/camp and verify it stays on the world map.
-2. Short tap a building, then close its card. Quick-drag on it to pan. Hold 1.5 seconds, then drag and release over clear ground.
-3. Try overlapping another plot, moving beyond the fence, blocking the gate, releasing over HUD, and adding a second finger. Each invalid/cancelled placement must restore the original position.
-4. Move a core building, hospital and a developed farm/well. Check signs, pad, crops, labels and shadows follow the root. Check stock/levels remain intact.
-5. Save/restart and inspect the same positions. Use plot selection and headquarters focus to verify they follow the new locations.
+The cloud gameplay suite passes **681 checks**, including empty-pad movement rejection, core placement on pads, construction overlap/cost protection, reusable vacated spots, preserved production and candidate-state save validation. Syntax and asset checks pass. Unity API compilation and Editor/Android input/rendering checks require local Unity and have not run in the cloud.

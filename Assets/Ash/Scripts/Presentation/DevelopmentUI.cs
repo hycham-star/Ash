@@ -8,6 +8,7 @@ namespace Ash
     public sealed class DevelopmentUI : MonoBehaviour
     {
         private GameManager manager;private Font font;private int selected;private PlotKind choice=PlotKind.Farm;
+        private Vector2? buildLocation;
         private Text population,plotTitle,stats,feedback,buildText,upgradeText,collectText;private Button build,upgrade,collect;
         public event Action<string> PlotSelected;
         public string SelectedPlotId=>SettlementLayout.Plots[selected].Id;
@@ -39,7 +40,7 @@ namespace Ash
             stats=Label("Plot details",Vector2.zero,Vector2.one,new Vector2(14,178),new Vector2(-14,-168),15);
             var kinds=new[]{PlotKind.Housing,PlotKind.Farm,PlotKind.WaterWell,PlotKind.Scrapyard};
             for(int i=0;i<kinds.Length;i++){var kind=kinds[i];Control(kind==PlotKind.WaterWell?"WELL":kind.ToString().ToUpperInvariant(),i/4f,(i+1)/4f,132,174,()=>{choice=kind;Refresh();},out ignored);}
-            build=Control("BUILD",0,1,87,129,()=>Command(manager.Buildings.BuildPlot(SelectedPlotId,choice)),out buildText);
+            build=Control("BUILD",0,1,87,129,BuildSelected,out buildText);
             upgrade=Control("UPGRADE",0,.5f,43,83,()=>Command(manager.Buildings.UpgradePlot(SelectedPlotId)),out upgradeText);
             collect=Control("COLLECT",.5f,1,43,83,()=>Command(manager.Buildings.CollectPlot(SelectedPlotId)),out collectText);
             feedback=Label("Feedback",Vector2.zero,new Vector2(1,0),new Vector2(14,4),new Vector2(-14,39),12);feedback.text="Tap a vacant plot or use < / >. Lumber comes from map scavenging.";
@@ -48,9 +49,30 @@ namespace Ash
         {
             feedback.text=result==BuildingCommandResult.Success?(manager.PersistenceActive?(manager.SaveProgress()?"Settlement saved locally.":manager.SaveStatus):"Updated test settlement."):result.ToString();Refresh();
         }
-        private void Select(int delta){selected=(selected+delta+SettlementLayout.Plots.Count)%SettlementLayout.Plots.Count;Refresh();PlotSelected?.Invoke(SelectedPlotId);}
+        private void Select(int delta){buildLocation=null;selected=(selected+delta+SettlementLayout.Plots.Count)%SettlementLayout.Plots.Count;Refresh();PlotSelected?.Invoke(SelectedPlotId);}
+        private Vector2 BuildLocation
+        {
+            get{var position=manager.Buildings.Position(SelectedPlotId);return buildLocation??new Vector2(position.X,position.Z);}
+        }
+        private void BuildSelected()
+        {
+            var location=BuildLocation;var result=manager.Buildings.BuildPlotAt(SelectedPlotId,choice,location.x,location.y);
+            if(result==BuildingCommandResult.Success)buildLocation=null;
+            Command(result);
+        }
+        public void ShowSpot(string spotId)
+        {
+            string available=null;
+            if(manager.Buildings.Plot(spotId).Kind==PlotKind.Empty)available=spotId;
+            else foreach(var plot in manager.Buildings.CaptureDevelopment().Plots)if(plot.Kind==PlotKind.Empty){available=plot.Id;break;}
+            if(available==null){Show();feedback.text="All development buildings are already built.";return;}
+            Show(available);
+            foreach(var spot in SettlementLayout.Plots)if(spot.Id==spotId)buildLocation=new Vector2(spot.X,spot.Z);
+            Refresh();
+        }
         public void Show(string id=null)
         {
+            buildLocation=null;
             if(id!=null)for(int i=0;i<SettlementLayout.Plots.Count;i++)if(SettlementLayout.Plots[i].Id==id)selected=i;
             gameObject.SetActive(true);transform.SetAsLastSibling();Refresh();PlotSelected?.Invoke(SelectedPlotId);
         }
@@ -58,6 +80,7 @@ namespace Ash
         public void Refresh()
         {
             if(stats==null)return;var service=manager.Buildings;var p=service.Plot(SelectedPlotId);var definition=service.Position(SelectedPlotId);
+            if(p.Kind==PlotKind.Empty && buildLocation.HasValue){definition.X=buildLocation.Value.x;definition.Z=buildLocation.Value.y;}
             string growth=service.Population==service.HousingCapacity?"Build housing to grow":manager.Resources.Get(ResourceType.Food)<2 || manager.Resources.Get(ResourceType.Water)<1?"Growth paused: need Food and Water":"Next resident in "+(60-service.GrowthSeconds)+"s (2 Food + 1 Water)";
             population.text="Population "+service.Population+" / "+service.HousingCapacity+" • Employed "+service.EmployedResidents+" • Free "+service.FreeResidents+"\n"+growth;
             plotTitle.text=p.Id.ToUpperInvariant()+" • "+BuildingService.PlotName(p.Kind);
@@ -67,7 +90,7 @@ namespace Ash
                 text.Append("\nChoose: ").Append(BuildingService.PlotName(choice)).Append("\nWorkers needed: ").Append(BuildingService.WorkersRequired(choice));
                 text.Append(choice==PlotKind.Housing?"\nAdds 10 housing spaces per level.":"\nOutput: "+BuildingService.PlotRate(choice,1)+" "+BuildingService.PlotProduct(choice)+" / minute");
                 text.Append("\nBuild cost:");foreach(var cost in service.PlotBuildCost(choice))text.Append("\n").Append(cost.Type).Append(' ').Append(cost.Amount).Append(" / have ").Append(manager.Resources.Get(cost.Type));
-                text.Append("\n").Append(service.CanBuildPlot(p.Id,choice));
+                text.Append("\n").Append(service.CanBuildPlotAt(p.Id,choice,definition.X,definition.Z));
             }
             else
             {
@@ -78,7 +101,7 @@ namespace Ash
                 text.Append("\n").Append(service.CanUpgradePlot(p.Id));
             }
             text.Append("\nProduction and population growth run during active play.");stats.text=text.ToString();
-            build.interactable=service.CanBuildPlot(p.Id,choice)==BuildingCommandResult.Success;buildText.text="BUILD "+BuildingService.PlotName(choice).ToUpperInvariant();
+            build.interactable=service.CanBuildPlotAt(p.Id,choice,definition.X,definition.Z)==BuildingCommandResult.Success;buildText.text="BUILD "+BuildingService.PlotName(choice).ToUpperInvariant();
             upgrade.interactable=service.CanUpgradePlot(p.Id)==BuildingCommandResult.Success;upgradeText.text=p.Level==BuildingService.MaximumPlotLevel?"MAX LEVEL":"UPGRADE";
             collect.interactable=p.Stored>0;collectText.text="COLLECT "+p.Stored;
         }

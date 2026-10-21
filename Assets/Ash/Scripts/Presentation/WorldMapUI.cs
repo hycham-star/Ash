@@ -20,6 +20,14 @@ namespace Ash
         public event Action SettlementRequested;
         private RectTransform homeMarker;
         private float homeTransitionReadyAt;
+        private bool homeSelected;
+        private void SelectHome()
+        {
+            homeSelected=true;selectedCampId=null;scroll.StopMovement();
+            SetSize(Mathf.Max(side,1200));map.anchoredPosition=Vector2.zero;
+            homeMarker.SetAsLastSibling();Refresh();
+            feedback.text="HOME selected • Zoom in or press + to enter settlement.";
+        }
         public void EnterFromSettlement()
         {
             selectedCampId=null;Canvas.ForceUpdateCanvases();Fit();map.anchoredPosition=Vector2.zero;
@@ -45,11 +53,12 @@ namespace Ash
         }
         private void BuildWorldControls()
         {
-            Control(transform,"‹",Vector2.zero,new Vector2(.12f,0),new Vector2(8,228),new Vector2(-3,262),()=>{cycleHero?.Invoke(-1);Refresh();});
-            var heroRect=Rect(transform,"Map hero",new Vector2(.12f,0),new Vector2(.88f,0),new Vector2(3,228),new Vector2(-3,262),ink);
+            Control(transform,"‹",Vector2.zero,new Vector2(.12f,0),new Vector2(8,118),new Vector2(-3,152),()=>{cycleHero?.Invoke(-1);Refresh();});
+            var heroRect=Rect(transform,"Map hero",new Vector2(.12f,0),new Vector2(.88f,0),new Vector2(3,118),new Vector2(-3,152),ink);
             heroLabel=Label(heroRect,"Choose a hero in the settlement",13);
-            Control(transform,"›",new Vector2(.88f,0),new Vector2(1,0),new Vector2(3,228),new Vector2(-8,262),()=>{cycleHero?.Invoke(1);Refresh();});
-            var card=Rect(transform,"Enemy camp card",Vector2.zero,new Vector2(1,0),new Vector2(8,70),new Vector2(-8,220),ink);campPanel=card.gameObject;
+            heroLabel.resizeTextForBestFit=true;heroLabel.resizeTextMinSize=9;heroLabel.resizeTextMaxSize=13;
+            Control(transform,"›",new Vector2(.88f,0),new Vector2(1,0),new Vector2(3,118),new Vector2(-8,152),()=>{cycleHero?.Invoke(1);Refresh();});
+            var card=Rect(transform,"Enemy camp card",Vector2.zero,new Vector2(1,0),new Vector2(8,200),new Vector2(-8,350),ink);campPanel=card.gameObject;
             var description=Rect(card,"Scout information",new Vector2(0,.30f),new Vector2(.9f,1),new Vector2(2,2),new Vector2(-2,-2),ink);
             Control(card,"X",Vector2.one,Vector2.one,new Vector2(-32,-30),new Vector2(-3,-3),()=>{selectedCampId=null;Refresh();});
             campDetails=Label(description,"",14);campDetails.alignment=TextAnchor.MiddleLeft;campDetails.resizeTextForBestFit=true;campDetails.resizeTextMinSize=10;campDetails.resizeTextMaxSize=14;
@@ -85,7 +94,7 @@ namespace Ash
                 foreach(var camp in worldService.Camps)
                 {
                     string id=camp.Id;
-                    var button=Control(markerRoot,"CAMP ?",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-32,-35),new Vector2(32,35),()=>{selectedCampId=id;Refresh();});
+                    var button=Control(markerRoot,"CAMP ?",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-32,-35),new Vector2(32,35),()=>{selectedCampId=id;homeSelected=false;Refresh();});
                     button.gameObject.name="Enemy base • "+id;button.GetComponent<Image>().color=new Color32(0,0,0,0);
                     var label=button.GetComponentInChildren<Text>(true);label.fontSize=10;label.rectTransform.anchorMax=new Vector2(1,.20f);label.rectTransform.offsetMin=label.rectTransform.offsetMax=Vector2.zero;
                     var icon=Icon(button.transform,"Rusty enemy base",Resources.Load<Texture2D>("Map/Camp"),new Vector2(64,56));icon.rectTransform.anchoredPosition=new Vector2(0,5);
@@ -98,8 +107,8 @@ namespace Ash
             workforce.text="Civilians: "+service.FreeWorkers+" field-ready • "+worldService.AvailableResidents+" residents free • Pinch / scroll / + to zoom";
             armyGather.interactable=mission==null && hero.Army.TotalUnits>0 && service.Site(selected).Remaining>0;
             recall.interactable=mission!=null || service.Site(selected).Workers>0;
-            teamSelection.text=teamSize+" civilians • COLLECT = workers • GATHER = hero army";
-            if(mission!=null && selectedCampId==null)stats.text+="\nArmy: "+mission.Phase+" • Cargo "+mission.Cargo+"/"+WorldMapService.Capacity(hero);
+            teamSelection.text=MapLandmarkArt.Name(service.Site(selected).Resource)+" • "+teamSize+" civilians • Deposit "+service.Site(selected).Remaining;
+            if(mission!=null && selectedCampId==null)heroLabel.text+=" • Cargo "+mission.Cargo+"/"+WorldMapService.Capacity(hero);
             bool campSelected=selectedCampId!=null;campPanel.SetActive(campSelected);
             assign.gameObject.SetActive(!campSelected);armyGather.gameObject.SetActive(!campSelected);collect.gameObject.SetActive(!campSelected);
             // Recall remains available during camp selection, including the return trip.
@@ -122,6 +131,7 @@ namespace Ash
                 }
                 campDetails.text=info+"\n"+worldService.Report;
             }
+            homeMarker.GetComponent<Image>().color=homeSelected?new Color32(163,124,49,255):new Color32(111,78,43,255);
             RefreshGatheringSites();
             RefreshConvoys();
         }
@@ -204,7 +214,11 @@ namespace Ash
             }
             return best;
         }
-        public void ZoomBy(float factor)=>ZoomAt(factor,RectTransformUtility.WorldToScreenPoint(null,viewport.TransformPoint(viewport.rect.center)));
+        public void ZoomBy(float factor)
+        {
+            if(homeSelected)map.anchoredPosition=Vector2.zero;
+            ZoomAt(factor,RectTransformUtility.WorldToScreenPoint(null,viewport.TransformPoint(viewport.rect.center)));
+        }
         public void ZoomAt(float factor,Vector2 screenPoint)
         {
             if(factor<=0 || float.IsNaN(factor) || float.IsInfinity(factor) || Time.unscaledTime<homeTransitionReadyAt)return;
@@ -213,7 +227,7 @@ namespace Ash
             float ratio=(side-100)/(before-100);map.anchoredPosition=point-(point-old)*ratio;ClampMap();scroll.StopMovement();
             // Only home-entry zoom navigates. Other sites/camps can still zoom all the way in.
             float distanceFromHome=(point-old).magnitude*200/(before-100);
-            if(SettlementRequested!=null && factor>1 && side>=3200 && distanceFromHome<18)RequestSettlement();
+            if(SettlementRequested!=null && factor>1 && side>=1600 && (homeSelected || distanceFromHome<18))RequestSettlement();
         }
         private void ClampMap()
         {
@@ -222,6 +236,7 @@ namespace Ash
         }
         private void Update()
         {
+            if(homeSelected && map.anchoredPosition.magnitude>Mathf.Min(viewport.rect.width,viewport.rect.height)*.25f){homeSelected=false;Refresh();}
             if(Input.touchCount==2)
             {
                 var a=Input.GetTouch(0);var b=Input.GetTouch(1);

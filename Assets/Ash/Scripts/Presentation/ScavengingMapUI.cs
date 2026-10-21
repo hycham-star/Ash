@@ -15,7 +15,7 @@ namespace Ash
         private bool opened;
         private RectTransform map,viewport,markerRoot;
         private ScrollRect scroll;
-        private Text stats,feedback,workforce,teamSelection;
+        private Text feedback,workforce,teamSelection;
         private int teamSize=1;
         private Button assign,recall,collect;
         private string selected="site-01";
@@ -70,26 +70,24 @@ namespace Ash
             var title=Rect(transform,"Map heading",new Vector2(0,1),Vector2.one,new Vector2(6,-48),new Vector2(-66,-6),ink); Label(title,"WASTELAND WORLD MAP",21);
             Control(transform,"X",new Vector2(1,1),Vector2.one,new Vector2(-58,-48),new Vector2(-6,-6),Hide);
             var workerRect=Rect(transform,"Workforce",new Vector2(0,1),Vector2.one,new Vector2(6,-80),new Vector2(-6,-51),ink); workforce=Label(workerRect,"",14);
-            viewport=Rect(transform,"Map viewport",Vector2.zero,Vector2.one,new Vector2(8,310),new Vector2(-8,-86),new Color32(81,84,64,255));
+            viewport=Rect(transform,"Map viewport",Vector2.zero,Vector2.one,new Vector2(8,200),new Vector2(-8,-86),new Color32(81,84,64,255));
             viewport.gameObject.AddComponent<RectMask2D>();
             map=Rect(viewport,"Map terrain",new Vector2(.5f,.5f),new Vector2(.5f,.5f),Vector2.zero,Vector2.zero,new Color32(102,98,73,255)); map.sizeDelta=new Vector2(side,side);
             var terrainRoot=new GameObject("Textured wasteland",typeof(RectTransform),typeof(RawImage));terrainRoot.transform.SetParent(map,false);
             var terrainRect=(RectTransform)terrainRoot.transform;terrainRect.anchorMin=Vector2.zero;terrainRect.anchorMax=Vector2.one;terrainRect.offsetMin=terrainRect.offsetMax=Vector2.zero;
             terrain=terrainRoot.GetComponent<RawImage>();terrain.raycastTarget=false;
-            var home=Control(map,"HOME",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-16),new Vector2(28,16),RequestSettlement);
+            var home=Control(map,"HOME",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-16),new Vector2(28,16),SelectHome);
             homeMarker=(RectTransform)home.transform;home.gameObject.name="Ember Outpost — enter settlement";
             markerRoot=new GameObject("Scavenging sites",typeof(RectTransform)).GetComponent<RectTransform>(); markerRoot.SetParent(map,false); markerRoot.anchorMin=Vector2.zero; markerRoot.anchorMax=Vector2.one; markerRoot.offsetMin=markerRoot.offsetMax=Vector2.zero;
             scroll=viewport.gameObject.AddComponent<ScrollRect>(); scroll.viewport=viewport; scroll.content=map; scroll.horizontal=scroll.vertical=true; scroll.movementType=ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity=0;viewport.gameObject.AddComponent<MapZoomInput>().Owner=this;
-            Control(transform,"−",Vector2.zero,new Vector2(.2f,0),new Vector2(8,266),new Vector2(-3,304),()=>ZoomBy(1/1.4f));
-            Control(transform,"+",new Vector2(.2f,0),new Vector2(.4f,0),new Vector2(3,266),new Vector2(-3,304),()=>ZoomBy(1.4f));
-            Control(transform,"FIT",new Vector2(.4f,0),new Vector2(.7f,0),new Vector2(3,266),new Vector2(-3,304),Fit);
-            Control(transform,"LOCATE",new Vector2(.7f,0),new Vector2(1,0),new Vector2(3,266),new Vector2(-8,304),Locate);
-            var card=Rect(transform,"Site details",Vector2.zero,new Vector2(1,0),new Vector2(8,70),new Vector2(-8,180),ink);
-            stats=Label(card,"",16); stats.alignment=TextAnchor.MiddleLeft; stats.resizeTextForBestFit=true; stats.resizeTextMinSize=12; stats.resizeTextMaxSize=16;
-            Control(transform,"−",Vector2.zero,new Vector2(.16f,0),new Vector2(8,184),new Vector2(-3,220),()=> { teamSize=Mathf.Max(1,teamSize-1);Refresh(); });
-            var team=Rect(transform,"Selected team",new Vector2(.16f,0),new Vector2(.84f,0),new Vector2(3,184),new Vector2(-3,220),ink);teamSelection=Label(team,"",14);
-            Control(transform,"+",new Vector2(.84f,0),new Vector2(1,0),new Vector2(3,184),new Vector2(-8,220),()=> { teamSize=Mathf.Min(ScavengingService.MaximumWorkersPerSite,teamSize+1);Refresh(); });
+            Control(transform,"−",Vector2.zero,new Vector2(.2f,0),new Vector2(8,156),new Vector2(-3,194),()=>ZoomBy(1/1.4f));
+            Control(transform,"+",new Vector2(.2f,0),new Vector2(.4f,0),new Vector2(3,156),new Vector2(-3,194),()=>ZoomBy(1.4f));
+            Control(transform,"FIT",new Vector2(.4f,0),new Vector2(.7f,0),new Vector2(3,156),new Vector2(-3,194),Fit);
+            Control(transform,"LOCATE",new Vector2(.7f,0),new Vector2(1,0),new Vector2(3,156),new Vector2(-8,194),Locate);
+            Control(transform,"−",Vector2.zero,new Vector2(.16f,0),new Vector2(8,74),new Vector2(-3,110),()=> { teamSize=Mathf.Max(1,teamSize-1);Refresh(); });
+            var team=Rect(transform,"Selected team",new Vector2(.16f,0),new Vector2(.84f,0),new Vector2(3,74),new Vector2(-3,110),ink);teamSelection=Label(team,"",14);
+            Control(transform,"+",new Vector2(.84f,0),new Vector2(1,0),new Vector2(3,74),new Vector2(-8,110),()=> { teamSize=Mathf.Min(ScavengingService.MaximumWorkersPerSite,teamSize+1);Refresh(); });
             var status=Rect(transform,"Scavenging status",Vector2.zero,new Vector2(1,0),new Vector2(8,43),new Vector2(-8,68),ink); feedback=Label(status,"Drag to explore • Tap a resource site",12);
             feedback.resizeTextForBestFit=true; feedback.resizeTextMinSize=9; feedback.resizeTextMaxSize=12;
             assign=Control(transform,"COLLECT",Vector2.zero,new Vector2(.25f,0),new Vector2(8,5),new Vector2(-2,41),()=>Command(()=>service.Assign(selected,teamSize)));
@@ -110,7 +108,7 @@ namespace Ash
         }
         public void Refresh()
         {
-            if(stats==null)return;
+            if(workforce==null)return;
             if(markers.Count==0 || renderedSeed!=service.Seed) {
                 foreach(var marker in markers.Values) { marker.gameObject.SetActive(false); SettlementArt.Release(marker.gameObject); }
                 markers.Clear(); labels.Clear(); renderedSeed=service.Seed;
@@ -118,7 +116,7 @@ namespace Ash
                 terrainTexture=MapLandmarkArt.Terrain(service.Seed);terrain.texture=terrainTexture;
                 foreach(var site in service.Capture().Sites) {
                     string id=site.Id;
-                    var button=Control(markerRoot,MapLandmarkArt.Name(site.Resource),new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-32),new Vector2(28,32),()=> { selected=id;selectedCampId=null; Refresh(); });
+                    var button=Control(markerRoot,MapLandmarkArt.Name(site.Resource),new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-32),new Vector2(28,32),()=> { selected=id;selectedCampId=null;homeSelected=false; Refresh(); });
                     button.gameObject.name=MapLandmarkArt.Name(site.Resource)+" • "+id;
                     var label=button.GetComponentInChildren<Text>(true);label.fontSize=10;label.resizeTextForBestFit=true;label.resizeTextMinSize=8;label.resizeTextMaxSize=10;
                     label.rectTransform.anchorMax=new Vector2(1,.24f);label.rectTransform.offsetMin=Vector2.zero;label.rectTransform.offsetMax=Vector2.zero;
@@ -134,10 +132,6 @@ namespace Ash
             var node=service.Site(selected);
             workforce.text="World "+service.Seed+" • Scavengers "+service.FreeWorkers+" free / "+ScavengingService.TotalWorkers+" total";
             teamSelection.text=teamSize+" scavenger"+(teamSize==1?"":"s")+" • Carry "+ScavengingService.CarryCapacity(teamSize);
-            stats.text=MapLandmarkArt.Name(node.Resource).ToUpperInvariant()+" • "+node.Id+" • ("+node.X+", "+node.Z+")"
-                +"\n"+(node.Workers>0 ? "Gathering: "+node.Workers+" workers • Load "+node.Stored+"/"+ScavengingService.CarryCapacity(node.Workers) : node.Stored>0 ? "Workers home • Delivery pending: "+node.Stored : "No team assigned • Workers available at home")
-                +"\nDeposit remaining "+node.Remaining
-                +"\n"+(node.Workers>0 ? "Auto-return when full. Also gathers offline (up to 8h)." : node.Stored>0 ? "Make resource room, then DELIVER LOAD." : node.Remaining==0 ? "Exhausted — choose another resource center." : "Select team size, then SEND TEAM. No automatic resend.");
             assign.interactable=service.FreeWorkers>=teamSize && node.Workers==0 && node.Stored==0 && node.Remaining>0;
             recall.interactable=node.Workers>0; collect.interactable=node.Workers==0 && node.Stored>0;
             collect.GetComponentInChildren<Text>(true).text=collect.interactable ? "DELIVER" : "AUTO";
@@ -163,9 +157,10 @@ namespace Ash
             float minimum=Mathf.Max(200,Mathf.Min(viewport.rect.width,viewport.rect.height));
             side=Mathf.Clamp(requested,minimum,10000); map.sizeDelta=new Vector2(side,side); PositionMarkers();
         }
-        private void Fit() { SetSize(Mathf.Min(viewport.rect.width,viewport.rect.height)); map.anchoredPosition=Vector2.zero; scroll.StopMovement(); }
+        private void Fit() { homeSelected=false;SetSize(Mathf.Min(viewport.rect.width,viewport.rect.height)); map.anchoredPosition=Vector2.zero; scroll.StopMovement(); }
         private void Locate()
         {
+            homeSelected=false;
             Canvas.ForceUpdateCanvases(); scroll.StopMovement();
             var point=selectedCampId!=null && campMarkers.ContainsKey(selectedCampId)?campMarkers[selectedCampId].anchoredPosition:markers[selected].anchoredPosition;
             map.anchoredPosition=new Vector2(Mathf.Clamp(-point.x,-Mathf.Max(0,(side-viewport.rect.width)/2),Mathf.Max(0,(side-viewport.rect.width)/2)),
