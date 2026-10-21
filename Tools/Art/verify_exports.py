@@ -8,7 +8,7 @@ from mathutils import Vector
 
 root = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else os.getcwd()
 characters = ('Engineer', 'Sentry', 'MaraFlint', 'JonasReed', 'SeraVale', 'BramHolt', 'IlyraVoss', 'KadeRook', 'AshaSol', 'OrinAshcroft')
-for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden', 'SalvageTruck', 'CavalryMount') + characters:
+for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden', 'OutpostHut', 'OutpostTree', 'OutpostWatchtower', 'SalvageTruck', 'CavalryMount') + characters:
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
     for action in list(bpy.data.actions):

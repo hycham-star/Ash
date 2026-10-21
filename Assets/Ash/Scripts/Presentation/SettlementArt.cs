@@ -8,6 +8,8 @@ namespace Ash
     /// <summary>Original procedural art, with shared materials and combined static geometry.</summary>
     public sealed class SettlementArt : IDisposable
     {
+        public static readonly Color OutpostSoil = new Color32(169,145,110,255);
+        public static readonly Color Asphalt = new Color32(69,66,56,255);
         public static readonly Color Sand = new Color32(112, 104, 83, 255);
         public static readonly Color Concrete = new Color32(133, 132, 117, 255);
         public static readonly Color Rust = new Color32(137, 67, 43, 255);
@@ -53,8 +55,14 @@ namespace Ash
             var shader = srp ? Shader.Find("Universal Render Pipeline/Lit") : UnityEngine.Resources.Load<Shader>("AshSettlement");
             if (shader == null || !shader.isSupported) throw new InvalidOperationException("Settlement shader missing or unsupported. Keep Assets/Ash/Resources/AshSettlement.shader in the build.");
             var material = new Material(shader) { color = color };
-            bool earth=color==Sand || color==new Color32(144,130,101,255);
+            bool earth=color==OutpostSoil || color==Sand || color==new Color32(144,130,101,255);
             if(material.HasProperty("_Weathering"))material.SetFloat("_Weathering",earth?.32f:.18f);
+            if(material.HasProperty("_GroundTex") && color==OutpostSoil)
+            {
+                var texture=UnityEngine.Resources.Load<Texture2D>("Art/OutpostGroundAlbedo");
+                if(texture!=null){material.SetTexture("_GroundTex",texture);material.SetFloat("_GroundTextureMix",1);}
+            }
+            if(material.HasProperty("_Road"))material.SetFloat("_Road",color==Asphalt?1:0);
             if(material.HasProperty("_Ground"))material.SetFloat("_Ground",earth?1:0);
             if(material.HasProperty("_Specular"))material.SetFloat("_Specular",color==Metal || color==Rust?.11f:.025f);
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);

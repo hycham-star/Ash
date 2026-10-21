@@ -4,6 +4,9 @@ Shader "Ash/Settlement Mobile"
     {
         _Color ("Color", Color) = (1,1,1,1)
         _Weathering ("Surface variation", Range(0,0.5)) = 0.16
+        _GroundTex ("Outpost earth", 2D) = "white" {}
+        _GroundTextureMix ("Use ground texture", Range(0,1)) = 0
+        _Road ("Worn asphalt", Range(0,1)) = 0
         _Ground ("Earth surface", Range(0,1)) = 0
         _Specular ("Worn metal highlight", Range(0,0.3)) = 0.035
     }
@@ -23,7 +26,8 @@ Shader "Ash/Settlement Mobile"
             #include "Lighting.cginc"
             #include "AutoLight.cginc"
             fixed4 _Color;
-            half _Weathering, _Ground, _Specular;
+            sampler2D _GroundTex;
+            half _Weathering, _Ground, _Specular, _GroundTextureMix, _Road;
             struct appdata { float4 vertex:POSITION; float3 normal:NORMAL; };
             struct v2f { float4 pos:SV_POSITION; float3 world:TEXCOORD0; half3 normal:TEXCOORD1; SHADOW_COORDS(2) UNITY_FOG_COORDS(3) };
             float hash(float2 p) { return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453); }
@@ -53,6 +57,12 @@ Shader "Ash/Settlement Mobile"
                 half soil=noise(i.world.xz*2.1);
                 half gravel=smoothstep(.82,.94,grain);
                 albedo*=lerp(half3(1,1,1),lerp(half3(.78,.74,.65),half3(1.12,1.06,.89),soil)+gravel*.1h,earth);
+                if(_GroundTextureMix>.5h)albedo*=tex2D(_GroundTex,i.world.xz*.08).rgb*1.45h;
+                if(_Road>.5h)
+                {
+                    half crack=1-smoothstep(.012h,.035h,abs(noise(surface*1.8)-.5h));
+                    albedo*=1-crack*.48h;albedo=lerp(albedo,half3(.34,.29,.21),smoothstep(.66h,.85h,broad)*.30h);
+                }
                 half3 view=normalize(_WorldSpaceCameraPos-i.world);
                 half spec=pow(saturate(dot(n,normalize(light+view))),20)*_Specular*(1-earth)*shadow;
                 fixed4 color=fixed4(albedo*(ambient+_LightColor0.rgb*diffuse*shadow)+_LightColor0.rgb*spec,_Color.a);

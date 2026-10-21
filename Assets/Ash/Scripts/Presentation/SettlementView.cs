@@ -62,6 +62,7 @@ namespace Ash
             world = new GameObject("Settlement World").transform; world.SetParent(presentation.transform,false);
             oldAmbientMode=RenderSettings.ambientMode; oldAmbient = RenderSettings.ambientLight; RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,160); RenderSettings.ambientLight = new Color(.40f,.43f,.47f);
             BuildWorld(); BuildUI(); BuildPortrait();
+            controls.FocusOn(new Vector3(0,0,1),18);
             gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh; gameManager.Buildings.Changed += Refresh;
             gameManager.SaveStatusChanged += UpdateSaveStatus; gameManager.OfflineProgressChanged += ShowOfflineSummary; UpdateSaveStatus();
             Refresh(); selection.text = "THE EMBER OUTPOST\nTap a building to inspect • Drag to explore"; ShowOfflineSummary();
@@ -75,6 +76,7 @@ namespace Ash
             if(controls!=null){controls.WorldMapRequested-=ShowMapFromZoom;controls.MoveStarted-=BeginBuildingMove;controls.MoveRequested-=CommitBuildingMove;controls.MoveCancelled-=CancelBuildingMove;}
             if (presentation != null) Destroy(presentation);
             developmentArt?.Dispose();
+            districtArt?.Dispose();
             art?.Dispose();
             if (art != null) { RenderSettings.ambientMode=oldAmbientMode; RenderSettings.ambientLight = oldAmbient; QualitySettings.shadowDistance = oldShadowDistance; }
         }
@@ -121,11 +123,7 @@ namespace Ash
             sun.cullingMask=~((1<<PortraitLayer)|(1<<VisualBattlePlayback.Layer));
             sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(48,-38,0); sun.intensity = 1.08f;
             sun.color = new Color(1,.91f,.79f); sun.shadows = LightShadows.Soft; sun.shadowStrength=.82f; sun.shadowBias=.025f; sun.shadowNormalBias=.25f;
-            art.Box(world,"Ashland terrain",new Vector3(0,-.25f,0),new Vector3(120,.45f,120),SettlementArt.Sand);
-            art.Box(world,"Settlement slab",new Vector3(0,0,0),new Vector3(SettlementLayout.HalfWidth*2,.12f,SettlementLayout.HalfDepth*2),new Color32(144,130,101,255));
-            art.Box(world,"North south road",new Vector3(0,.08f,0),new Vector3(1.8f,.03f,SettlementLayout.HalfDepth*2-1),new Color32(96,100,93,255));
-            art.Box(world,"Crossing road",new Vector3(0,.08f,-1),new Vector3(SettlementLayout.HalfWidth*2-1,.03f,1.5f),new Color32(96,100,93,255));
-            for (int i = 0; i < 12; i++) art.Box(world,"Road marking",new Vector3(0,.11f,-7+i*1.2f),new Vector3(.09f,.012f,.45f),SettlementArt.Amber);
+            art.Box(world,"Continuous outpost earth",new Vector3(0,-.2f,0),new Vector3(128,.4f,128),SettlementArt.OutpostSoil);
             Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),"Headquarters",BuildingKind.Headquarters);
             Building("WORKSHOP","A salvaged warehouse of tools, spare parts, and forgotten machines.",new Vector3(3,0,2.5f),new Vector3(3,2.3f,2.8f),"Workshop");
             RealisticAssets.SalvageTruck(world,new Vector3(6.7f,.06f,.2f),-35);
@@ -146,14 +144,15 @@ namespace Ash
                 float x=side*SettlementLayout.HalfWidth;
                 for(float z=-SettlementLayout.HalfDepth;z<=SettlementLayout.HalfDepth;z+=1.4f)
                 {
-                    art.Box(world,"Fence post",new Vector3(x,.65f,z),new Vector3(.16f,1.3f,.16f),SettlementArt.Timber);
+                    art.Box(world,"Fence post",new Vector3(x,.85f,z),new Vector3(.14f,1.7f,.14f),SettlementArt.Timber);
+                    if(z+1.4f<=SettlementLayout.HalfDepth)art.Box(world,"Salvage palisade panel",new Vector3(x,.62f,z+.7f),new Vector3(.07f,1.10f,1.15f),SettlementArt.Metal);
                     if(z+1.4f<=SettlementLayout.HalfDepth)for(int rail=0;rail<2;rail++)art.Box(world,"Fence rail",new Vector3(x,.4f+rail*.5f,z+.7f),new Vector3(.1f,.1f,1.4f),SettlementArt.Metal);
                 }
                 Tower(new Vector3(x,0,SettlementLayout.HalfDepth-1));
             }
             for(float x=-SettlementLayout.HalfWidth;x<=SettlementLayout.HalfWidth;x+=1.4f)
             {
-                art.Box(world,"Rear barrier",new Vector3(x,.55f,SettlementLayout.HalfDepth),new Vector3(1.4f,1.1f,.2f),SettlementArt.Rust);
+                art.Box(world,"Rear barrier",new Vector3(x,.75f,SettlementLayout.HalfDepth),new Vector3(1.35f,1.5f,.15f),SettlementArt.Timber);
                 if(Mathf.Abs(x)>2.4f)art.Box(world,"Gate wall",new Vector3(x,.55f,-SettlementLayout.HalfDepth),new Vector3(1.4f,1.1f,.25f),SettlementArt.Concrete);
             }
             art.Box(world,"Gate sign",new Vector3(0,2.4f,-SettlementLayout.HalfDepth),new Vector3(3.5f,.55f,.18f),SettlementArt.Metal);
@@ -171,13 +170,6 @@ namespace Ash
                 art.Box(world,"Supply crate",new Vector3(5.3f,.32f,-.5f+i*.65f),new Vector3(.6f,.6f,.55f),SettlementArt.Timber);
                 art.Box(world,"Crate strap",new Vector3(5.3f,.64f,-.5f+i*.65f),new Vector3(.12f,.035f,.57f),SettlementArt.Metal);
             }
-            // A salvaged truck and its tires, all original geometry.
-            art.Box(world,"Truck chassis",new Vector3(-5,.55f,-.9f),new Vector3(1.4f,.45f,2.5f),SettlementArt.Metal);
-            art.Box(world,"Truck cab",new Vector3(-5,1,-1.65f),new Vector3(1.3f,.75f,1),SettlementArt.Rust);
-            art.Box(world,"Truck windshield",new Vector3(-5,1.15f,-2.17f),new Vector3(1.05f,.35f,.03f),SettlementArt.Glass);
-            for (int wheel = 0; wheel < 4; wheel++) art.Box(world,"Truck tire",new Vector3(-5+(wheel%2-.5f)*1.4f,.35f,-1.6f+wheel/2*1.5f),new Vector3(.5f,.18f,.5f),new Color32(43,45,43,255),true,PrimitiveType.Cylinder).localRotation = Quaternion.Euler(0,0,90);
-            for(int x=-8;x<=8;x+=16)art.Box(world,"District road",new Vector3(x,.08f,0),new Vector3(1.2f,.03f,SettlementLayout.HalfDepth*2-2),new Color32(96,100,93,255));
-            foreach(int z in new[]{-10,10})art.Box(world,"District crossroad",new Vector3(0,.08f,z),new Vector3(SettlementLayout.HalfWidth*2-2,.03f,1.2f),new Color32(96,100,93,255));
             art.Combine(world);
             RefreshPlots();
             SyncPlacement();
@@ -197,18 +189,19 @@ namespace Ash
                 var pad=new GameObject("Fixed building spot "+definition.Id).transform;pad.SetParent(developmentWorld.transform,false);pad.localPosition=new Vector3(definition.X,0,definition.Z);
                 pad.gameObject.AddComponent<SettlementBuilding>().Configure("Building spot","",plotId:definition.Id,movable:false,spot:true);
                 var padCollider=pad.gameObject.AddComponent<BoxCollider>();padCollider.center=new Vector3(0,.10f,0);padCollider.size=new Vector3(6,.10f,6);
-                developmentArt.Box(pad,"Plot foundation",new Vector3(0,.06f,0),new Vector3(6,.08f,6),new Color32(125,115,91,255));
-                for(int side=0;side<2;side++)
+                // Ground-level corner marks keep empty construction lots visible without raised square pads.
+                for(int x=-1;x<=1;x+=2)for(int z=-1;z<=1;z+=2)
                 {
-                    developmentArt.Box(pad,"Plot side marker",new Vector3(side==0?-2.9f:2.9f,.13f,0),new Vector3(.08f,.08f,5.8f),SettlementArt.Timber);
-                    developmentArt.Box(pad,"Plot end marker",new Vector3(0,.13f,side==0?-2.9f:2.9f),new Vector3(5.8f,.08f,.08f),SettlementArt.Timber);
+                    developmentArt.Box(pad,"Lot corner",new Vector3(x*2.85f,.022f,z*2.85f),new Vector3(.32f,.018f,.055f),new Color32(163,143,109,255));
+                    developmentArt.Box(pad,"Lot corner",new Vector3(x*2.85f,.022f,z*2.85f),new Vector3(.055f,.018f,.32f),new Color32(163,143,109,255));
                 }
                 developmentArt.Combine(pad);
                 if(p.Kind==PlotKind.Empty)continue;
                 var position=gameManager.Buildings.Position(p.Id);
                 var root=new GameObject(p.Id+" "+BuildingService.PlotName(p.Kind)).transform;root.SetParent(developmentWorld.transform,false);root.localPosition=new Vector3(position.X,0,position.Z);
                 root.gameObject.AddComponent<SettlementBuilding>().Configure(BuildingService.PlotName(p.Kind),"",plotId:p.Id);
-                if(p.Kind!=PlotKind.Empty)
+                if(p.Kind==PlotKind.Housing)ResidentialShelters(root,p.Level);
+                else if(p.Kind!=PlotKind.Empty)
                 {
                     string asset=p.Kind==PlotKind.BikerCenter?"Workshop":p.Kind==PlotKind.InfantryCenter || p.Kind==PlotKind.ArmyCenter?"Barracks":p.Kind==PlotKind.Farm?"FoodGarden":p.Kind==PlotKind.WaterWell?"WaterStation":p.Kind==PlotKind.Scrapyard?"Workshop":"Barracks";
                     var model=RealisticAssets.Building(root,asset,new Vector2(4,4));model.transform.localScale=Vector3.one*(.9f+.02f*p.Level);
@@ -262,10 +255,7 @@ namespace Ash
         }
         private void Tower(Vector3 position)
         {
-            for (int i = 0; i < 4; i++) art.Box(world,"Tower strut",position+new Vector3((i%2-.5f)*1.2f,1.6f,(i/2-.5f)*1.2f),new Vector3(.16f,3.2f,.16f),SettlementArt.Timber);
-            art.Box(world,"Lookout deck",position+new Vector3(0,3.1f,0),new Vector3(1.8f,.18f,1.8f),SettlementArt.Timber);
-            art.Box(world,"Lookout shelter",position+new Vector3(0,3.55f,0),new Vector3(1.3f,.75f,1.3f),SettlementArt.Metal);
-            art.Roof(world,position+new Vector3(0,4,0),new Vector3(1.8f,.4f,1.8f));
+            RealisticAssets.Scenery(world,"OutpostWatchtower",position,1.0f);
         }
         private void Inspect(SettlementBuilding building)
         {
@@ -309,6 +299,7 @@ namespace Ash
                 if(building.PlacementId==null || (controls!=null && controls.IsMoving(building)))continue;
                 var position=gameManager.Buildings.Position(building.PlacementId);building.transform.localPosition=new Vector3(position.X,0,position.Z);
             }
+            RefreshDistrictScenery();
         }
         private void ShowMapFromZoom()
         {
@@ -316,7 +307,7 @@ namespace Ash
         }
         private void ReturnFromWorldMap()
         {
-            scavengingMap.Hide();controls.ResetView();controls.SuspendInput(.4f);FadeNavigation();
+            scavengingMap.Hide();controls.ResetView();controls.FocusOn(new Vector3(0,0,1),18);controls.SuspendInput(.4f);FadeNavigation();
             toast.text="Settlement • Hold a building for 1.5 seconds to move it.";
         }
         private void FadeNavigation()
@@ -401,10 +392,9 @@ namespace Ash
         private void Refresh()
         {
             var hero = gameManager.Heroes[selectedHero];
-            resources.text = "FOOD  "+gameManager.Resources.Get(ResourceType.Food)+"      SCRAP  "+gameManager.Resources.Get(ResourceType.Scrap)
-                +"\nWATER  "+gameManager.Resources.Get(ResourceType.Water)+"      FUEL  "+gameManager.Resources.Get(ResourceType.Fuel);
-            resources.text += "\nLUMBER  "+gameManager.Resources.Get(ResourceType.Lumber);
-            leaderLabel.text = HeroRarityColors.Text(hero.Definition.DisplayName.ToUpperInvariant(),hero.Definition.Rarity)+"\nLv "+hero.Level+"  •  Army "+hero.Army.TotalUnits+"/"+hero.Army.Capacity;
+            resources.text = "FOOD  "+gameManager.Resources.Get(ResourceType.Food)+"   WATER  "+gameManager.Resources.Get(ResourceType.Water)+"   SCRAP  "+gameManager.Resources.Get(ResourceType.Scrap)
+                +"\nLUMBER  "+gameManager.Resources.Get(ResourceType.Lumber)+"   FUEL  "+gameManager.Resources.Get(ResourceType.Fuel);
+            leaderLabel.text = HeroRarityColors.Text(hero.Definition.DisplayName.ToUpperInvariant(),hero.Definition.Rarity)+" • Lv "+hero.Level+" • "+hero.Army.TotalUnits+"/"+hero.Army.Capacity;
             var text = new StringBuilder(HeroRarityColors.Text(hero.Definition.DisplayName+"\n"+hero.Definition.Rarity,hero.Definition.Rarity)+" • "+hero.Definition.Specialization+"\n\n");
             text.Append("LEVEL ").Append(hero.Level).Append("    XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
                 .Append("\nARMY ").Append(hero.Army.TotalUnits).Append('/').Append(hero.Army.Capacity).Append("\nPOWER ").Append(hero.Army.Power.ToString("0.##"))
@@ -508,25 +498,27 @@ namespace Ash
             ui=new GameObject("Safe Area",typeof(RectTransform)).GetComponent<RectTransform>(); ui.SetParent(canvas.transform,false);
             var safe=Screen.safeArea; ui.anchorMin=new Vector2(safe.xMin/Screen.width,safe.yMin/Screen.height); ui.anchorMax=new Vector2(safe.xMax/Screen.width,safe.yMax/Screen.height); ui.offsetMin=ui.offsetMax=Vector2.zero;
             resources=TextPanel(ui,0,1,1,1,12,-104,-12,-12,23,"",ink);
-            Button(ui,"HOME",.79f,1,1,1,4,-150,-12,-112,()=>controls.ResetView());
+            Button(ui,"HOME",.79f,1,1,1,4,-119,-12,-83,()=>controls.ResetView());
             var resourceRect=resources.GetComponent<RectTransform>(); resourceRect.anchorMin=new Vector2(0,1); resourceRect.anchorMax=Vector2.one;
             resourceRect.offsetMin=new Vector2(12,-77); resourceRect.offsetMax=new Vector2(-12,-4);
-            resources.fontSize=19;
+            resources.fontSize=18;resources.resizeTextForBestFit=true;resources.resizeTextMinSize=11;resources.resizeTextMaxSize=18;
             var statusObject=new GameObject("Local save status",typeof(RectTransform),typeof(Text)); statusObject.transform.SetParent(resources.transform.parent,false);
             var statusRect=statusObject.GetComponent<RectTransform>(); statusRect.anchorMin=Vector2.zero; statusRect.anchorMax=new Vector2(1,0); statusRect.offsetMin=new Vector2(12,4); statusRect.offsetMax=new Vector2(-12,24);
             saveStatus=statusObject.GetComponent<Text>(); saveStatus.font=font; saveStatus.fontSize=13; saveStatus.color=SettlementArt.Amber; saveStatus.raycastTarget=false; saveStatus.alignment=TextAnchor.MiddleLeft;
-            Button(ui,"SAVE",0,1,.26f,1,12,-150,-4,-112,SaveProgress);
-            Button(ui,"LOAD",.26f,1,.52f,1,4,-150,-4,-112,LoadProgress);
-            resetButton=Button(ui,"RESET",.52f,1,.78f,1,4,-150,-4,-112,RequestReset);
-            selection=TextPanel(ui,0,0,.56f,0,12,144,-4,196,15,"",ink);
-            Button(ui,"CONSTRUCTION",0,0,.56f,0,12,200,-4,239,14,()=>ShowDevelopment());
-            Button(ui,"BUILDINGS",.56f,0,.78f,0,4,193,-4,239,12,()=>ShowBuilding(BuildingKind.Headquarters));
-            Button(ui,"HOSPITAL",.56f,0,.78f,0,4,144,-4,189,12,ShowHospital);
-            Button(ui,"MAP",.78f,0,1,0,4,144,-12,239,16,ShowMap);
-            leaderLabel=TextPanel(ui,0,0,.55f,0,12,88,-4,136,18,"",new Color32(41,57,59,246));
-            Button(ui,"VIEW HERO",.55f,0,1,0,4,88,-12,136,()=>ShowHeroes(true));
-            Button(ui,"HEROES",0,0,.5f,0,12,14,-4,76,22,()=>ShowHeroes(true));
-            Button(ui,"WASTELAND RAID",.5f,0,1,0,4,14,-12,76,20,ShowRaid);
+            Button(ui,"SAVE",0,1,.26f,1,12,-119,-4,-83,SaveProgress);
+            Button(ui,"LOAD",.26f,1,.52f,1,4,-119,-4,-83,LoadProgress);
+            resetButton=Button(ui,"RESET",.52f,1,.78f,1,4,-119,-4,-83,RequestReset);
+            selection=TextPanel(ui,0,0,1,0,12,154,-12,185,12,"",Color.clear);
+            selection.transform.parent.gameObject.SetActive(false);
+            Button(ui,"CONSTRUCTION",0,0,.38f,0,12,105,-4,149,13,()=>ShowDevelopment());
+            Button(ui,"BUILDINGS",.38f,0,.59f,0,4,105,-4,149,12,()=>ShowBuilding(BuildingKind.Headquarters));
+            Button(ui,"HOSPITAL",.59f,0,.80f,0,4,105,-4,149,12,ShowHospital);
+            Button(ui,"MAP",.80f,0,1,0,4,105,-12,149,15,ShowMap);
+            leaderLabel=TextPanel(ui,0,0,.55f,0,12,64,-4,99,15,"",new Color32(41,57,59,246));
+            leaderLabel.resizeTextForBestFit=true;leaderLabel.resizeTextMinSize=10;leaderLabel.resizeTextMaxSize=14;
+            Button(ui,"VIEW HERO",.55f,0,1,0,4,64,-12,99,14,()=>ShowHeroes(true));
+            Button(ui,"HEROES",0,0,.5f,0,12,14,-4,58,19,()=>ShowHeroes(true));
+            Button(ui,"WASTELAND RAID",.5f,0,1,0,4,14,-12,58,17,ShowRaid);
             heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.88f),Vector2.zero,Vector2.zero,ink).gameObject;
             var heroRoot=heroPanel.GetComponent<RectTransform>();
             heroHeading=TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear);heroHeading.color=SettlementArt.Amber;
@@ -595,7 +587,7 @@ namespace Ash
             developmentUI=DevelopmentUI.Create(ui,gameManager,font);
             developmentUI.PlotSelected+=id=>{var p=gameManager.Buildings.Position(id);controls.FocusOn(new Vector3(p.X,0,p.Z),8);};
             BuildBarracksRoster();
-            toast=TextPanel(ui,0,0,1,0,12,244,-12,282,15,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
+            toast=TextPanel(ui,0,0,1,0,12,154,-12,185,12,"Welcome to Ember Outpost. Choose a survivor and assemble an army.",new Color32(35,44,44,210));
             toast.resizeTextForBestFit=true; toast.resizeTextMinSize=9; toast.resizeTextMaxSize=15;
         }
         private RectTransform Panel(Transform parent,string name,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)

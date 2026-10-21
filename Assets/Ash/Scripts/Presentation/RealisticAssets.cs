@@ -23,6 +23,12 @@ namespace Ash
             Grounding(model.transform,new Vector3(0,.065f,0),footprint+new Vector2(.25f,.25f));
             return model;
         }
+        public static GameObject Scenery(Transform parent,string assetName,Vector3 position,float scale=1,float heading=0)
+        {
+            var model=Create(assetName,assetName+"Material",parent);model.name=assetName+" — district scenery";
+            model.transform.localPosition=position;model.transform.localScale=Vector3.one*scale;model.transform.localRotation=Quaternion.Euler(0,heading,0);
+            return model;
+        }
         public static GameObject SalvageTruck(Transform parent,Vector3 position,float heading=0)
         {
             var root=new GameObject("Parked salvage truck — environment only");root.transform.SetParent(parent,false);root.transform.localPosition=position;

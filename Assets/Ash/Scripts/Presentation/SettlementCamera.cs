@@ -34,8 +34,8 @@ namespace Ash
             CancelGesture();view=GetComponent<Camera>();IsometricView.Configure(view);
             width=Screen.width;height=Screen.height;safeArea=Screen.safeArea;
             float scale=Mathf.Sqrt(width/540f*height/960f);
-            var area=new Rect((safeArea.xMin+12*scale)/width,(safeArea.yMin+247*scale)/height,
-                Mathf.Max(1,safeArea.width-24*scale)/width,Mathf.Max(1,safeArea.height-405*scale)/height);
+            var area=new Rect((safeArea.xMin+12*scale)/width,(safeArea.yMin+190*scale)/height,
+                Mathf.Max(1,safeArea.width-24*scale)/width,Mathf.Max(1,safeArea.height-315*scale)/height);
             OverviewArea=area;
             var bounds=new Bounds(new Vector3(0,1.5f,0),new Vector3(SettlementLayout.HalfWidth*2+4,6,SettlementLayout.HalfDepth*2+4));
             homeZoom=Mathf.Max(10,IsometricView.FitSize(view,bounds,area));maximumZoom=Mathf.Max(80,homeZoom*3.5f);
