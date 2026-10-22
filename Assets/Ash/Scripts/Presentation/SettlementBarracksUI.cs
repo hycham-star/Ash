@@ -51,36 +51,5 @@ namespace Ash
                 text.Append(gameManager.WorldMap.IsDeployed(hero.InstanceId)?" • DEPLOYED":" • PREPARE");barracksDetails[i].text=text.ToString();
             }
         }
-        private void BuildTrainingProps(Transform root,PlotKind kind)
-        {
-            Color banner=kind==PlotKind.InfantryCenter?new Color32(74,112,136,255):kind==PlotKind.BikerCenter?SettlementArt.Rust:new Color32(101,128,77,255);
-            developmentArt.Box(root,"Training flag pole",new Vector3(2.3f,1.6f,1.9f),new Vector3(.06f,3,.06f),SettlementArt.Metal);
-            developmentArt.Box(root,"Training pennant",new Vector3(1.95f,2.7f,1.9f),new Vector3(.7f,.45f,.04f),banner);
-            if(kind==PlotKind.BikerCenter)
-            {
-                for(int bike=0;bike<2;bike++)
-                {
-                    float x=-1.25f+bike*2.5f;
-                    foreach(float z in new[]{-2.25f,-1.3f})developmentArt.Box(root,"Training bike wheel",new Vector3(x,.35f,z),new Vector3(.55f,.075f,.55f),new Color32(41,43,39,255),true,PrimitiveType.Cylinder).localRotation=Quaternion.Euler(0,0,90);
-                    developmentArt.Box(root,"Training bike frame",new Vector3(x,.55f,-1.75f),new Vector3(.22f,.16f,1.0f),banner);
-                    developmentArt.Box(root,"Training bike seat",new Vector3(x,.74f,-1.65f),new Vector3(.30f,.12f,.38f),SettlementArt.Timber);
-                    developmentArt.Box(root,"Training handlebar",new Vector3(x,.83f,-2.12f),new Vector3(.60f,.05f,.06f),SettlementArt.Metal);
-                }
-            }
-            else for(int i=0;i<3;i++)
-            {
-                float x=-1.7f+i*1.7f;developmentArt.Box(root,"Training target stand",new Vector3(x,.65f,-1.9f),new Vector3(.10f,1.15f,.10f),SettlementArt.Timber);
-                if(kind==PlotKind.ArmyCenter)
-                {
-                    developmentArt.Box(root,"Sharpshooter target",new Vector3(x,1.3f,-1.9f),new Vector3(.65f,.04f,.65f),SettlementArt.Concrete,true,PrimitiveType.Cylinder).localRotation=Quaternion.Euler(90,0,0);
-                    developmentArt.Box(root,"Target centre",new Vector3(x,1.3f,-1.95f),new Vector3(.22f,.025f,.22f),SettlementArt.Rust,true,PrimitiveType.Cylinder).localRotation=Quaternion.Euler(90,0,0);
-                }
-                else
-                {
-                    developmentArt.Box(root,"Melee practice dummy",new Vector3(x,1.1f,-1.9f),new Vector3(.4f,.6f,.25f),banner);
-                    developmentArt.Box(root,"Dummy arms",new Vector3(x,1.25f,-1.9f),new Vector3(.85f,.10f,.13f),SettlementArt.Timber);
-                }
-            }
-        }
     }
 }

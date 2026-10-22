@@ -8,9 +8,9 @@ namespace Ash
     /// <summary>Original procedural art, with shared materials and combined static geometry.</summary>
     public sealed class SettlementArt : IDisposable
     {
-        public static readonly Color OutpostSoil = new Color32(169,145,110,255);
-        public static readonly Color Asphalt = new Color32(69,66,56,255);
-        public static readonly Color Sand = new Color32(112, 104, 83, 255);
+        public static readonly Color OutpostSoil = new Color32(245,230,210,255);
+        public static readonly Color Asphalt = new Color32(177,119,67,255);
+        public static readonly Color Sand = new Color32(205, 142, 76, 255);
         public static readonly Color Concrete = new Color32(133, 132, 117, 255);
         public static readonly Color Rust = new Color32(137, 67, 43, 255);
         public static readonly Color Metal = new Color32(62, 76, 77, 255);

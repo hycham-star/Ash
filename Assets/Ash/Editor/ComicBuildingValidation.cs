@@ -7,6 +7,8 @@ namespace Ash.Editor
 {
     public static class ComicBuildingValidation
     {
+        [MenuItem("Ashlands/Validate Reference Wasteland Art")]
+        public static void ValidateReference()=>SettlementEnvironmentValidation.Run();
         [MenuItem("Ashlands/Validate Comic Buildings")]
         public static void ValidateProject()=>TownPresentationValidation.Run();
         public static void Run()
@@ -14,7 +16,7 @@ namespace Ash.Editor
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");
             var shader=Resources.Load<Shader>("AshComicBuilding");
             Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Comic building shader is missing or has compilation errors.");
-            foreach(var name in new[]{"Headquarters","Workshop","Barracks","Hospital","WaterStation","FoodGarden","OutpostHut","Market","OutpostWatchtower"})
+            foreach(var name in SettlementVisualCatalog.Models)
             {
                 var model=Resources.Load<GameObject>("Art/"+name);Require(model!=null,"Missing comic model: "+name);
                 var meshes=model.GetComponentsInChildren<MeshFilter>(true).Select(part=>part.sharedMesh).ToArray();
@@ -25,7 +27,9 @@ namespace Ash.Editor
                 Require(material.GetFloat("_OutlineWidth")>0 && material.GetFloat("_OutlineWidth")<=.025f,"Comic outline width invalid: "+name);
                 Require(model.GetComponentsInChildren<Collider>(true).Length==0,"Visual mesh must leave picking to its existing movable parent: "+name);
             }
-            Debug.Log("PASS Unity comic buildings: nine single-mesh/single-atlas models below 4000 triangles, painted materials, bundled shader and ink widths. Run Play/Android to verify actual lighting and outlines; no player progression changed.");
+            Require(new[]{PlotKind.InfantryCenter,PlotKind.BikerCenter,PlotKind.ArmyCenter}.Select(SettlementVisualCatalog.ModelFor).Distinct().Count()==3,"Each training category needs its own authored model.");
+            Require(SettlementVisualCatalog.ModelFor(PlotKind.Scrapyard)=="Scrapyard","Scrap yards must use wrecked-car salvage art.");
+            Debug.Log("PASS Unity comic buildings: fifteen single-mesh/single-atlas models below 4000 triangles, painted materials, bundled shader and ink widths. Run Play/Android to verify actual lighting and outlines; no player progression changed.");
         }
         private static void Require(bool condition,string message){if(!condition)throw new InvalidOperationException(message);}
     }

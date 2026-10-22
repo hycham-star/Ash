@@ -118,10 +118,10 @@ assert (assets / "Ash/Resources/HUD/WastelandNavigationPixels.bytes").read_bytes
 assert nav.getextrema()[3][0] == 0 and nav.getextrema()[3][1] > 240, "Navigation icons lost their alpha"
 print("PASS navigation artwork, alpha and exact RGBA backup.")
 
-comic_names = ('Headquarters','Workshop','Barracks','Hospital','WaterStation','FoodGarden','OutpostHut','Market','OutpostWatchtower')
+comic_names = ('Headquarters','Workshop','Barracks','Hospital','WaterStation','FoodGarden','OutpostHut','Market','OutpostWatchtower','InfantryCenter','BikerCenter','ArmyCenter','Scrapyard','EnemyCamp','LumberYard')
 comic_shader = re.search(r'guid: ([0-9a-f]{32})',(assets/'Ash/Resources/AshComicBuilding.shader.meta').read_text()).group(1)
 budgets = json.loads((root/'Tools/Art/ComicOutpostBudget.json').read_text())
-assert set(budgets) == set(comic_names), "Comic source budget must cover all nine building assets"
+assert set(budgets) == set(comic_names), "Comic source budget must cover all fifteen reference-kit assets"
 for name in comic_names:
     assert 0 < budgets[name]['triangles'] < 4000 and budgets[name]['materials'] == 1, f"Comic source budget invalid: {name}"
     material = (assets/f'Ash/Resources/Art/{name}Material.mat').read_text()
@@ -131,4 +131,4 @@ for name in comic_names:
         assert Image.open(assets/f'Ash/Resources/Art/{name}{suffix}.png').size == (1024,1024), f"Comic atlas missing: {name}{suffix}"
     sprite = Image.open(root/f'Tools/Art/ComicSprites/{name}.png')
     assert sprite.size == (512,512) and sprite.mode == 'RGBA' and sprite.getextrema()[3] == (0,255), f"Invalid transparent comic sprite: {name}"
-print('PASS nine comic source budgets, painted materials, atlases and transparent sprite renders (FBX geometry checked separately).')
+print('PASS fifteen reference-kit source budgets, painted materials, atlases and transparent sprite renders (FBX geometry checked separately).')

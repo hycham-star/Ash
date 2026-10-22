@@ -20,8 +20,8 @@ def model(name,position,scale=1,heading=0):
   o.location+=Vector(position);o.scale*=scale;o.rotation_euler.z+=math.radians(heading)
  return objects
 soil=material('Warm worn earth',(.31,.22,.135));n=soil.node_tree.nodes;l=soil.node_tree.links;p=n.get('Principled BSDF');uv=n.new('ShaderNodeTexCoord');mapping=n.new('ShaderNodeVectorMath');mapping.operation='SCALE';mapping.inputs[3].default_value=7.68;l.new(uv.outputs['UV'],mapping.inputs[0]);tex=n.new('ShaderNodeTexImage');tex.image=bpy.data.images.load(os.path.join(art,'OutpostGroundAlbedo.png'));l.new(mapping.outputs[0],tex.inputs['Vector']);l.new(tex.outputs[0],p.inputs['Base Color'])
-asphalt=material('Dusty asphalt',(.075,.07,.056));n=asphalt.node_tree.nodes;l=asphalt.node_tree.links;geo=n.new('ShaderNodeNewGeometry');noise=n.new('ShaderNodeTexNoise');noise.inputs['Scale'].default_value=7;l.new(geo.outputs['Position'],noise.inputs['Vector']);ramp=n.new('ShaderNodeValToRGB');ramp.color_ramp.elements[0].color=(.045,.043,.036,1);ramp.color_ramp.elements[1].color=(.13,.115,.087,1);l.new(noise.outputs['Fac'],ramp.inputs[0]);l.new(ramp.outputs[0],n.get('Principled BSDF').inputs['Base Color'])
-shoulder=material('Road verge',(.28,.22,.15));mark=material('Quiet lot corner',(.36,.30,.20))
+asphalt=material('Dusty asphalt',(.40,.20,.08));n=asphalt.node_tree.nodes;l=asphalt.node_tree.links;geo=n.new('ShaderNodeNewGeometry');noise=n.new('ShaderNodeTexNoise');noise.inputs['Scale'].default_value=7;l.new(geo.outputs['Position'],noise.inputs['Vector']);ramp=n.new('ShaderNodeValToRGB');ramp.color_ramp.elements[0].color=(.37,.18,.065,1);ramp.color_ramp.elements[1].color=(.62,.37,.16,1);l.new(noise.outputs['Fac'],ramp.inputs[0]);l.new(ramp.outputs[0],n.get('Principled BSDF').inputs['Base Color'])
+shoulder=material('Road verge',(.57,.32,.15));mark=material('Quiet lot corner',(.36,.30,.20))
 def box(name,p,s,m):
  bpy.ops.mesh.primitive_cube_add(size=1,location=p);o=bpy.context.object;o.name=name;o.dimensions=s;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.data.materials.append(m);return o
 box('Continuous dirt surface',(0,0,-.2),(96,96,.4),soil)

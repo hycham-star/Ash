@@ -47,7 +47,7 @@ namespace Ash.Editor
                 var home=Resources.Load<Texture2D>("Map/Settlement");Require(home!=null && home.width==384 && home.height==384,"Missing miniature settlement icon.");
                 var raw=Resources.Load<TextAsset>("Map/IsometricOverworldAtlasPixels");
                 Require(raw!=null && raw.bytes.Length==MapLandmarkArt.AtlasWidth*MapLandmarkArt.AtlasHeight*4,"Missing complete atlas raw backup.");
-                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","OutpostHut","OutpostTree","OutpostWatchtower","Hospital","Market","SalvageTruck","CavalryMount","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
+                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","OutpostHut","OutpostTree","OutpostWatchtower","Hospital","Market","SalvageTruck","CavalryMount","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values).Concat(SettlementVisualCatalog.Models).Distinct())
                 {
                     var model=Resources.Load<GameObject>("Art/"+name);
                     Require(model!=null,"Missing imported FBX: "+name);

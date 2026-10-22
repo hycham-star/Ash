@@ -1,46 +1,76 @@
 {
   "Headquarters": {
-    "triangles": 3454,
-    "materials": 1,
-    "texture": 1024
-  },
-  "Workshop": {
-    "triangles": 2134,
-    "materials": 1,
-    "texture": 1024
-  },
-  "Barracks": {
-    "triangles": 2062,
+    "triangles": 1475,
     "materials": 1,
     "texture": 1024
   },
   "OutpostHut": {
-    "triangles": 1610,
+    "triangles": 1048,
     "materials": 1,
     "texture": 1024
   },
-  "Hospital": {
-    "triangles": 392,
+  "Barracks": {
+    "triangles": 1315,
+    "materials": 1,
+    "texture": 1024
+  },
+  "Workshop": {
+    "triangles": 472,
+    "materials": 1,
+    "texture": 1024
+  },
+  "InfantryCenter": {
+    "triangles": 740,
+    "materials": 1,
+    "texture": 1024
+  },
+  "BikerCenter": {
+    "triangles": 1332,
+    "materials": 1,
+    "texture": 1024
+  },
+  "ArmyCenter": {
+    "triangles": 1216,
     "materials": 1,
     "texture": 1024
   },
   "WaterStation": {
-    "triangles": 1044,
+    "triangles": 612,
     "materials": 1,
     "texture": 1024
   },
   "FoodGarden": {
-    "triangles": 1822,
+    "triangles": 1760,
+    "materials": 1,
+    "texture": 1024
+  },
+  "Scrapyard": {
+    "triangles": 1128,
+    "materials": 1,
+    "texture": 1024
+  },
+  "LumberYard": {
+    "triangles": 348,
+    "materials": 1,
+    "texture": 1024
+  },
+  "EnemyCamp": {
+    "triangles": 2959,
+    "materials": 1,
+    "texture": 1024
+  },
+  "Hospital": {
+    "triangles": 280,
     "materials": 1,
     "texture": 1024
   },
   "Market": {
-    "triangles": 1674,
+    "triangles": 1256,
     "materials": 1,
     "texture": 1024
   },
   "OutpostWatchtower": {
-    "triangles": 1040,
+    "triangles": 600,
     "materials": 1,
     "texture": 1024
   }

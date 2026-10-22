@@ -62,7 +62,7 @@ for o in list(scene.objects):
  if o.type=='LIGHT':bpy.data.objects.remove(o,do_unlink=True)
 bpy.ops.object.light_add(type='SUN',location=(-20,-28,35));sun=bpy.context.object;sun.data.energy=2.2;sun.data.angle=.06;sun.data.color=(1,.93,.81);sun.rotation_euler=(Vector((0,0,0))-sun.location).to_track_quat('-Z','Y').to_euler()
 scene.world.use_nodes=True
-scene.world.node_tree.nodes.get('Background').inputs['Color'].default_value=(.52,.49,.43,1)
+scene.world.node_tree.nodes.get('Background').inputs['Color'].default_value=(.72,.49,.28,1)
 scene.world.node_tree.nodes.get('Background').inputs['Strength'].default_value=.35
 for o in scene.objects:
  if o.name=='Continuous dirt surface':o.dimensions=(128,128,.4)
@@ -83,9 +83,9 @@ for m in list(bpy.data.materials):
   return q.outputs[0]
  x=mathnode('SUBTRACT',mathnode('ABSOLUTE',sep.outputs['X']),28);y=mathnode('SUBTRACT',mathnode('ABSOLUTE',sep.outputs['Y']),32)
  outside=mathnode('MAXIMUM',x,y);r=n.new('ShaderNodeMapRange');r.interpolation_type='SMOOTHSTEP';r.clamp=True;r.inputs['From Min'].default_value=.8;r.inputs['From Max'].default_value=16.8;l.new(outside,r.inputs['Value'])
- emission=n.new('ShaderNodeEmission');emission.inputs['Color'].default_value=(.52,.49,.43,1)
+ emission=n.new('ShaderNodeEmission');emission.inputs['Color'].default_value=(.72,.49,.28,1)
  mix=n.new('ShaderNodeMixShader');l.new(r.outputs[0],mix.inputs[0]);l.new(original,mix.inputs[1]);l.new(emission.outputs[0],mix.inputs[2]);l.new(mix.outputs[0],output.inputs['Surface'])
-background=scene.world.node_tree.nodes.get('Background');nodes=scene.world.node_tree.nodes;links=scene.world.node_tree.links;path=nodes.new('ShaderNodeLightPath');visible=nodes.new('ShaderNodeBackground');visible.inputs['Color'].default_value=(.52,.49,.43,1);visible.inputs['Strength'].default_value=1;mix=nodes.new('ShaderNodeMixShader');links.new(path.outputs['Is Camera Ray'],mix.inputs[0]);links.new(background.outputs[0],mix.inputs[1]);links.new(visible.outputs[0],mix.inputs[2]);links.new(mix.outputs[0],nodes.get('World Output').inputs['Surface'])
+background=scene.world.node_tree.nodes.get('Background');nodes=scene.world.node_tree.nodes;links=scene.world.node_tree.links;path=nodes.new('ShaderNodeLightPath');visible=nodes.new('ShaderNodeBackground');visible.inputs['Color'].default_value=(.72,.49,.28,1);visible.inputs['Strength'].default_value=1;mix=nodes.new('ShaderNodeMixShader');links.new(path.outputs['Is Camera Ray'],mix.inputs[0]);links.new(background.outputs[0],mix.inputs[1]);links.new(visible.outputs[0],mix.inputs[2]);links.new(mix.outputs[0],nodes.get('World Output').inputs['Surface'])
 scene.render.use_freestyle=False;scene.cycles.samples=24;camera.data.ortho_scale=82
 scene.render.resolution_x=1000;scene.render.resolution_y=900
 scene.render.filepath=os.path.join(root,'Tools/Art/SettlementEnvironment_Preview.png');bpy.ops.render.render(write_still=True)

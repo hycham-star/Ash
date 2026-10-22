@@ -10,7 +10,7 @@ namespace Ash
         private GameObject districtScenery;
         private SettlementArt districtArt;
         private string districtSignature;
-        private static readonly Color DistrictShoulder=new Color32(137,111,80,255);
+        private static readonly Color DistrictShoulder=new Color32(203,148,89,255);
         private void RefreshDistrictScenery()
         {
             if(world==null)return;

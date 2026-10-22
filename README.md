@@ -1,5 +1,7 @@
 # Ashlands: Rise of the Remnants
 
+The supplied orange-desert reference now drives **15 distinct building/site models**: stacked-container HQ, patched homes, rope-ring Melee Camp, motorcycle garage, tent-and-target Sharpshooter range, oasis pump, dry farm, wrecked-car scrapyard, dead-tree timber yard and fortified enemy bases. Settlement and world ground use the same warm desert palette. Run **Ashlands > Validate Reference Wasteland Art** outside Play, then **Open Settlement Scene > Play**. See [asset previews, mappings and checks](Docs/ReferenceWastelandArt.md).
+
 World-map visibility and lighting fixes: the world now opens at a closer, pannable scale, with enemy camps visible at every zoom. The settlement explicitly selects a realtime per-pixel sun and forward camera, with owned shadow-caster passes. **Ashlands > Validate Settlement Environment** now includes an actual offscreen rendered-light/shadow pixel check (requires a graphics device). See [verification steps](Docs/SettlementEnvironment.md).
 
 The settlement now adds **dry grass, bare trees, warmer lighting, soft shadows and smooth fog beyond the walls**. The world expands to **401×401 tiles with 48 resource centers and 512 camps**, preserving existing locations and assignments through save migration. Outside Play run **Ashlands > Validate Settlement Environment**, then **Open Settlement Scene > Play**. See [preview and verification steps](Docs/SettlementEnvironment.md).

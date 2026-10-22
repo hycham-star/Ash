@@ -140,10 +140,14 @@ namespace Ash
                 for(float z=-SettlementLayout.HalfDepth;z<=SettlementLayout.HalfDepth;z+=1.4f)
                 {
                     art.Box(world,"Fence post",new Vector3(x,.85f,z),new Vector3(.14f,1.7f,.14f),SettlementArt.Timber);
-                    if(z+1.4f<=SettlementLayout.HalfDepth)art.Box(world,"Salvage palisade panel",new Vector3(x,.62f,z+.7f),new Vector3(.07f,1.10f,1.15f),SettlementArt.Metal);
+                    art.Rock(world,new Vector3(x,1.7f,z),new Vector3(.09f,.30f,.09f));
+                    if(z+1.4f<=SettlementLayout.HalfDepth)art.Box(world,"Salvage palisade panel",new Vector3(x,.62f,z+.7f),new Vector3(.07f,1.10f,1.15f),((int)((z+SettlementLayout.HalfDepth)/1.4f))%3==0?SettlementArt.Rust:SettlementArt.Metal);
+                    if(z+1.4f<=SettlementLayout.HalfDepth)for(int rib=0;rib<4;rib++)
+                        art.Box(world,"Salvage wall corrugation",new Vector3(x-side*.045f,.62f,z+.20f+rib*.28f),new Vector3(.025f,1.10f,.025f),SettlementArt.Metal);
                     if(z+1.4f<=SettlementLayout.HalfDepth)for(int rail=0;rail<2;rail++)art.Box(world,"Fence rail",new Vector3(x,.4f+rail*.5f,z+.7f),new Vector3(.1f,.1f,1.4f),SettlementArt.Metal);
                 }
                 Tower(new Vector3(x,0,SettlementLayout.HalfDepth-1));
+                Tower(new Vector3(x,0,-SettlementLayout.HalfDepth+1));
             }
             for(float x=-SettlementLayout.HalfWidth;x<=SettlementLayout.HalfWidth;x+=1.4f)
             {
@@ -199,21 +203,10 @@ namespace Ash
                 else if(p.Kind==PlotKind.Market)BuildMarketLandmark(root);
                 else if(p.Kind!=PlotKind.Empty)
                 {
-                    string asset=p.Kind==PlotKind.BikerCenter?"Workshop":p.Kind==PlotKind.InfantryCenter || p.Kind==PlotKind.ArmyCenter?"Barracks":p.Kind==PlotKind.Farm?"FoodGarden":p.Kind==PlotKind.WaterWell?"WaterStation":p.Kind==PlotKind.Scrapyard?"Workshop":"Barracks";
-                    var model=RealisticAssets.Building(root,asset,new Vector2(4,4));model.transform.localScale=Vector3.one*(.9f+.02f*p.Level);
-                    if(BuildingService.IsTraining(p.Kind))BuildTrainingProps(root,p.Kind);
-                    if(p.Kind==PlotKind.WaterWell)model.transform.localPosition=new Vector3(.55f,0,.55f);
-                    if(p.Kind==PlotKind.Scrapyard)for(int n=0;n<5;n++)
-                    {
-                        var scrap=developmentArt.Box(root,"Salvage pile",new Vector3(-2+n*.9f,.35f,-1.8f),new Vector3(.65f,.55f,.65f),n%2==0?SettlementArt.Rust:SettlementArt.Metal);scrap.localRotation=Quaternion.Euler(12,n*27,14);
-                    }
-                    if(p.Kind==PlotKind.WaterWell)
-                    {
-                        developmentArt.Box(root,"Well stone ring",new Vector3(-1.8f,.45f,-1.7f),new Vector3(.9f,.4f,.9f),SettlementArt.Concrete,true,PrimitiveType.Cylinder);
-                        developmentArt.Box(root,"Well opening",new Vector3(-1.8f,.86f,-1.7f),new Vector3(.65f,.015f,.65f),new Color32(25,44,49,255),true,PrimitiveType.Cylinder);
-                        developmentArt.Box(root,"Well handle post",new Vector3(-2.2f,1.05f,-1.7f),new Vector3(.1f,.6f,.1f),SettlementArt.Timber);
-                        developmentArt.Box(root,"Well hand pump",new Vector3(-1.9f,1.36f,-1.7f),new Vector3(.65f,.08f,.08f),SettlementArt.Metal);
-                    }
+                    string asset=SettlementVisualCatalog.ModelFor(p.Kind);
+                    var model=RealisticAssets.Building(root,asset,new Vector2(4,4));
+                    // Keep the new authored yards inside their original six-unit construction footprints.
+                    model.transform.localScale=Vector3.one*(.90f+.005f*Mathf.Min(p.Level,10));
                 }
                 developmentArt.Combine(root);
                 FitBuildingCollider(root);

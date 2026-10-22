@@ -9,7 +9,7 @@ namespace Ash
         public static readonly Vector4 Boundary = new Vector4(SettlementLayout.HalfWidth,SettlementLayout.HalfDepth,16,1);
         // Side lighting keeps cast shadows visible instead of hiding them behind the models.
         public static Quaternion SunRotation=>Quaternion.Euler(42,-125,0);
-        public static readonly Color Dust = new Color(.52f,.49f,.43f,1);
+        public static readonly Color Dust = new Color(.72f,.49f,.28f,1);
         private static readonly int FogId=Shader.PropertyToID("_AshBoundaryFog"), ColorId=Shader.PropertyToID("_AshFogColor");
         private Vector4 previousBoundary;private Color previousColor;
         private Light previousSun;private int previousPixelLights;private RenderingPath previousPath;private DepthTextureMode previousDepth;

@@ -1,1 +1,4 @@
 *.pdf binary
+
+# Raw RGBA texture backups must never receive line-ending conversion or text diffs.
+*.bytes binary

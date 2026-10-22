@@ -58,11 +58,11 @@ Shader "Ash/Settlement Mobile"
                 half soil=noise(i.world.xz*2.1);
                 half gravel=smoothstep(.82,.94,grain);
                 albedo*=lerp(half3(1,1,1),lerp(half3(.78,.74,.65),half3(1.12,1.06,.89),soil)+gravel*.1h,earth);
-                if(_GroundTextureMix>.5h)albedo*=tex2D(_GroundTex,i.world.xz*.08).rgb*1.45h;
+                if(_GroundTextureMix>.5h)albedo*=tex2D(_GroundTex,i.world.xz*.08).rgb;
                 if(_Road>.5h)
                 {
                     half crack=1-smoothstep(.012h,.035h,abs(noise(surface*1.8)-.5h));
-                    albedo*=1-crack*.48h;albedo=lerp(albedo,half3(.34,.29,.21),smoothstep(.66h,.85h,broad)*.30h);
+                    albedo*=1-crack*.48h;albedo=lerp(albedo,half3(.56,.34,.16),smoothstep(.66h,.85h,broad)*.30h);
                 }
                 half3 view=normalize(_WorldSpaceCameraPos-i.world);
                 half spec=pow(saturate(dot(n,normalize(light+view))),20)*_Specular*(1-earth)*shadow;

@@ -1,5 +1,7 @@
 # Comic-style apocalyptic building kit
 
+The current fifteen-model orange-desert kit and rebuild commands are documented in [Reference Wasteland Art](ReferenceWastelandArt.md). The nine-model kit below is the earlier pass; its modeling helpers remain shared by the current builder.
+
 Nine original building models replace the earlier concrete/detailed building visuals with salvaged timber, muted corrugated tin, sewn canvas and dark illustrated seams. The camera remains the existing fixed orthographic isometric view. This is an art update: no resource, hero, market, hospital, construction, placement ID or save-schema rules change.
 
 | Source asset | Appearance | Triangles |
