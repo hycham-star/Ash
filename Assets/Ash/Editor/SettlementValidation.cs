@@ -103,18 +103,17 @@ namespace Ash.Editor
                 art.Rock(modelRoot.transform,new Vector3(-3,0,0),Vector3.one);
                 art.Combine(modelRoot.transform);
                 Require(modelRoot.GetComponentsInChildren<MeshFilter>().All(filter=>filter.sharedMesh!=null),"Generated mesh reference is missing.");
-                foreach(string building in new[]{"Headquarters","Workshop","Barracks","WaterStation","FoodGarden"})
+                foreach(string building in new[]{"Headquarters","Workshop","Barracks","WaterStation","FoodGarden","Hospital","Market"})
                 {
                     var buildingRoot=new GameObject("Disposable "+building);buildingRoot.transform.SetParent(modelRoot.transform,false);
                     if(building=="Headquarters")RealisticAssets.Headquarters(buildingRoot.transform);
                     else RealisticAssets.Building(buildingRoot.transform,building,new Vector2(3,2.6f));
                     var props=buildingRoot.GetComponentInChildren<WastelandBuildingProps>();
-                    bool authored=building=="Headquarters" || building=="Workshop" || building=="Barracks";
-                    Require(authored?props==null:props!=null,"Authored buildings must own their details without duplicate legacy roof props: "+building);
-                    var detailRoot=authored?buildingRoot.transform:props.transform;
+                    Require(props==null,"Authored buildings must own their details without duplicate legacy roof props: "+building);
+                    var detailRoot=buildingRoot.transform;
                     var meshes=detailRoot.GetComponentsInChildren<MeshFilter>();
                     long triangles=meshes.Sum(filter=>Enumerable.Range(0,filter.sharedMesh.subMeshCount).Sum(i=>(long)filter.sharedMesh.GetIndexCount(i)/3));
-                    Require(meshes.Length>0 && triangles<(authored?20000:3500),"Building details exceed the mesh budget: "+building);
+                    Require(meshes.Length>0 && triangles<4000,"Building details exceed the mesh budget: "+building);
                     Require(detailRoot.GetComponentsInChildren<Collider>().Length==0,"Environment props must not intercept building selection.");
                     var renderers=detailRoot.GetComponentsInChildren<MeshRenderer>();var centres=renderers.Select(renderer=>renderer.bounds.center).ToArray();
                     buildingRoot.transform.localPosition+=Vector3.right*2;

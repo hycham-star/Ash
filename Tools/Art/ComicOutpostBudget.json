@@ -1,0 +1,47 @@
+{
+  "Headquarters": {
+    "triangles": 3454,
+    "materials": 1,
+    "texture": 1024
+  },
+  "Workshop": {
+    "triangles": 2134,
+    "materials": 1,
+    "texture": 1024
+  },
+  "Barracks": {
+    "triangles": 2062,
+    "materials": 1,
+    "texture": 1024
+  },
+  "OutpostHut": {
+    "triangles": 1610,
+    "materials": 1,
+    "texture": 1024
+  },
+  "Hospital": {
+    "triangles": 392,
+    "materials": 1,
+    "texture": 1024
+  },
+  "WaterStation": {
+    "triangles": 1044,
+    "materials": 1,
+    "texture": 1024
+  },
+  "FoodGarden": {
+    "triangles": 1822,
+    "materials": 1,
+    "texture": 1024
+  },
+  "Market": {
+    "triangles": 1674,
+    "materials": 1,
+    "texture": 1024
+  },
+  "OutpostWatchtower": {
+    "triangles": 1040,
+    "materials": 1,
+    "texture": 1024
+  }
+}

@@ -8,7 +8,7 @@ from mathutils import Vector
 
 root = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else os.getcwd()
 characters = ('Engineer', 'Sentry', 'MaraFlint', 'JonasReed', 'SeraVale', 'BramHolt', 'IlyraVoss', 'KadeRook', 'AshaSol', 'OrinAshcroft')
-for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden', 'OutpostHut', 'OutpostTree', 'OutpostWatchtower', 'SalvageTruck', 'CavalryMount') + characters:
+for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop', 'Barracks', 'WaterStation', 'FoodGarden', 'OutpostHut', 'OutpostTree', 'OutpostWatchtower', 'Hospital', 'Market', 'SalvageTruck', 'CavalryMount') + characters:
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
     for action in list(bpy.data.actions):
@@ -19,6 +19,8 @@ for name in ('Headquarters', 'Scavenger', 'HeadquartersSurroundings', 'Workshop'
     triangles = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in meshes)
     assert 0 < triangles < 20000, f'{name}: triangle budget {triangles}'
     assert all(o.data.uv_layers for o in meshes), f'{name}: missing UVs'
+    if name in ('Headquarters','Workshop','Barracks','Hospital','Market','FoodGarden','WaterStation','OutpostHut','OutpostWatchtower'):
+        assert triangles < 4000, f'{name}: comic building exceeds 4000 triangle budget'
     if name == 'CavalryMount':
         assert all(len(o.data.uv_layers) == 1 for o in meshes), 'Mounted atlas must be UV channel zero'
         assert bpy.data.objects.get('FaceAimOrigin') and bpy.data.objects.get('FaceAimForward'), 'Missing mounted facing markers'

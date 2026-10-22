@@ -17,11 +17,7 @@ namespace Ash
         private readonly Dictionary<ResourceType,Text> marketLabels=new Dictionary<ResourceType,Text>();
         private void BuildMarketLandmark(Transform root)
         {
-            RealisticAssets.Scenery(root,"OutpostHut",new Vector3(0,0,.5f),1.05f);
-            foreach(float x in new[]{-1.35f,1.35f})developmentArt.Box(root,"Market awning post",new Vector3(x,.95f,-1.6f),new Vector3(.10f,1.9f,.10f),SettlementArt.Timber);
-            var awning=developmentArt.Box(root,"Red trading awning",new Vector3(0,1.85f,-1.2f),new Vector3(2.9f,.08f,1.25f),new Color32(126,55,36,255));awning.localRotation=Quaternion.Euler(8,0,0);
-            developmentArt.Box(root,"Trading counter",new Vector3(0,.48f,-1.8f),new Vector3(2.8f,.85f,.58f),SettlementArt.Timber);
-            for(int i=0;i<4;i++)developmentArt.Box(root,"Market supplies",new Vector3(-1.0f+i*.65f,1.0f,-1.8f),new Vector3(.42f,.26f,.40f),i%2==0?SettlementArt.Concrete:SettlementArt.Rust);
+            RealisticAssets.Building(root,"Market",new Vector2(3,2.5f));
         }
         private void BuildNavigationPanels()
         {

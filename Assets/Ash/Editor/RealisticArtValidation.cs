@@ -31,7 +31,7 @@ namespace Ash.Editor
                     var texture=Resources.Load<Texture2D>("Map/"+asset);
                     Require(texture!=null && texture.width==384 && texture.height==384,"Missing convoy/camp image: "+asset);
                 }
-                foreach(var name in new[]{"AshSettlement","AshDetail","AshContact","AshRaidDust"})
+                foreach(var name in new[]{"AshSettlement","AshDetail","AshContact","AshRaidDust","AshComicBuilding"})
                 {
                     var shader=Resources.Load<Shader>(name);
                     Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Missing or invalid shader: "+name);
@@ -41,7 +41,7 @@ namespace Ash.Editor
                 var home=Resources.Load<Texture2D>("Map/Settlement");Require(home!=null && home.width==384 && home.height==384,"Missing miniature settlement icon.");
                 var raw=Resources.Load<TextAsset>("Map/IsometricOverworldAtlasPixels");
                 Require(raw!=null && raw.bytes.Length==MapLandmarkArt.AtlasWidth*MapLandmarkArt.AtlasHeight*4,"Missing complete atlas raw backup.");
-                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","OutpostHut","OutpostTree","OutpostWatchtower","SalvageTruck","CavalryMount","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
+                foreach(var name in new[]{"Headquarters","Scavenger","HeadquartersSurroundings","Workshop","Barracks","WaterStation","FoodGarden","OutpostHut","OutpostTree","OutpostWatchtower","Hospital","Market","SalvageTruck","CavalryMount","Engineer","Sentry"}.Concat(HeroVisualCatalog.Heroes.Values))
                 {
                     var model=Resources.Load<GameObject>("Art/"+name);
                     Require(model!=null,"Missing imported FBX: "+name);

@@ -10,7 +10,7 @@ namespace Ash
         public static GameObject Headquarters(Transform parent)
         {
             var model=Create("Headquarters","HeadquartersMaterial",parent);
-            model.name="Weathered Headquarters — original detailed mesh";
+            model.name="Patched timber command hall — comic low-poly mesh";
             // The detailed mesh owns its roof equipment and yard clutter.
             Grounding(model.transform,new Vector3(0,.17f,0),new Vector2(4.3f,4.1f));
             return model;
@@ -19,7 +19,7 @@ namespace Ash
         {
             var model=Create(assetName,assetName+"Material",parent);
             model.name=assetName+" — original textured building";
-            if(assetName!="Barracks" && assetName!="Workshop")WastelandBuildingProps.Attach(model.transform,assetName,footprint);
+            // The comic kit owns its roof repairs and supplies; no duplicate procedural surrounds.
             Grounding(model.transform,new Vector3(0,.065f,0),footprint+new Vector2(.25f,.25f));
             return model;
         }

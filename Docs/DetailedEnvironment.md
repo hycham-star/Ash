@@ -1,5 +1,7 @@
 # Detailed outpost buildings and vehicles
 
+The current timber/tin/canvas building kit supersedes these concrete models: see [Comic outpost art](ComicOutpostArt.md). The older generator is retained as historical source.
+
 This update uses the supplied wasteland miniature illustration as a style reference for original geometry. It replaces Headquarters, Workshop and Barracks meshes with weathered concrete architecture: flat parapet roofs, recessed windows, door frames, rooftop equipment, access ladders, canvas awnings, drums and supply clutter. The Barracks mesh is also used by housing, training-center and clinic presentation through the existing building mapping.
 
 Buildings keep the original asset names, GUIDs and gameplay IDs. Model geometry is fitted to the existing placement footprints; no saved positions or collision rules change. Roof/yard details now belong to the exported building mesh. Runtime creation omits the older overlapping procedural roof kit for these three models, while the garden and water station retain their existing prop kits. The old headquarters-surroundings asset remains bundled for compatibility but is no longer instantiated on top of the new headquarters.

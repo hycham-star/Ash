@@ -134,13 +134,7 @@ namespace Ash
             Building("FOOD GARDEN","Raised beds and reclaimed soil: a promise of life returning to the Ashlands.",new Vector3(3.5f,0,6),new Vector3(3,.9f,2.5f),"FoodGarden",BuildingKind.FoodGarden);
             var clinic=Marker("HOSPITAL","Heal wounded fighters; upgrade beds and recovery speed.",new Vector3(-3,0,6.5f),new Vector3(3,2.5f,2.5f));
             clinic.GetComponent<SettlementBuilding>().Configure("HOSPITAL","All wounded are recoverable. Heroes cannot be wounded.",hospital:true,placementId:"core-hospital");
-            RealisticAssets.Building(clinic,"Barracks",new Vector2(3,2.5f)).transform.localScale=Vector3.one*.8f;
-            art.Box(clinic,"Clinic roof sign",new Vector3(0,1.92f,0),new Vector3(1,.04f,1),new Color32(40,103,86,255),false);
-            art.Box(clinic,"Roof plus upright",new Vector3(0,1.95f,0),new Vector3(.16f,.03f,.7f),Color.white,false);
-            art.Box(clinic,"Roof plus crossbar",new Vector3(0,1.96f,0),new Vector3(.7f,.03f,.16f),Color.white,false);
-            art.Box(clinic,"Clinic sign",new Vector3(0,1.3f,-1.35f),new Vector3(.9f,.8f,.05f),new Color32(40,103,86,255),false);
-            art.Box(clinic,"Medical plus upright",new Vector3(0,1.3f,-1.39f),new Vector3(.16f,.55f,.04f),Color.white,false);
-            art.Box(clinic,"Medical plus crossbar",new Vector3(0,1.3f,-1.40f),new Vector3(.55f,.16f,.04f),Color.white,false);
+            RealisticAssets.Building(clinic,"Hospital",new Vector2(3,2.5f));FitBuildingCollider(clinic);
             for(int side=-1;side<=1;side+=2)
             {
                 float x=side*SettlementLayout.HalfWidth;
@@ -239,7 +233,7 @@ namespace Ash
                     if(first){bounds=new Bounds(point,Vector3.zero);first=false;}else bounds.Encapsulate(point);
                 }
             }
-            var collider=root.gameObject.AddComponent<BoxCollider>();collider.center=bounds.center;
+            var collider=root.GetComponent<BoxCollider>();if(collider==null)collider=root.gameObject.AddComponent<BoxCollider>();collider.center=bounds.center;
             collider.size=new Vector3(Mathf.Max(1,bounds.size.x),Mathf.Max(.5f,bounds.size.y),Mathf.Max(1,bounds.size.z));
         }
         private Transform Marker(string title,string description,Vector3 position,Vector3 size,BuildingKind? kind=null)
@@ -255,6 +249,7 @@ namespace Ash
             root.GetComponent<SettlementBuilding>().Configure(title,description,kind,placementId:"core-"+assetName.ToLowerInvariant());
             if(kind==BuildingKind.Headquarters)RealisticAssets.Headquarters(root);
             else RealisticAssets.Building(root,assetName,new Vector2(size.x,size.z));
+            FitBuildingCollider(root);
         }
         private void Tower(Vector3 position)
         {

@@ -25,7 +25,7 @@ shoulder=material('Road verge',(.28,.22,.15));mark=material('Quiet lot corner',(
 def box(name,p,s,m):
  bpy.ops.mesh.primitive_cube_add(size=1,location=p);o=bpy.context.object;o.name=name;o.dimensions=s;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.data.materials.append(m);return o
 box('Continuous dirt surface',(0,0,-.2),(96,96,.4),soil)
-cores=[('Headquarters',-3,3,4.6,4.2),('Workshop',3,2.5,3.4,3.2),('Barracks',-3.3,-4,3,2.6),('WaterStation',3.4,-4,3,2.6),('FoodGarden',3.5,6,3,2.5),('Barracks',-3,6.5,3,2.5)]
+cores=[('Headquarters',-3,3,4.6,4.2),('Workshop',3,2.5,3.4,3.2),('Barracks',-3.3,-4,3,2.6),('WaterStation',3.4,-4,3,2.6),('FoodGarden',3.5,6,3,2.5),('Hospital',-3,6.5,3,2.5)]
 plots=[(x,z) for z in (-14,14) for x in (-12,0,12)]+[(x,z) for x in (-12,12) for z in (-6,2,8)]+[(x,z) for z in (-25,25) for x in (-21,-7,7,21)]+[(x,z) for x in (-23,23) for z in (-12,12)]
 blocked=[(x,z,6,6) for x,z in plots]+[(x,z,w,d) for _,x,z,w,d in cores]
 roads=[(False,x,1.8,20) for x in (-18,-8,8,18)]+[(False,0,1.2,10)]+[(True,z,1.2 if z==-1.9 else 1.8,27) for z in (-20,-10,-1.9,20)]+[(False,x,1.2,30) for x in (-26.8,26.8)]+[(True,z,1.2,27) for z in (-30,30)]
@@ -53,5 +53,6 @@ for x,z in plots:
 for loc,power,color,size in [((-10,-16,25),7000,(1,.88,.72),9),((14,9,18),2600,(.68,.78,1),12)]:
  bpy.ops.object.light_add(type='AREA',location=loc);o=bpy.context.object;o.data.energy=power;o.data.size=size;o.data.color=color;o.rotation_euler=(Vector((0,0,0))-o.location).to_track_quat('-Z','Y').to_euler()
 target=Vector((0,1,0));bpy.ops.object.camera_add(location=target+Vector((20,-20,20)));camera=bpy.context.object;camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler();camera.data.type='ORTHO';camera.data.ortho_scale=24;scene.camera=camera
-scene.render.resolution_x=800;scene.render.resolution_y=1000;scene.render.resolution_percentage=100;scene.render.image_settings.file_format='PNG';scene.render.filepath=os.path.join(root,'Tools/Art/OutpostDistrict_Preview.png');bpy.ops.render.render(write_still=True)
+scene.render.resolution_x=800;scene.render.resolution_y=1000;scene.render.resolution_percentage=100;scene.render.image_settings.file_format='PNG';scene.render.use_freestyle=True;scene.view_layers[0].freestyle_settings.linesets[0].linestyle.color=(.055,.045,.032);scene.view_layers[0].freestyle_settings.linesets[0].linestyle.thickness=.8
+scene.render.filepath=os.path.join(root,'Tools/Art/OutpostDistrict_Preview.png');bpy.ops.render.render(write_still=True)
 print('PASS default layout district preview; Blender, not Unity',flush=True)
