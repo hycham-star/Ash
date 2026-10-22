@@ -123,13 +123,17 @@ namespace Ash
         }
         private static void AdvanceStock(int stored,int timer,int seconds,int rate,int capacity,out int stock,out int nextTimer)
         {long elapsed=(long)timer+seconds;stock=(int)Math.Min(capacity,stored+(elapsed/60)*rate);nextTimer=stock==capacity?0:(int)(elapsed%60);}
-        public void AdvanceDevelopment(int activeSeconds)
+        public void AdvanceDevelopment(int activeSeconds, bool automaticCollection = false)
         {
             if(commanding)throw new InvalidOperationException("Building command already running.");if(activeSeconds<0)throw new ArgumentOutOfRangeException(nameof(activeSeconds));if(activeSeconds==0)return;
             commanding=true;bool changed=false,ledger=false;
             try
             {
-                foreach(var p in development.Plots){int rate=PlotRate(p.Kind,p.Level);if(rate==0 || p.Stored==rate*5)continue;AdvanceStock(p.Stored,p.Seconds,activeSeconds,rate,rate*5,out p.Stored,out p.Seconds);changed=true;}
+                foreach(var p in development.Plots) {
+                    int rate=PlotRate(p.Kind,p.Level);if(rate==0)continue;
+                    if(automaticCollection)changed|=AdvanceAutomatic(PlotProduct(p.Kind),rate,activeSeconds,ref p.Stored,ref p.Seconds,ref ledger);
+                    else if(p.Stored<rate*5){AdvanceStock(p.Stored,p.Seconds,activeSeconds,rate,rate*5,out p.Stored,out p.Seconds);changed=true;}
+                }
                 int before=development.GrowthSeconds;
                 if(Population>=HousingCapacity || resources.Get(ResourceType.Food)<2 || resources.Get(ResourceType.Water)<1)development.GrowthSeconds=0;
                 else

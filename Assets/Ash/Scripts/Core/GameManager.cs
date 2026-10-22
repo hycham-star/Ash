@@ -31,6 +31,8 @@ namespace Ash
         private Func<long> utcNow = () => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         private bool applicationPaused, applicationFocused=true, skipProductionFrame;
         private float productionSeconds, productionCheckpoint;
+        // Presentation reads the same fixed-step remainder; domain missions and saves remain integer seconds.
+        public float TravelSubsecond => productionPaused || skipProductionFrame ? 0 : Mathf.Clamp01(productionSeconds);
         private bool productionPaused;
         [SerializeField] private bool enableLocalPersistence;
         private ProgressPersistence progress;
@@ -66,11 +68,15 @@ namespace Ash
             float elapsed=Mathf.Min(Time.unscaledDeltaTime,1f);
             productionSeconds+=elapsed; productionCheckpoint+=elapsed;
             if(productionSeconds>=1) {
-                int seconds=(int)productionSeconds; productionSeconds-=seconds; Buildings.Advance(seconds); Buildings.AdvanceDevelopment(seconds); Hospital.Advance(seconds);
+                int seconds=(int)productionSeconds; productionSeconds-=seconds; AdvanceSettlementProduction(seconds); Hospital.Advance(seconds);
                 advancingScavenging=true;
                 try { Scavenging.Advance(seconds); WorldMap.Advance(seconds); } finally { advancingScavenging=false; }
             }
             if(productionCheckpoint>=10) { productionCheckpoint=0; if(unsaved && !saveBlocked)dirty=true; }
+        }
+        private void AdvanceSettlementProduction(int seconds)
+        {
+            Buildings.Advance(seconds,true);Buildings.AdvanceDevelopment(seconds,true);
         }
         private bool advancingScavenging;
         private void MarkScavengingDirty() { if(restoring)return; if(advancingScavenging)unsaved=true; else MarkDirty(); }

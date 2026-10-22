@@ -41,8 +41,8 @@ namespace Ash.Editor
                 Call("PrepareSelectedHero");
                 void Fill(int heroIndex,int fighterIndex)
                 {
-                    Set("selectedHero",heroIndex);Set("selectedFighter",fighterIndex);Call("Refresh");
-                    ((Text)Field("fillFightersLabel")).transform.parent.GetComponent<Button>().onClick.Invoke();
+                    Set("selectedHero",heroIndex);Call("Refresh");
+                    var slider=((System.Collections.Generic.List<Slider>)Field("fighterSliders"))[fighterIndex];slider.value=slider.maxValue;
                 }
                 Fill(0,0);Fill(1,1);
                 var first=manager.Heroes[0];var second=manager.Heroes[1];var empty=manager.Heroes[2];
@@ -74,7 +74,7 @@ namespace Ash.Editor
                 Control("Raid hero • "+first.InstanceId).onClick.Invoke();
                 picker.GetComponentsInChildren<Button>(true).Single(button=>button.name=="X").onClick.Invoke();
                 Require(manager.WorldMap.Capture().Missions.Length==1 && manager.WorldMap.Mission(first.InstanceId)==null,"Cancelling selection dispatched an extra army.");
-                Set("selectedHero",1);Call("PrepareSelectedHero");Require(!((Text)Field("fillFightersLabel")).transform.parent.GetComponent<Button>().interactable,"Barracks must not refill a deployed army.");
+                Set("selectedHero",1);Call("PrepareSelectedHero");Require(((System.Collections.Generic.List<Slider>)Field("fighterSliders")).All(slider=>!slider.interactable),"Barracks must not refill a deployed army.");
                 Require(!manager.PersistenceActive,"Validation unexpectedly opened player persistence.");
                 Debug.Log("PASS Unity raid preparation: clickable barracks, independent army fills, RAID/SCOUT-only camp actions, eight illustrated hero choices, empty/deployed guards, prepare-selected-hero navigation, explicit selected-hero/camp dispatch and cancel isolation. Disposable preview only; player saves untouched. Verify layout and touch on device.");
             }

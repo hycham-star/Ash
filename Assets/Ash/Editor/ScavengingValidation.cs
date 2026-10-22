@@ -55,7 +55,7 @@ namespace Ash.Editor
                 var templates=new System.Collections.Generic.List<NpcEncounter>();
                 for(int i=0;i<references.arraySize;i++)templates.Add(((EncounterConfig)references.GetArrayElementAtIndex(i).objectReferenceValue).CreateEncounter());
                 manager.WorldMap.ConfigureEncounters(templates);
-                int chosen=0;map.ConfigureWorld(manager.WorldMap,()=>manager.Heroes[chosen],delta=>chosen=(chosen+delta+manager.Heroes.Count)%manager.Heroes.Count,_=>{});
+                float subsecond=0;int chosen=0;map.ConfigureWorld(manager.WorldMap,()=>manager.Heroes[chosen],delta=>chosen=(chosen+delta+manager.Heroes.Count)%manager.Heroes.Count,_=>{},subsecond:()=>subsecond);
                 map.Refresh(); // Actual refresh of the inactive panel, including real button references.
                 Require(!map.gameObject.activeSelf && map.GetComponentsInChildren<Button>(true).Length>=24,"Map UI controls incomplete.");
                 map.Show();
@@ -135,7 +135,20 @@ namespace Ash.Editor
                 Require(occupied.GetComponentInChildren<RawImage>(true).color==Color.white,"Recalled gathering site must recover its normal colour.");
                 store.Save(progress.Capture());string missionJson=codec.Encode(progress.Capture());manager.WorldMap.Advance(100);
                 progress.Restore(store.Load().State);progress.NotifyRestored();Require(codec.Encode(progress.Capture())==missionJson,"Native mission disk round trip changed convoy state.");
-                Debug.Log("PASS Unity world map: 48 resource landmarks, 512 grid camp buttons/scouting, close zoom sizing, bus/bike travel, gathering site colours and hidden parked convoys, native JsonUtility mission disk round trip, civilian gathering and legacy migration. Temporary saves only; test pinch/drag/convoy motion and raid dust/results on phone.");
+                manager.WorldMap.Advance(100);
+                manager.WorldMap.Dispatch(hero.InstanceId,manager.WorldMap.Camps[0].Id,MapMissionKind.Raid);map.Refresh();
+                var convoy=map.GetComponentsInChildren<RectTransform>(true).Single(rect=>rect.name=="Army convoy • "+hero.InstanceId);
+                var route=map.GetComponentsInChildren<MapRaidRoute>(true).Single();
+                Require(!route.raycastTarget && route.rectTransform.rect.width>0,"Raid route must have visible clipped geometry and never intercept input.");
+                var start=convoy.anchoredPosition;subsecond=.25f;map.Refresh();var quarter=convoy.anchoredPosition;
+                subsecond=.5f;map.Refresh();var half=convoy.anchoredPosition;
+                Require((quarter-start).magnitude>0 && Vector2.Distance(quarter-start,half-quarter)<.001f,"Convoy must move uniformly between integer ticks.");
+                subsecond=.999f;map.Refresh();var beforeTick=convoy.anchoredPosition;
+                subsecond=0;manager.WorldMap.Advance(1);map.Refresh();
+                Require(Vector2.Distance(beforeTick,convoy.anchoredPosition)<.1f,"Convoy must cross simulation ticks without easing pauses or jumps.");
+                manager.WorldMap.Advance(manager.WorldMap.TravelSeconds(manager.WorldMap.Mission(hero.InstanceId))-1);map.Refresh();
+                Require(manager.WorldMap.Mission(hero.InstanceId).Phase==MapMissionPhase.Dust && !map.GetComponentsInChildren<MapRaidRoute>(true).Any(),"Route must disappear when raid reaches its camp.");
+                Debug.Log("PASS Unity world map: 48 resource landmarks, 512 grid camp buttons/scouting, close zoom sizing, continuous bus/bike travel, outbound raid arrows, gathering site colours and hidden parked convoys, native JsonUtility mission disk round trip, civilian gathering and legacy migration. Temporary saves only; test pinch/drag/convoy motion and raid dust/results on phone.");
             }
             catch(Exception error) { Debug.LogException(error); if(Application.isBatchMode)EditorApplication.Exit(1); throw; }
             finally {

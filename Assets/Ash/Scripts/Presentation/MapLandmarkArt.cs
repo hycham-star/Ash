@@ -85,12 +85,12 @@ namespace Ash
                 float dx=elevation[y*size+Mathf.Min(x+1,size-1)]-elevation[y*size+Mathf.Max(x-1,0)];
                 float dz=elevation[Mathf.Min(y+1,size-1)*size+x]-elevation[Mathf.Max(y-1,0)*size+x];
                 float relief=Mathf.Clamp(1+dx*9-dz*7,.78f,1.18f);
-                Color dark=threat==1?new Color32(162,112,62,255):threat==2?new Color32(156,100,55,255):new Color32(140,94,61,255);
-                Color light=threat==1?new Color32(222,170,100,255):threat==2?new Color32(211,151,83,255):new Color32(193,139,88,255);
+                Color dark=threat==1?new Color32(70,85,55,255):threat==2?new Color32(108,81,50,255):new Color32(73,77,73,255);
+                Color light=threat==1?new Color32(142,126,88,255):threat==2?new Color32(160,135,89,255):new Color32(124,122,104,255);
                 var color=Color.Lerp(dark,light,broad)*(.88f+detail*.18f)*relief;
                 float track=Mathf.Abs(u-(.46f+.1f*Mathf.Sin(v*8))),cross=Mathf.Abs(v-(.51f+.07f*Mathf.Sin(u*11)));
                 float road=Mathf.Min(track,cross),edge=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.004f,.012f,road));
-                color=Color.Lerp(color,((Color)new Color32(193,135,72,255))*(.86f+detail*.20f),edge*.72f);
+                color=Color.Lerp(color,((Color)new Color32(145,125,91,255))*(.86f+detail*.20f),edge*.72f);
                 float rut=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.0005f,.0017f,Mathf.Abs(road-.003f)));color*=1-rut*.13f;
                 int artIndex=((y*1024/size)*1024+x*1024/size)*4;
                 Color painting=new Color32(painted[artIndex],painted[artIndex+1],painted[artIndex+2],255);

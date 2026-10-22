@@ -93,21 +93,43 @@ namespace Ash
                 Notify(true); return BuildingCommandResult.Success;
             } finally { commanding=false; }
         }
-        public void Advance(int activeSeconds)
+        /// <summary>Advance deterministic production. Gameplay enables automatic delivery; false retains legacy storage/collection rules for adapters.</summary>
+        public void Advance(int activeSeconds, bool automaticCollection = false)
         {
             if(activeSeconds<0)throw new ArgumentOutOfRangeException(nameof(activeSeconds));
             if(commanding)throw new InvalidOperationException("Building command already running.");
             if(activeSeconds==0)return;
-            bool changed=false;
+            bool changed=false, ledger=false;
             foreach(var state in buildings.Values)
             {
-                if(state.Kind==BuildingKind.Headquarters || state.Stored==Capacity(state.Kind))continue;
-                AdvanceStock(state.Stored,state.Seconds,activeSeconds,Rate(state.Kind),Capacity(state.Kind),out state.Stored,out state.Seconds);changed=true;
+                if(state.Kind==BuildingKind.Headquarters)continue;
+                if(automaticCollection)
+                    changed|=AdvanceAutomatic(Product(state.Kind),Rate(state.Kind),activeSeconds,ref state.Stored,ref state.Seconds,ref ledger);
+                else if(state.Stored<Capacity(state.Kind)) {
+                    AdvanceStock(state.Stored,state.Seconds,activeSeconds,Rate(state.Kind),Capacity(state.Kind),out state.Stored,out state.Seconds);changed=true;
+                }
             }
             if(changed) {
                 commanding=true;
-                try { Notify(false); } finally { commanding=false; }
+                try { Notify(ledger); } finally { commanding=false; }
             }
+        }
+        private bool AdvanceAutomatic(ResourceType product,int rate,int seconds,ref int stored,ref int timer,ref bool ledger)
+        {
+            int beforeStored=stored,beforeTimer=timer,balance=resources.Get(product);
+            long elapsed=(long)timer+seconds;
+            // Full storage pauses production, but previously stored output is still delivered first.
+            int delivered=Math.Min(stored,int.MaxValue-balance);
+            stored-=delivered;balance+=delivered;
+            long output=stored==rate*5?stored:stored+(elapsed/60)*rate;
+            int income=(int)Math.Min(output,int.MaxValue-balance);
+            stored=(int)Math.Min(rate*5,output-income);
+            timer=stored==rate*5?0:(int)(elapsed%60);
+            if(delivered+income>0) {
+                resources.CommitAdditionSilently(new Dictionary<ResourceType,int>{{product,balance+income}});
+                ledger=true;
+            }
+            return delivered+income>0 || stored!=beforeStored || timer!=beforeTimer;
         }
         public BuildingState[] Capture()
         {

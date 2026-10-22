@@ -9,6 +9,8 @@ namespace Ash
     {
         private WorldMapService worldService;
         private Func<HeroData> heroSelection;
+        private Func<float> travelSubsecond;
+        private readonly Dictionary<string,MapRaidRoute> raidRoutes=new Dictionary<string,MapRaidRoute>();
         private Action<int> cycleHero;
         private Action<CombatResult> showRaidResult;
         private Action<string> selectHero;
@@ -48,10 +50,10 @@ namespace Ash
         private float ReferenceMapSize=>32+(side-32)*201f/WorldRegions.TileCount;
         private float MarkerScale=>Mathf.Clamp(ReferenceMapSize/1600,.65f,3.5f);
         public float MapSize=>side;
-        public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult,Action<string> select=null,Action prepare=null)
+        public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult,Action<string> select=null,Action prepare=null,Func<float> subsecond=null)
         {
             if(worldService!=null)worldService.Changed-=Refresh;
-            worldService=world;heroSelection=selectedHero;cycleHero=cycle;showRaidResult=showResult;selectHero=select;prepareArmies=prepare;
+            worldService=world;heroSelection=selectedHero;cycleHero=cycle;showRaidResult=showResult;selectHero=select;prepareArmies=prepare;travelSubsecond=subsecond;
             worldService.Changed+=Refresh;Refresh();
         }
         private void BuildWorldControls()
@@ -178,7 +180,7 @@ namespace Ash
         private void RefreshConvoys()
         {
             if(worldService==null)return;
-            var missions=worldService.Capture().Missions;var active=new HashSet<string>();
+            var missions=worldService.Capture().Missions;var active=new HashSet<string>();var activeRoutes=new HashSet<string>();
             foreach(var mission in missions)
             {
                 // Gathering is represented by the site tint, never a parked convoy.
@@ -197,9 +199,19 @@ namespace Ash
                     convoys.Add(mission.HeroId,root);
                 }
                 worldService.Coordinates(mission,out int x,out int z);var target=MapPoint(x,z);float travel=worldService.TravelSeconds(mission);
-                float fraction=mission.Phase==MapMissionPhase.Outbound?mission.Elapsed/travel:mission.Phase==MapMissionPhase.Returning?1-mission.Elapsed/travel:1;
+                float elapsed=mission.Elapsed+Mathf.Clamp01(travelSubsecond?.Invoke()??0);
+                float fraction=mission.Phase==MapMissionPhase.Outbound?Mathf.Clamp01(elapsed/travel):mission.Phase==MapMissionPhase.Returning?1-Mathf.Clamp01(elapsed/travel):1;
+                if(mission.Kind==MapMissionKind.Raid && mission.Phase==MapMissionPhase.Outbound) {
+                    activeRoutes.Add(mission.HeroId);
+                    if(!raidRoutes.TryGetValue(mission.HeroId,out var route)) {
+                        var obj=new GameObject("Raid route • "+mission.HeroId,typeof(RectTransform),typeof(MapRaidRoute));
+                        var rect=(RectTransform)obj.transform;rect.SetParent(markerRoot,false);rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);rect.sizeDelta=Vector2.zero;
+                        route=obj.GetComponent<MapRaidRoute>();route.raycastTarget=false;raidRoutes.Add(mission.HeroId,route);
+                    }
+                    route.SetDestination(target);route.transform.SetAsFirstSibling();
+                }
                 var destination=target*fraction;
-                root.anchoredPosition=Application.isPlaying && !created?Vector2.Lerp(root.anchoredPosition,destination,1-Mathf.Exp(-Time.unscaledDeltaTime*10)):destination;
+                root.anchoredPosition=destination;
                 var direction=(mission.Phase==MapMissionPhase.Returning?-target:target).normalized;
                 int heading=Heading(direction);bool dust=mission.Phase==MapMissionPhase.Dust;
                 var bus=root.Find("Army bus").GetComponent<RawImage>();var bike=root.Find("Hero bike").GetComponent<RawImage>();var cloud=root.Find("Raid dust").GetComponent<RawImage>();
@@ -213,6 +225,9 @@ namespace Ash
             }
             var removed=new List<string>();foreach(var p in convoys)if(!active.Contains(p.Key)){p.Value.gameObject.SetActive(false);SettlementArt.Release(p.Value.gameObject);removed.Add(p.Key);}
             foreach(var id in removed)convoys.Remove(id);
+            removed.Clear();
+            foreach(var route in raidRoutes)if(!activeRoutes.Contains(route.Key)){route.Value.gameObject.SetActive(false);SettlementArt.Release(route.Value.gameObject);removed.Add(route.Key);}
+            foreach(var id in removed)raidRoutes.Remove(id);
         }
         private static int Heading(Vector2 direction)
         {

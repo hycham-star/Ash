@@ -11,6 +11,8 @@ namespace Ash.Editor
 {
     public static class ArmyReinforcementValidation
     {
+        [MenuItem("Ashlands/Validate Production and Army Travel")]
+        public static void ValidateProductionAndTravel(){Run();DevelopmentValidation.Run();ScavengingValidation.Run();RaidPreparationValidation.Run();}
         [MenuItem("Ashlands/Validate Hero Illustrations")]
         public static void ValidateIllustrations()=>Run();
         [MenuItem("Ashlands/Validate Army Reinforcement Controls")]
@@ -21,7 +23,7 @@ namespace Ash.Editor
             const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
             object Field(string name)=>typeof(SettlementView).GetField(name,flags).GetValue(view);
             void Set(string name,object value)=>typeof(SettlementView).GetField(name,flags).SetValue(view,value);
-            void Call(string name)=>typeof(SettlementView).GetMethod(name,flags).Invoke(view,null);
+            void Call(string name,params object[] args)=>typeof(SettlementView).GetMethod(name,flags).Invoke(view,args);
             try
             {
                 scene=EditorSceneManager.OpenPreviewScene(PrepareProject.SettlementScene);
@@ -42,28 +44,32 @@ namespace Ash.Editor
                 Require(hero.Army.Capacity==50,"Expected Mara's level-five capacity.");
                 var unit=manager.Units[0];manager.HeroArmies.AssignFighters(hero.InstanceId,unit.Definition.Id,48);
                 refresh=()=>Call("Refresh");manager.HeroArmies.Changed+=refresh;Call("Refresh");
-                var slider=(Slider)Field("fighterQuantity");var add=(Text)Field("addFightersLabel");var fill=(Text)Field("fillFightersLabel");
-                Require(slider.wholeNumbers && slider.maxValue==2 && slider.interactable,"Slider must allow exactly two replacements at 48/50.");
-                slider.value=1;Require(add.text=="ADD 1","Quantity number did not follow slider.");
-                add.transform.parent.GetComponent<Button>().onClick.Invoke();
-                Require(hero.Army.TotalUnits==49 && manager.HeroArmies.Available(unit.Definition.Id)==51 && slider.maxValue==1,"Exact one-fighter reinforcement failed.");
-                fill.transform.parent.GetComponent<Button>().onClick.Invoke();
-                Require(hero.Army.TotalUnits==50 && manager.HeroArmies.Available(unit.Definition.Id)==50 && !slider.interactable && !fill.transform.parent.GetComponent<Button>().interactable,"Fill must complete army without overspending reserve.");
-                manager.HeroArmies.RemoveFighters(hero.InstanceId,unit.Definition.Id,2);
-                Require(fill.text=="FILL +2","Fill must display the exact two-fighter shortfall.");fill.transform.parent.GetComponent<Button>().onClick.Invoke();
-                Require(hero.Army.TotalUnits==50 && manager.HeroArmies.Available(unit.Definition.Id)==50,"One-tap fill from 48 to 50 failed.");
-                // Open space larger than the remaining reserve; Fill must stop at reserve availability.
-                manager.HeroArmies.RemoveFighters(hero.InstanceId,unit.Definition.Id,50);
-                var other=manager.Heroes.First(h=>h!=hero);manager.HeroArmies.AssignFighters(other.InstanceId,unit.Definition.Id,other.Army.Capacity);
-                int available=manager.HeroArmies.Available(unit.Definition.Id);
-                // Drain to a small remainder using other independent armies.
-                foreach(var h in manager.Heroes.Where(h=>h!=hero && h!=other))
-                { int amount=Math.Min(h.Army.Capacity,manager.HeroArmies.Available(unit.Definition.Id)-3);if(amount>0)manager.HeroArmies.AssignFighters(h.InstanceId,unit.Definition.Id,amount); }
-                available=manager.HeroArmies.Available(unit.Definition.Id);Call("Refresh");
-                Require(slider.maxValue==Math.Min(50,available),"Reserve must limit slider.");
-                fill.transform.parent.GetComponent<Button>().onClick.Invoke();
-                Require(hero.Army.TotalUnits==Math.Min(50,available),"Fill ignored available reserve.");
-                Debug.Log("PASS Unity hero illustrations: eight identity-bound 2D portraits, adjustable level-based capacity, live quantity slider, 48/50 replacement, Fill and shared reserve limits. Disposable preview only; player saves untouched. Check illustration framing and touch on device.");
+                var sliders=(System.Collections.Generic.List<Slider>)Field("fighterSliders");
+                var minus=(System.Collections.Generic.List<Button>)Field("fighterMinus");
+                var plus=(System.Collections.Generic.List<Button>)Field("fighterPlus");
+                Require(sliders.Count==3 && sliders.All(control=>control.wholeNumbers),"Each type must have its own integer slider.");
+                int fighterIndex=manager.Units.ToList().IndexOf(unit);var slider=sliders[fighterIndex];
+                Require(slider.value==48 && slider.maxValue==50 && slider.interactable,"Assigned slider must allow 48 to 50.");
+                plus[fighterIndex].onClick.Invoke();Require(hero.Army.TotalUnits==49,"+1 did not immediately assign one fighter.");
+                slider.value=50;Require(hero.Army.TotalUnits==50 && !plus[fighterIndex].interactable && minus[fighterIndex].interactable,"Full armies must still allow removal.");
+                minus[fighterIndex].onClick.Invoke();Require(hero.Army.TotalUnits==49 && manager.HeroArmies.Available(unit.Definition.Id)==51,"−1 must return one fighter to reserve.");
+                slider.value=0;Require(hero.Army.TotalUnits==0 && manager.HeroArmies.Available(unit.Definition.Id)==100,"Zero must deselect this fighter type without losing reserve.");
+                sliders[0].value=20;sliders[1].value=20;sliders[2].value=10;
+                Require(hero.Army.TotalUnits==50 && sliders.Select(control=>(int)control.value).SequenceEqual(new[]{20,20,10}),"Three sliders must share the total capacity.");
+                Require(sliders.Select((control,i)=>control.maxValue==control.value).All(value=>value),"Other rows must not exceed shared capacity.");
+                Set("selectedHero",(index+1)%manager.Heroes.Count);Call("Refresh");
+                Require(manager.Heroes[(index+1)%manager.Heroes.Count].Army.TotalUnits==0 && hero.Army.TotalUnits==50,"Changing hero must not trigger slider assignment callbacks.");
+                Set("selectedHero",index);Call("Refresh");
+                manager.HeroArmies.GrantHeroXp(hero.InstanceId,hero.XpToNextLevel);
+                Require(sliders.All(control=>control.maxValue==control.value+hero.Definition.CapacityPerLevel),"Level-up must increase the shared available capacity.");
+                Require(hero.Army.TotalUnits==50,"Level-up must not create fighters.");
+                // Test the exact production entry point used by the foreground GameManager tick.
+                int food=manager.Resources.Get(ResourceType.Food),water=manager.Resources.Get(ResourceType.Water);
+                typeof(GameManager).GetMethod("AdvanceSettlementProduction",flags).Invoke(manager,new object[]{60});
+                Require(manager.Buildings.Stored(BuildingKind.FoodGarden)==0 && manager.Resources.Get(ResourceType.Food)==food+8 && manager.Resources.Get(ResourceType.Water)==water+5,"Foreground production must credit resources automatically, with resident food/water consumption.");
+                Call("ShowBuilding",BuildingKind.WaterStation);
+                Require(!((Text)Field("viewHeadquarters")).transform.parent.gameObject.activeSelf,"Producer panel must hide collection button.");
+                Debug.Log("PASS Unity army composition: three live sliders, exact −1/+1, deselection/refund, shared level-based capacity, stable hero switching, automatic foreground settlement income and no producer collect button. Preview only; player saves untouched.");
             }
             catch(Exception error){Debug.LogException(error);if(Application.isBatchMode)EditorApplication.Exit(1);throw;}
             finally

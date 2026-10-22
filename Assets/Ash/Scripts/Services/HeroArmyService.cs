@@ -57,6 +57,18 @@ namespace Ash
         public int Available(string fighterId) => fighterId != null && reserve.TryGetValue(fighterId, out int quantity) ? quantity : 0;
         public HeroData FindHero(string heroId) => heroId != null && heroes.TryGetValue(heroId, out var hero) ? hero : null;
 
+        /// <summary>Set an absolute assigned count; reducing it returns fighters to the shared reserve.</summary>
+        public ArmyCommandResult SetFighterQuantity(string heroId,string fighterId,int quantity)
+        {
+            if(DeploymentBlocked?.Invoke(heroId)==true)return ArmyCommandResult.ArmyDeployed;
+            if(quantity<0)return ArmyCommandResult.InvalidQuantity;
+            var hero=FindHero(heroId);if(hero==null)return ArmyCommandResult.HeroNotFound;
+            if(fighterId==null || !fighters.TryGetValue(fighterId,out var fighter))return ArmyCommandResult.FighterNotFound;
+            int current=hero.Army.QuantityOf(fighterId,fighter.Level);
+            return quantity==current?ArmyCommandResult.Success:quantity>current
+                ?AssignFighters(heroId,fighterId,quantity-current):RemoveFighters(heroId,fighterId,current-quantity);
+        }
+
         public ArmyCommandResult AssignFighters(string heroId, string fighterId, int quantity)
         {
             if(DeploymentBlocked?.Invoke(heroId)==true)return ArmyCommandResult.ArmyDeployed;

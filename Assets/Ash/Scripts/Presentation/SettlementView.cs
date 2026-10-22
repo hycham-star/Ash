@@ -23,7 +23,7 @@ namespace Ash
         private Text heroStats, raidHeader, campButton, toast, leaderLabel, saveStatus, resetButton;
         private float resetDeadline;
         private BuildingKind selectedBuilding;
-        private Text buildingStats, upgradeBuilding, collectBuilding;
+        private Text buildingStats, upgradeBuilding, viewHeadquarters;
         private CombatResultsUI results;
         private VisualBattlePlayback playback;
         private ScavengingMapUI scavengingMap;
@@ -33,11 +33,13 @@ namespace Ash
         private SettlementArt developmentArt;
         private string plotVisualSignature;
         private Text heroHeading;
-        private int selectedHero, selectedCamp, selectedFighter, renderedHero = -1;
+        private int selectedHero, selectedCamp, renderedHero = -1;
         private Image heroPortraitFrame;
-        private Slider fighterQuantity;
-        private Text fighterQuantityLabel, addFightersLabel, fillFightersLabel;
-        private readonly List<Text> fighterTypeLabels=new List<Text>();
+        private bool refreshingFighters;
+        private readonly List<Slider> fighterSliders=new List<Slider>();
+        private readonly List<Text> fighterCounts=new List<Text>();
+        private readonly List<Button> fighterMinus=new List<Button>(),fighterPlus=new List<Button>();
+
         private Color oldAmbient;
         private UnityEngine.Rendering.AmbientMode oldAmbientMode;
         private float navigationReadyAt;
@@ -335,8 +337,8 @@ namespace Ash
             else {
                 text.Append("\n\nProduction: ").Append(buildings.Rate(kind)).Append(' ').Append(BuildingService.Product(kind)).Append(" / minute")
                     .Append("\nStored: ").Append(buildings.Stored(kind)).Append('/').Append(buildings.Capacity(kind))
-                    .Append("\n").Append(buildings.Stored(kind)==buildings.Capacity(kind) ? "Storage full — collect to resume." : "Next batch in "+(60-buildings.Seconds(kind))+"s")
-                    .Append("\nProduces while the game is open.");
+                    .Append("\n").Append(buildings.Stored(kind)==buildings.Capacity(kind) ? "Resource balance full — spend resources to resume." : "Next batch in "+(60-buildings.Seconds(kind))+"s")
+                    .Append("\nAutomatically added to resources while the game is open.");
             }
             var status=buildings.CanUpgrade(kind);
             if(status==BuildingCommandResult.MaximumLevel)text.Append("\n\nMaximum level reached.");
@@ -349,8 +351,8 @@ namespace Ash
             // The panel starts inactive. Read the known button parent directly: ancestor searches skip inactive objects.
             upgradeBuilding.text=status==BuildingCommandResult.MaximumLevel ? "MAX LEVEL" : "UPGRADE";
             upgradeBuilding.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=status==BuildingCommandResult.Success;
-            collectBuilding.text=kind==BuildingKind.Headquarters ? "VIEW HQ" : "COLLECT "+buildings.Stored(kind);
-            collectBuilding.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=kind==BuildingKind.Headquarters || buildings.Stored(kind)>0;
+            viewHeadquarters.text="VIEW HQ";
+            viewHeadquarters.transform.parent.gameObject.SetActive(kind==BuildingKind.Headquarters);
         }
         private void UpgradeBuilding()
         {
@@ -358,17 +360,11 @@ namespace Ash
             toast.text=result==BuildingCommandResult.Success ? BuildingService.Name(selectedBuilding)+" upgraded to level "+gameManager.Buildings.Level(selectedBuilding)+"." : result.ToString();
             RefreshBuilding();
         }
-        private void CollectBuilding()
+        private void ViewHeadquarters()
         {
-            CancelReset();
-            if(selectedBuilding==BuildingKind.Headquarters) {
-                buildingPanel.SetActive(false);var hq=gameManager.Buildings.Position("core-headquarters");controls.FocusOn(new Vector3(hq.X,1.5f,hq.Z),6.5f);
-                toast.text="Headquarters — drag or zoom to explore. HOME returns to the overview."; return;
-            }
-            int amount=gameManager.Buildings.Stored(selectedBuilding);
-            var result=gameManager.Buildings.Collect(selectedBuilding);
-            toast.text=result==BuildingCommandResult.Success ? "Collected "+amount+" "+BuildingService.Product(selectedBuilding)+"." : result==BuildingCommandResult.ResourceLimit ? "Resource balance is full. Spend resources first." : "Nothing ready to collect.";
-            RefreshBuilding();
+            CancelReset();buildingPanel.SetActive(false);
+            var hq=gameManager.Buildings.Position("core-headquarters");controls.FocusOn(new Vector3(hq.X,1.5f,hq.Z),6.5f);
+            toast.text="Headquarters — drag or zoom to explore. HOME returns to the overview.";
         }
         private void BuildPortrait()
         {
@@ -430,39 +426,50 @@ namespace Ash
             for(int i=0;i<camps.Count;i++)if(camps[i].Id==outcome.EncounterId)selectedCamp=i;
             scavengingMap.Hide();raidPanel.SetActive(true);raidPanel.transform.SetAsLastSibling();results.Show(outcome,true);Refresh();
         }
-        private int MaximumReinforcements()
-        {
-            var hero=gameManager.Heroes[selectedHero];var fighter=gameManager.Units[selectedFighter];
-            if(gameManager.WorldMap.IsDeployed(hero.InstanceId))return 0;
-            return Math.Min(Math.Max(0,hero.Army.Capacity-hero.Army.TotalUnits),gameManager.HeroArmies.Available(fighter.Definition.Id));
-        }
         private void RefreshFighterControls()
         {
-            if(fighterQuantity==null)return;
-            int maximum=MaximumReinforcements();
-            fighterQuantity.minValue=0;fighterQuantity.maxValue=Math.Max(1,maximum);
-            fighterQuantity.SetValueWithoutNotify(Mathf.Clamp(fighterQuantity.value,0,maximum));fighterQuantity.interactable=maximum>0;
-            for(int i=0;i<fighterTypeLabels.Count;i++)fighterTypeLabels[i].color=i==selectedFighter?SettlementArt.Amber:new Color32(234,227,204,255);
-            UpdateFighterQuantity();
+            refreshingFighters=true;
+            try {
+                var hero=gameManager.Heroes[selectedHero];bool deployed=gameManager.WorldMap.IsDeployed(hero.InstanceId);
+                for(int i=0;i<fighterSliders.Count;i++) {
+                    var unit=gameManager.Units[i];int current=hero.Army.QuantityOf(unit.Definition.Id,unit.Level);
+                    int reserve=gameManager.HeroArmies.Available(unit.Definition.Id);
+                    int maximum=current+Math.Min(reserve,Math.Max(0,hero.Army.Capacity-hero.Army.TotalUnits));
+                    var slider=fighterSliders[i];slider.minValue=0;slider.maxValue=Math.Max(1,maximum);
+                    slider.SetValueWithoutNotify(current);slider.interactable=!deployed && maximum>0;
+                    fighterCounts[i].text=unit.Definition.Type+"  "+current+" / "+maximum+" • Reserve "+reserve;
+                    fighterMinus[i].interactable=!deployed && current>0;
+                    fighterPlus[i].interactable=!deployed && current<maximum;
+                }
+            } finally { refreshingFighters=false; }
         }
-        private void UpdateFighterQuantity()
+        private void SetFighters(int index,int quantity)
         {
-            int quantity=Mathf.RoundToInt(fighterQuantity.value),maximum=MaximumReinforcements();
-            var fighter=gameManager.Units[selectedFighter];var hero=gameManager.Heroes[selectedHero];
-            fighterQuantityLabel.text=fighter.Definition.Type+" +"+quantity+" / "+maximum+" • Army "+hero.Army.TotalUnits+" → "+(hero.Army.TotalUnits+quantity)+"/"+hero.Army.Capacity;
-            addFightersLabel.text="ADD "+quantity;
-            addFightersLabel.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=quantity>0;
-            fillFightersLabel.text="FILL +"+maximum;
-            fillFightersLabel.transform.parent.GetComponent<UnityEngine.UI.Button>().interactable=maximum>0;
-        }
-        private void Assign(bool fill)
-        {
-            CancelReset();var hero=gameManager.Heroes[selectedHero];var fighter=gameManager.Units[selectedFighter];
-            int quantity=fill?MaximumReinforcements():Math.Min(Mathf.RoundToInt(fighterQuantity.value),MaximumReinforcements());
-            if(quantity==0){toast.text="Army full or no fighters of this type in reserve.";return;}
-            var result=gameManager.HeroArmies.AssignFighters(hero.InstanceId,fighter.Definition.Id,quantity);
-            toast.text=result==ArmyCommandResult.Success ? quantity+" "+fighter.Definition.Type+" assigned to "+hero.Definition.DisplayName : "Assignment: "+result;
+            if(refreshingFighters)return;
+            CancelReset();var hero=gameManager.Heroes[selectedHero];var unit=gameManager.Units[index];
+            var result=gameManager.HeroArmies.SetFighterQuantity(hero.InstanceId,unit.Definition.Id,quantity);
+            if(result!=ArmyCommandResult.Success)toast.text="Army adjustment: "+result;
             RefreshFighterControls();
+        }
+        private void BuildFighterControls(RectTransform parent)
+        {
+            for(int i=0;i<gameManager.Units.Count;i++) {
+                int index=i;float bottom=48+(2-i)*62;
+                var count=TextPanel(parent,0,0,1,0,18,bottom+36,-18,bottom+60,13,"",Color.clear);
+                count.resizeTextForBestFit=true;count.resizeTextMinSize=10;count.resizeTextMaxSize=13;fighterCounts.Add(count);
+                var minus=Button(parent,"−1",0,0,.15f,0,12,bottom,-4,bottom+35,16,()=>SetFighters(index,Math.Max(0,Mathf.RoundToInt(fighterSliders[index].value)-1)));
+                fighterMinus.Add(minus.transform.parent.GetComponent<Button>());
+                var root=Panel(parent,gameManager.Units[i].Definition.Type+" assigned slider",new Vector2(.15f,0),new Vector2(.85f,0),new Vector2(8,bottom),new Vector2(-8,bottom+35),Color.clear);
+                var slider=root.gameObject.AddComponent<Slider>();slider.wholeNumbers=true;
+                var track=Panel(root,"Track",new Vector2(0,.35f),new Vector2(1,.65f),Vector2.zero,Vector2.zero,new Color32(63,75,76,255));
+                var fill=Panel(track,"Fill",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,SettlementArt.Amber);fill.GetComponent<Image>().raycastTarget=false;slider.fillRect=fill;
+                var area=Panel(root,"Handle area",Vector2.zero,Vector2.one,new Vector2(12,0),new Vector2(-12,0),Color.clear);area.GetComponent<Image>().raycastTarget=false;
+                var handle=Panel(area,"Handle",new Vector2(0,.5f),new Vector2(0,.5f),Vector2.zero,Vector2.zero,new Color32(245,224,170,255));handle.sizeDelta=new Vector2(24,35);
+                slider.handleRect=handle;slider.targetGraphic=handle.GetComponent<Image>();fighterSliders.Add(slider);
+                slider.onValueChanged.AddListener(value=>SetFighters(index,Mathf.RoundToInt(value)));
+                var plus=Button(parent,"+1",.85f,0,1,0,4,bottom,-12,bottom+35,16,()=>SetFighters(index,Mathf.RoundToInt(fighterSliders[index].value)+1));
+                fighterPlus.Add(plus.transform.parent.GetComponent<Button>());
+            }
         }
         private void Raid(bool apply)
         {
@@ -489,7 +496,7 @@ namespace Ash
             ui=new GameObject("Safe Area",typeof(RectTransform)).GetComponent<RectTransform>(); ui.SetParent(canvas.transform,false);
             var safe=Screen.safeArea; ui.anchorMin=new Vector2(safe.xMin/Screen.width,safe.yMin/Screen.height); ui.anchorMax=new Vector2(safe.xMax/Screen.width,safe.yMax/Screen.height); ui.offsetMin=ui.offsetMax=Vector2.zero;
             BuildWastelandHUD();
-            heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.30f),new Vector2(.96f,.88f),Vector2.zero,Vector2.zero,ink).gameObject;
+            heroPanel=Panel(ui,"Hero dossier",new Vector2(.04f,.12f),new Vector2(.96f,.88f),Vector2.zero,Vector2.zero,ink).gameObject;
             var heroRoot=heroPanel.GetComponent<RectTransform>();
             heroHeading=TextPanel(heroRoot,0,1,.8f,1,18,-66,-8,-12,25,"SURVIVOR DOSSIER",Color.clear);heroHeading.color=SettlementArt.Amber;
             heroHeading.resizeTextForBestFit=true;heroHeading.resizeTextMinSize=14;heroHeading.resizeTextMaxSize=25;
@@ -501,27 +508,11 @@ namespace Ash
             var portraitImage=new GameObject("Illustrated hero portrait",typeof(RectTransform),typeof(RawImage),typeof(AspectRatioFitter)); portraitImage.transform.SetParent(inner,false);
             var fit=portraitImage.GetComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=.75f;
             heroIllustration=portraitImage.GetComponent<RawImage>();heroIllustration.raycastTarget=false;
-            heroStats=TextPanel(heroRoot,.38f,0,1,1,10,210,-18,-82,18,"",Color.clear);
+            heroStats=TextPanel(heroRoot,.38f,0,1,1,10,244,-18,-82,18,"",Color.clear);
             heroStats.resizeTextForBestFit=true;heroStats.resizeTextMinSize=12;heroStats.resizeTextMaxSize=17;
             Button(heroRoot,"<",0,1,.19f,1,18,-342,-4,-302,()=> { selectedHero=(selectedHero+7)%8; Refresh(); });
             Button(heroRoot,">",.19f,1,.38f,1,4,-342,-6,-302,()=> { selectedHero=(selectedHero+1)%8; Refresh(); });
-            for(int i=0;i<3;i++) { int index=i;fighterTypeLabels.Add(Button(heroRoot,gameManager.Units[i].Definition.Type.ToString(),i/3f,0,(i+1)/3f,0,12,164,-8,202,14,()=> { selectedFighter=index;fighterQuantity.SetValueWithoutNotify(0);RefreshFighterControls(); })); }
-            fighterQuantityLabel=TextPanel(heroRoot,0,0,1,0,12,127,-12,163,13,"",Color.clear);
-            fighterQuantityLabel.resizeTextForBestFit=true;fighterQuantityLabel.resizeTextMinSize=10;fighterQuantityLabel.resizeTextMaxSize=13;
-            var sliderRoot=Panel(heroRoot,"Fighter quantity slider",Vector2.zero,new Vector2(.72f,0),new Vector2(18,84),new Vector2(-8,126),Color.clear);
-            sliderRoot.GetComponent<Image>().raycastTarget=true;
-            fighterQuantity=sliderRoot.gameObject.AddComponent<Slider>();fighterQuantity.wholeNumbers=true;
-            var track=Panel(sliderRoot,"Track",new Vector2(0,.35f),new Vector2(1,.65f),Vector2.zero,Vector2.zero,new Color32(63,75,76,255));
-            var fillArea=Panel(track,"Fill area",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,Color.clear);fillArea.GetComponent<Image>().raycastTarget=false;
-            var fill=Panel(fillArea,"Fill",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,SettlementArt.Amber);fill.GetComponent<Image>().raycastTarget=false;fighterQuantity.fillRect=fill;
-            var handleArea=Panel(sliderRoot,"Handle area",Vector2.zero,Vector2.one,new Vector2(12,0),new Vector2(-12,0),Color.clear);handleArea.GetComponent<Image>().raycastTarget=false;
-            var handle=Panel(handleArea,"Handle",new Vector2(0,.5f),new Vector2(0,.5f),Vector2.zero,Vector2.zero,new Color32(245,224,170,255));handle.sizeDelta=new Vector2(24,38);
-            fighterQuantity.handleRect=handle;fighterQuantity.targetGraphic=handle.GetComponent<Image>();fighterQuantity.direction=Slider.Direction.LeftToRight;
-            fighterQuantity.onValueChanged.AddListener(_=>UpdateFighterQuantity());
-            fillFightersLabel=Button(heroRoot,"FILL",.72f,0,1,0,4,84,-12,126,15,()=>Assign(true));
-            Button(heroRoot,"−1",0,0,.22f,0,12,46,-4,80,16,()=>fighterQuantity.value=Mathf.Max(0,fighterQuantity.value-1));
-            addFightersLabel=Button(heroRoot,"ADD",.22f,0,.78f,0,4,46,-4,80,16,()=>Assign(false));
-            Button(heroRoot,"+1",.78f,0,1,0,4,46,-12,80,16,()=>fighterQuantity.value=Mathf.Min(MaximumReinforcements(),fighterQuantity.value+1));
+            BuildFighterControls(heroRoot);
             Button(heroRoot,"TAKE THIS HERO ON A RAID",0,0,1,0,18,4,-18,42,17,ShowRaid);
             heroPanel.SetActive(false);
             raidPanel=Panel(ui,"Wasteland raid",new Vector2(.04f,.30f),new Vector2(.96f,.82f),Vector2.zero,Vector2.zero,ink).gameObject;
@@ -548,10 +539,10 @@ namespace Ash
             buildingStats=TextPanel(buildingRoot,0,0,1,1,12,80,-12,-117,18,"",Color.clear);
             buildingStats.resizeTextForBestFit=true; buildingStats.resizeTextMinSize=12; buildingStats.resizeTextMaxSize=18;
             upgradeBuilding=Button(buildingRoot,"UPGRADE",0,0,.5f,0,12,14,-4,70,18,UpgradeBuilding);
-            collectBuilding=Button(buildingRoot,"COLLECT",.5f,0,1,0,4,14,-12,70,18,CollectBuilding);
+            viewHeadquarters=Button(buildingRoot,"VIEW HQ",.5f,0,1,0,4,14,-12,70,18,ViewHeadquarters);
             buildingPanel.SetActive(false);
             scavengingMap=ScavengingMapUI.Create(ui,gameManager.Scavenging,font,gameManager.SaveProgress,()=>gameManager.SaveStatus);
-            scavengingMap.ConfigureWorld(gameManager.WorldMap,()=>gameManager.Heroes[selectedHero],delta=>{selectedHero=(selectedHero+delta+gameManager.Heroes.Count)%gameManager.Heroes.Count;Refresh();},ShowWorldRaidResult,id=>{for(int i=0;i<gameManager.Heroes.Count;i++)if(gameManager.Heroes[i].InstanceId==id){selectedHero=i;Refresh();break;}},PrepareSelectedHero);
+            scavengingMap.ConfigureWorld(gameManager.WorldMap,()=>gameManager.Heroes[selectedHero],delta=>{selectedHero=(selectedHero+delta+gameManager.Heroes.Count)%gameManager.Heroes.Count;Refresh();},ShowWorldRaidResult,id=>{for(int i=0;i<gameManager.Heroes.Count;i++)if(gameManager.Heroes[i].InstanceId==id){selectedHero=i;Refresh();break;}},PrepareSelectedHero,()=>gameManager.TravelSubsecond);
             scavengingMap.SettlementRequested+=ReturnFromWorldMap;
             hospitalUI=HospitalUI.Create(ui,gameManager,font);
             developmentUI=DevelopmentUI.Create(ui,gameManager,font);

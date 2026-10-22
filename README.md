@@ -1,6 +1,8 @@
 # Ashlands: Rise of the Remnants
 
-The supplied orange-desert reference now drives **15 distinct building/site models**: stacked-container HQ, patched homes, rope-ring Melee Camp, motorcycle garage, tent-and-target Sharpshooter range, oasis pump, dry farm, wrecked-car scrapyard, dead-tree timber yard and fortified enemy bases. Settlement and world ground use the same warm desert palette. Run **Ashlands > Validate Reference Wasteland Art** outside Play, then **Open Settlement Scene > Play**. See [asset previews, mappings and checks](Docs/ReferenceWastelandArt.md).
+Settlement production is now **collected automatically** while playing. Hero preparation has **three separate assigned-count sliders (Melee, Sharpshooter, Biker)** with −1/+1 and reserve refunds when lowered. All types share the hero's level-based army capacity. Outbound raids show an arrowed route and the bus moves continuously between simulation ticks. The earlier world-map ground is restored. Outside Play, run **Ashlands > Validate Production and Army Travel**, then **Open Settlement Scene > Play**. See [behavior and verification](Docs/ProductionAndArmyTravel.md).
+
+The supplied orange-desert reference now drives **15 distinct building/site models**: stacked-container HQ, patched homes, rope-ring Melee Camp, motorcycle garage, tent-and-target Sharpshooter range, oasis pump, dry farm, wrecked-car scrapyard, dead-tree timber yard and fortified enemy bases. The settlement retains the warm desert palette; the world map uses its earlier earth/olive terrain. Run **Ashlands > Validate Reference Wasteland Art** outside Play, then **Open Settlement Scene > Play**. See [asset previews, mappings and checks](Docs/ReferenceWastelandArt.md).
 
 World-map visibility and lighting fixes: the world now opens at a closer, pannable scale, with enemy camps visible at every zoom. The settlement explicitly selects a realtime per-pixel sun and forward camera, with owned shadow-caster passes. **Ashlands > Validate Settlement Environment** now includes an actual offscreen rendered-light/shadow pixel check (requires a graphics device). See [verification steps](Docs/SettlementEnvironment.md).
 
@@ -98,7 +100,7 @@ Open the updated project in Unity **6000.3.23f1**. Outside Play run **Ashlands >
 - All three start at level 1. Upgrade HQ first to unlock higher producer levels. GDD caps: HQ 25; producers 20.
 - Upgrades are instant in this prototype and spend the displayed Scrap/Food/Water from the same ledger used by raids. Unaffordable upgrades stay disabled.
 - Garden produces **10 × level Food per minute**; Water Station produces **6 × level Water per minute**, while the app is actively running. Production pauses in the background and while closed; **no offline catch-up for settlement buildings** yet.
-- Each producer holds five minutes of output. Use **COLLECT** to transfer stored output to the resource HUD; full storage stops production until collected. The next level increases output/storage without erasing existing stock.
+- Each producer automatically transfers completed output to the resource HUD. Five minutes of buffer storage protects output when the resource balance is full; spend resources to resume delivery. The next level increases output/storage without erasing existing stock.
 - Levels, stored output, and partial production seconds are saved. Production checkpoints autosave every 10 active seconds; resource commands save at frame end; manual SAVE and normal pause/quit also flush. A forced termination can lose the latest partial interval.
 - Existing version-one saves migrate to version three, preserving all previous progression and adding level-one buildings and an unassigned map; version-two saves also preserve building progression. Keep the same application identity and update Android without uninstalling to retain the on-device save. Older app versions cannot read new version-five saves.
 
@@ -134,7 +136,7 @@ Outside Play, run **Ashlands > Validate Settlement Presentation**, then rebuild 
 2. Choose **Ashlands > Open Settlement Scene**, then **Ashlands > Validate Settlement Presentation** outside Play mode.
 3. Use **9:16 portrait** or **540×960** Game view and press Play.
 4. Drag the world to pan; use the mouse wheel or two-finger pinch to zoom. **HOME** restores the camera. Tap the HQ, barracks, workshop, water station, or garden to inspect them.
-5. Open **HEROES** to see an original rendered 3D survivor portrait and real hero/army statistics. The arrow buttons select any of the eight heroes; +5 fighter buttons use the existing shared reserve and capacity rules.
+5. Open **HEROES** to see an original rendered 3D survivor portrait and real hero/army statistics. The arrow buttons select any of the eight heroes. Three fighter sliders edit the assigned army directly, with −1/+1 controls and a shared capacity that grows with hero level.
 6. Open **WASTELAND RAID** to select a camp, preview, or apply a raid **within the same settlement session**. Results update the same selected hero, resource ledger, and fragment wallet.
 
 The environment uses original procedural pitched-roof buildings, water tanks, gardens, a salvaged truck, fences, watchtowers, rocks, and dead trees. Survivor characters have jackets, hair, eyes, bandanas, backpacks, boots, and animated patrols. Static geometry is combined by material; portraits render on demand while the hero panel is open.

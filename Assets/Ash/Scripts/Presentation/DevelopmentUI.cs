@@ -10,7 +10,7 @@ namespace Ash
         private GameManager manager;private Font font;private int selected;private PlotKind choice=PlotKind.Farm;
         private Vector2? buildLocation;
         private Slider trainingSlider;private Text trainingQuantity,trainText;private Button train;
-        private Text population,plotTitle,stats,feedback,buildText,upgradeText,collectText;private Button build,upgrade,collect;
+        private Text population,plotTitle,stats,feedback,buildText,upgradeText;private Button build,upgrade;
         public event Action<string> PlotSelected;
         public string SelectedPlotId=>SettlementLayout.Plots[selected].Id;
         public static DevelopmentUI Create(Transform parent,GameManager manager,Font font)
@@ -48,7 +48,6 @@ namespace Ash
             }
             build=Control("BUILD",0,1,87,129,BuildSelected,out buildText);
             upgrade=Control("UPGRADE",0,.5f,43,83,()=>Command(manager.Buildings.UpgradePlot(SelectedPlotId)),out upgradeText);
-            collect=Control("COLLECT",.5f,1,43,83,()=>Command(manager.Buildings.CollectPlot(SelectedPlotId)),out collectText);
             train=Control("TRAIN",.5f,1,43,83,()=>{var result=manager.Training.Train(SelectedPlotId,Mathf.RoundToInt(trainingSlider.value));feedback.text=result==TrainingResult.Success?(manager.PersistenceActive?(manager.SaveProgress()?"Fighters trained and saved to reserve.":manager.SaveStatus):"Fighters trained to reserve."):result.ToString();Refresh();},out trainText);
             var sliderRoot=new GameObject("Training quantity",typeof(RectTransform),typeof(Slider));sliderRoot.transform.SetParent(transform,false);
             var sr=(RectTransform)sliderRoot.transform;sr.anchorMin=sr.anchorMax=Vector2.zero;sr.anchorMax=new Vector2(.6f,0);sr.offsetMin=new Vector2(18,91);sr.offsetMax=new Vector2(-6,125);
@@ -111,7 +110,7 @@ namespace Ash
             if(stats==null)return;var service=manager.Buildings;var p=service.Plot(SelectedPlotId);var definition=service.Position(SelectedPlotId);
             if(p.Kind==PlotKind.Empty && buildLocation.HasValue){definition.X=buildLocation.Value.x;definition.Z=buildLocation.Value.y;}
             bool training=BuildingService.IsTraining(p.Kind);
-            trainingSlider.gameObject.SetActive(training);trainingQuantity.gameObject.SetActive(training);train.gameObject.SetActive(training);collect.gameObject.SetActive(!training);build.gameObject.SetActive(!training);
+            trainingSlider.gameObject.SetActive(training);trainingQuantity.gameObject.SetActive(training);train.gameObject.SetActive(training);build.gameObject.SetActive(!training);
             if(training){trainingSlider.maxValue=FighterTrainingService.BatchCapacity(p.Level);trainingSlider.SetValueWithoutNotify(Mathf.Clamp(trainingSlider.value,1,trainingSlider.maxValue));}
             int trainCount=Mathf.RoundToInt(trainingSlider.value);
             string growth=service.Population==service.HousingCapacity?"Build housing to grow":manager.Resources.Get(ResourceType.Food)<2 || manager.Resources.Get(ResourceType.Water)<1?"Growth paused: need Food and Water":"Next resident in "+(60-service.GrowthSeconds)+"s (2 Food + 1 Water)";
@@ -137,7 +136,7 @@ namespace Ash
                     foreach(var cost in manager.Training.Cost(p.Kind,trainCount))text.Append(" ").Append(cost.Amount).Append(' ').Append(cost.Type);
                     text.Append("\nTraining completes immediately. Assign reserves at the Barracks.");
                 }
-                else text.Append("\nOutput: ").Append(rate).Append(' ').Append(BuildingService.PlotProduct(p.Kind)).Append(" / minute\nStored: ").Append(p.Stored).Append('/').Append(rate*5).Append(" • Collect to use resources.");
+                else text.Append("\nOutput: ").Append(rate).Append(' ').Append(BuildingService.PlotProduct(p.Kind)).Append(" / minute\nAutomatically added to resources.\nBuffered: ").Append(p.Stored).Append('/').Append(rate*5);
                 text.Append("\nUpgrade cost:");foreach(var cost in service.PlotUpgradeCost(p.Id))text.Append(' ').Append(cost.Amount).Append(' ').Append(cost.Type);
                 text.Append("\n").Append(service.CanUpgradePlot(p.Id));
             }
@@ -145,7 +144,6 @@ namespace Ash
             stats.text=text.ToString();
             build.interactable=service.CanBuildPlotAt(p.Id,choice,definition.X,definition.Z)==BuildingCommandResult.Success;buildText.text="BUILD "+BuildingService.PlotName(choice).ToUpperInvariant();
             upgrade.interactable=service.CanUpgradePlot(p.Id)==BuildingCommandResult.Success;upgradeText.text=p.Level==BuildingService.MaximumPlotLevel?"MAX LEVEL":"UPGRADE";
-            collect.interactable=p.Stored>0;collectText.text="COLLECT "+p.Stored;
         }
         private void OnDestroy(){if(manager!=null && manager.Buildings!=null){manager.Buildings.Changed-=Refresh;manager.Resources.Changed-=Refresh;manager.HeroArmies.Changed-=Refresh;}}
     }
