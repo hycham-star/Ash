@@ -1,11 +1,11 @@
 {
   "Headquarters": {
-    "triangles": 1475,
+    "triangles": 2739,
     "materials": 1,
     "texture": 1024
   },
   "OutpostHut": {
-    "triangles": 1048,
+    "triangles": 1460,
     "materials": 1,
     "texture": 1024
   },
@@ -70,7 +70,7 @@
     "texture": 1024
   },
   "OutpostWatchtower": {
-    "triangles": 600,
+    "triangles": 956,
     "materials": 1,
     "texture": 1024
   }

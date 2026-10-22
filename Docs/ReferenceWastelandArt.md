@@ -1,5 +1,7 @@
 # Orange-desert reference art
 
+The HQ, house, watchtower, supporting-character materials and town earth now have a follow-up [polished art sample](PolishedArtSample.md). Follow its incremental rebuild steps after the base kit steps below to reproduce the current sample assets. The world ground retains the earlier earth/olive visual.
+
 The supplied settlement/world-map picture is the visual reference for this asset pass. Buildings are reconstructed as original low-poly 3D meshes with painted albedo/occlusion, normal atlases and comic outlines. The same meshes are rendered into miniature isometric map sprites. The screenshot is not used as a flat game background: buildings retain their individual colliders, click actions, movement and production functions. These are game assets based on the reference, rather than a pixel-identical reproduction of its painted illustration.
 
 | Reference element | Game model / appearance |

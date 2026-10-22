@@ -26,7 +26,7 @@ Material:
     m_Floats:
     - _Specular: 0
     - _NormalStrength: 0.25
-    - _OutlineWidth: 0.012
+    - _OutlineWidth: 0.016
     m_Colors:
     - _OutlineColor: {r: 0.075, g: 0.063, b: 0.047, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}

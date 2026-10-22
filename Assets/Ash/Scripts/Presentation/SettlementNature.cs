@@ -9,6 +9,8 @@ namespace Ash
         private Mesh grass,wood;
         public int GrassCount {get;private set;}
         public int DeadTreeCount {get;private set;}
+        public int RubbleCount {get;private set;}
+        public int DebrisCount {get;private set;}
         public static SettlementNature Build(Transform root,SettlementArt art,List<Bounds> occupied,List<Bounds> roads)
         {
             var nature=root.gameObject.AddComponent<SettlementNature>();nature.grass=GrassMesh();nature.wood=WoodMesh();
@@ -45,6 +47,22 @@ namespace Ash
                 Branch(new Vector3(.38f,1.34f,-.16f),new Vector3(.76f,1.36f,-.18f),.017f);
                 Branch(new Vector3(.11f,1.42f,.03f),new Vector3(-.2f,1.88f,-.2f),.028f);
                 nature.DeadTreeCount++;
+            }
+            // Small, collider-free ground details share the existing combined material groups.
+            for(int i=0;i<600 && nature.RubbleCount<72;i++)
+            {
+                var p=new Vector3(Mathf.Lerp(-26,26,Random(i,31)),.025f,Mathf.Lerp(-30,30,Random(i,32)));
+                if(!Clear(p,.18f))continue;
+                float size=Mathf.Lerp(.07f,.18f,Random(i,33));
+                var stone=art.Rock(root,p,new Vector3(size,size*.45f,size*.75f));
+                stone.localRotation=Quaternion.Euler(0,Random(i,34)*360,0);nature.RubbleCount++;
+            }
+            for(int i=0;i<240 && nature.DebrisCount<24;i++)
+            {
+                var p=new Vector3(Mathf.Lerp(-26,26,Random(i,41)),.035f,Mathf.Lerp(-30,30,Random(i,42)));
+                if(!Clear(p,.3f))continue;
+                var board=art.Box(root,"Scattered weathered offcut",p,new Vector3(.10f,.035f,.26f+Random(i,43)*.18f),SettlementArt.Timber);
+                board.localRotation=Quaternion.Euler(0,Random(i,44)*360,0);nature.DebrisCount++;
             }
             return nature;
         }

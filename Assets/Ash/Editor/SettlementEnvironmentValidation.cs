@@ -27,13 +27,13 @@ namespace Ash.Editor
                 var occupied=new List<Bounds>{new Bounds(Vector3.zero,new Vector3(8,1,8))};
                 var roads=new List<Bounds>{new Bounds(new Vector3(10,0,0),new Vector3(2,1,60))};
                 var nature=SettlementNature.Build(root.transform,art,occupied,roads);
-                Require(nature.GrassCount==420 && nature.DeadTreeCount==20,"Nature density is incomplete.");
+                Require(nature.GrassCount==420 && nature.DeadTreeCount==20 && nature.RubbleCount==72 && nature.DebrisCount==24,"Nature density is incomplete.");
                 Require(root.GetComponentsInChildren<Collider>().Length==0,"Decoration must not intercept taps or building movement.");
                 Require(root.GetComponentsInChildren<Renderer>().All(r=>r.receiveShadows && r.shadowCastingMode==UnityEngine.Rendering.ShadowCastingMode.On),"Nature must receive and cast lighting.");
                 foreach(Transform child in root.transform)
                     Require(!occupied[0].Contains(new Vector3(child.localPosition.x,0,child.localPosition.z)),"Decoration overlaps the blocked building footprint.");
                 art.Combine(root.transform);
-                Require(root.GetComponentsInChildren<MeshRenderer>().Length<=4,"Nature should be batched into its four shared colors.");
+                Require(root.GetComponentsInChildren<MeshRenderer>().Length<=5,"Nature should be batched into five shared colors, including rubble.");
                 var atmosphere=cameraRoot.AddComponent<SettlementAtmosphere>();atmosphere.Configure(sunRoot.GetComponent<Light>());
                 Require(QualitySettings.shadows==ShadowQuality.All && QualitySettings.shadowResolution==ShadowResolution.High && QualitySettings.shadowCascades==2,"Mobile shadow settings were not enabled.");
                 Require(Vector3.Angle(sunRoot.transform.forward,IsometricView.Rotation*Vector3.forward)>40,"Main sun must be to the side of the isometric camera so cast shadows are visible.");

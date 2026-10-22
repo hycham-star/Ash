@@ -7,6 +7,18 @@ namespace Ash.Editor
 {
     public static class ComicBuildingValidation
     {
+        [MenuItem("Ashlands/Validate Polished Art Sample")]
+        public static void ValidatePolishedSample()
+        {
+            Run();SettlementLightingValidation.Run();
+            var shader=Resources.Load<Shader>("AshComicBuilding");
+            foreach(var name in new[]{"Engineer","Sentry"}) {
+                var material=Resources.Load<Material>("Art/"+name+"Material");
+                Require(material!=null && material.shader==shader && material.GetFloat("_OutlineWidth")>0 && material.GetFloat("_OutlineWidth")<=.006f,"Miniature character ink material missing: "+name);
+            }
+            Require(Resources.Load<Texture2D>("Art/OutpostGroundAlbedo")!=null,"Painted town ground missing.");
+            Debug.Log("PASS polished art sample: imported HQ/house/watchtower kit, painted atlases, miniature character ink materials and rendered sun/shadow check. Inspect art framing and touch in Play/Android; existing saves unchanged.");
+        }
         [MenuItem("Ashlands/Validate Reference Wasteland Art")]
         public static void ValidateReference()=>SettlementEnvironmentValidation.Run();
         [MenuItem("Ashlands/Validate Comic Buildings")]

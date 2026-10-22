@@ -3,6 +3,10 @@ import bpy,sys,os,json
 from mathutils import Vector
 root=sys.argv[sys.argv.index('--')+1];source=os.path.join(root,'Tools/Art/ComicOutpost.blend');sprites=os.path.join(root,'Tools/Art/ComicSprites');os.makedirs(sprites,exist_ok=True)
 names=list(json.load(open(os.path.join(root,'Tools/Art/ComicOutpostBudget.json'))))
+requested=sys.argv[sys.argv.index('--')+2:]
+if requested:
+ assert set(requested)<=set(names),'Unknown sprite model'
+ names=requested
 for name in names:
  bpy.ops.wm.open_mainfile(filepath=source);scene=bpy.context.scene
  for obj in list(scene.objects):

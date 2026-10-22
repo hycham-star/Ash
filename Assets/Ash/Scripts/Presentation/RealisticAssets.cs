@@ -10,7 +10,7 @@ namespace Ash
         public static GameObject Headquarters(Transform parent)
         {
             var model=Create("Headquarters","HeadquartersMaterial",parent);
-            model.name="Patched timber command hall — comic low-poly mesh";
+            model.name="Fortified salvage command hall — painted low-poly mesh";
             // The detailed mesh owns its roof equipment and yard clutter.
             Grounding(model.transform,new Vector3(0,.17f,0),new Vector2(4.3f,4.1f));
             return model;
