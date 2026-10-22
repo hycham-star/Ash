@@ -60,6 +60,8 @@ namespace Ash.Editor
                 EditorBuildSettings.scenes = EditorBuildSettings.scenes.Concat(new[] { new EditorBuildSettingsScene(BattleScene, true) }).ToArray();
             if (!EditorBuildSettings.scenes.Any(scene => scene.path == SettlementScene))
                 EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(SettlementScene, true) }.Concat(EditorBuildSettings.scenes).ToArray();
+            // Runtime lights need the built-in screen-space shadow shader in Android players too.
+            UnityEngine.Rendering.GraphicsSettings.SetShaderMode(UnityEngine.Rendering.BuiltinShaderType.ScreenSpaceShadows,UnityEngine.Rendering.BuiltinShaderMode.UseBuiltin);
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.companyName = "Ashlands";
             PlayerSettings.productName = "Ashlands: Rise of the Remnants";

@@ -1,5 +1,7 @@
 # Ashlands: Rise of the Remnants
 
+World-map visibility and lighting fixes: the world now opens at a closer, pannable scale, with enemy camps visible at every zoom. The settlement explicitly selects a realtime per-pixel sun and forward camera, with owned shadow-caster passes. **Ashlands > Validate Settlement Environment** now includes an actual offscreen rendered-light/shadow pixel check (requires a graphics device). See [verification steps](Docs/SettlementEnvironment.md).
+
 The settlement now adds **dry grass, bare trees, warmer lighting, soft shadows and smooth fog beyond the walls**. The world expands to **401×401 tiles with 48 resource centers and 512 camps**, preserving existing locations and assignments through save migration. Outside Play run **Ashlands > Validate Settlement Environment**, then **Open Settlement Scene > Play**. See [preview and verification steps](Docs/SettlementEnvironment.md).
 
 The settlement HUD now uses **illustrated wasteland interface art**: riveted metal frames, dark panels, a red faction banner, live resource cards and five illustrated navigation buttons. The world-map card shares the real map texture and shows saved resource-site positions. The cog opens **Save / Load / Reset / HOME**; no unfinished social or shop actions are shown. Hero XP and hospital badges use actual progression. Outside Play run **Ashlands > Validate Wasteland HUD**, then open Settlement Scene and Play. See [HUD preview, mapping and checks](Docs/WastelandHUD.md).

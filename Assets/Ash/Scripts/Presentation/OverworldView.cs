@@ -33,11 +33,11 @@ namespace Ash
             viewport.GetWorldCorners(visibleCorners);
             var min=markerRoot.InverseTransformPoint(visibleCorners[0]);var max=markerRoot.InverseTransformPoint(visibleCorners[2]);
             var visible=UnityEngine.Rect.MinMaxRect(min.x-160,min.y-160,max.x+160,max.y+160);
-            int index=0;
             foreach(var camp in MapCamps)
             {
                 if(!campMarkers.TryGetValue(camp.Id,out var marker))continue;
-                bool active=(ReferenceMapSize>=2200 || index<WorldRegions.LegacyCampCount) && visible.Contains(marker.anchoredPosition);index++;
+                // Cull by viewport only: outer camps must remain discoverable at every zoom.
+                bool active=visible.Contains(marker.anchoredPosition);
                 if(marker.gameObject.activeSelf!=active)marker.gameObject.SetActive(active);
             }
         }

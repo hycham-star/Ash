@@ -69,14 +69,33 @@ Shader "Ash/Comic Outpost"
                 // Broad, stable paint bands. Smooth transitions avoid harsh shadow flicker when zooming.
                 half paint=.20h+.28h*smoothstep(.12h,.28h,lit)+.25h*smoothstep(.55h,.72h,lit);
                 half shadow=SHADOW_ATTENUATION(i);
-                half3 ambient=max(ShadeSH9(half4(n,1)),half3(.26h,.25h,.22h));
+                half3 ambient=max(ShadeSH9(half4(n,1)),half3(.17h,.18h,.19h));
                 half3 albedo=tex2D(_MainTex,i.uv).rgb*_Color.rgb;
-                fixed4 color=fixed4(albedo*(ambient+AshFillLight(n)+_LightColor0.rgb*paint*lerp(.45h,1.0h,shadow)),1);
+                fixed4 color=fixed4(albedo*(ambient+AshFillLight(n)+_LightColor0.rgb*paint*shadow),1);
                 color=AshBoundaryHaze(color,i.world);UNITY_APPLY_FOG(i.fogCoord,color);return color;
             }
             ENDCG
         }
-        UsePass "Legacy Shaders/VertexLit/SHADOWCASTER"
+        Pass
+        {
+            Name "SHADOWCASTER"
+            Tags { "LightMode"="ShadowCaster" }
+            ZWrite On ZTest LEqual Cull Back
+            CGPROGRAM
+            #pragma vertex shadowVert
+            #pragma fragment shadowFrag
+            #pragma target 3.0
+            #pragma multi_compile_shadowcaster
+            #include "UnityCG.cginc"
+            struct shadowInput { float4 vertex:POSITION; float3 normal:NORMAL; };
+            struct shadowOutput { V2F_SHADOW_CASTER; };
+            shadowOutput shadowVert(shadowInput v)
+            {
+                shadowOutput o;TRANSFER_SHADOW_CASTER_NORMALOFFSET(o);return o;
+            }
+            float4 shadowFrag(shadowOutput i):SV_Target { SHADOW_CASTER_FRAGMENT(i) }
+            ENDCG
+        }
     }
     Fallback Off
 }

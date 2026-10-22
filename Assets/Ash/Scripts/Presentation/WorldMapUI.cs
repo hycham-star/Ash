@@ -32,7 +32,7 @@ namespace Ash
         }
         public void EnterFromSettlement()
         {
-            selectedCampId=null;Canvas.ForceUpdateCanvases();Fit();map.anchoredPosition=Vector2.zero;
+            selectedCampId=null;Canvas.ForceUpdateCanvases();OpenNeighborhood();map.anchoredPosition=Vector2.zero;
             opened=true;homeTransitionReadyAt=Time.unscaledTime+.7f;suppressClicksUntil=homeTransitionReadyAt;
         }
         private void RequestSettlement()
@@ -163,7 +163,7 @@ namespace Ash
             foreach(var camp in MapCamps)
             {
                 if(!campMarkers.TryGetValue(camp.Id,out var marker))continue;
-                float scale=Mathf.Clamp(ReferenceMapSize/1800,.55f,3);
+                float scale=Mathf.Clamp((side-32)/WorldRegions.TileCount/8f,.18f,3);
                 marker.anchoredPosition=MapPoint(camp.X,camp.Z);marker.sizeDelta=new Vector2(64,70)*scale;
                 var icon=marker.GetComponentInChildren<RawImage>(true);icon.rectTransform.sizeDelta=new Vector2(64,56)*scale;icon.rectTransform.anchoredPosition=new Vector2(0,5)*scale;
                 marker.GetComponentInChildren<Text>(true).enabled=ReferenceMapSize>=2500;
@@ -238,7 +238,7 @@ namespace Ash
             float ratio=(side-32)/(before-32);map.anchoredPosition=point-(point-old)*ratio;ClampMap();scroll.StopMovement();
             // Only home-entry zoom navigates. Other sites/camps can still zoom all the way in.
             float distanceFromHome=(point-old).magnitude*WorldRegions.TileCount/(before-32);
-            if(SettlementRequested!=null && factor>1 && ReferenceMapSize>=1600 && (homeSelected || distanceFromHome<18))RequestSettlement();
+            if(SettlementRequested!=null && factor>1 && (side-32)/WorldRegions.TileCount>=20 && (homeSelected || distanceFromHome<8))RequestSettlement();
         }
         private void ClampMap()
         {

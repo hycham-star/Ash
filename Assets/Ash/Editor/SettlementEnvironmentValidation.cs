@@ -12,12 +12,15 @@ namespace Ash.Editor
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");
+            PrepareProject.Prepare();
             TownPresentationValidation.Run();
             MapRestartValidation.Run();
             ScavengingValidation.Run();
+            SettlementLightingValidation.Run();
             var root=new GameObject("Disposable nature validation");var art=new SettlementArt();
             var cameraRoot=new GameObject("Disposable atmosphere camera",typeof(Camera));
             var sunRoot=new GameObject("Disposable atmosphere sun",typeof(Light));
+            var previousSun=RenderSettings.sun;int pixelLights=QualitySettings.pixelLightCount;
             var shadows=QualitySettings.shadows;var resolution=QualitySettings.shadowResolution;int cascades=QualitySettings.shadowCascades;
             try
             {
@@ -32,7 +35,10 @@ namespace Ash.Editor
                 art.Combine(root.transform);
                 Require(root.GetComponentsInChildren<MeshRenderer>().Length<=4,"Nature should be batched into its four shared colors.");
                 var atmosphere=cameraRoot.AddComponent<SettlementAtmosphere>();atmosphere.Configure(sunRoot.GetComponent<Light>());
-                Require(QualitySettings.shadows==ShadowQuality.All && QualitySettings.shadowResolution==ShadowResolution.Medium && QualitySettings.shadowCascades==2,"Mobile shadow settings were not enabled.");
+                Require(QualitySettings.shadows==ShadowQuality.All && QualitySettings.shadowResolution==ShadowResolution.High && QualitySettings.shadowCascades==2,"Mobile shadow settings were not enabled.");
+                Require(Vector3.Angle(sunRoot.transform.forward,IsometricView.Rotation*Vector3.forward)>40,"Main sun must be to the side of the isometric camera so cast shadows are visible.");
+                Require(RenderSettings.sun==sunRoot.GetComponent<Light>() && RenderSettings.sun.renderMode==LightRenderMode.ForcePixel && RenderSettings.sun.lightmapBakeType==LightmapBakeType.Realtime && QualitySettings.pixelLightCount>=1,"Settlement must use an explicit per-pixel realtime sun.");
+                Require(cameraRoot.GetComponent<Camera>().renderingPath==RenderingPath.Forward && (cameraRoot.GetComponent<Camera>().depthTextureMode&DepthTextureMode.Depth)!=0,"Settlement camera must render forward lighting with shadow depth.");
                 Require(SettlementAtmosphere.Boundary.x==SettlementLayout.HalfWidth && SettlementAtmosphere.Boundary.y==SettlementLayout.HalfDepth && SettlementAtmosphere.Boundary.z==16,"Fog must begin outside the walls and fade smoothly.");
                 var oldFog=Shader.GetGlobalVector("_AshBoundaryFog");var oldColor=Shader.GetGlobalColor("_AshFogColor");
                 atmosphere.SendMessage("OnPreCull");
@@ -41,6 +47,7 @@ namespace Ash.Editor
                 Require(Shader.GetGlobalVector("_AshBoundaryFog")==oldFog && Shader.GetGlobalColor("_AshFogColor")==oldColor,"Fog globals leaked to another camera.");
                 atmosphere.enabled=false;
                 Require(QualitySettings.shadows==shadows && QualitySettings.shadowResolution==resolution && QualitySettings.shadowCascades==cascades,"Shadow settings leaked after disabling settlement atmosphere.");
+                Require(RenderSettings.sun==previousSun && QualitySettings.pixelLightCount==pixelLights,"Main-light selection or pixel-light quality leaked after disabling atmosphere.");
                 var map=ScavengingService.Generate(42);var camps=WorldMapService.GenerateCamps(map);
                 Require(WorldRegions.TileCount==401 && map.Sites.Length==48 && camps.Length==512,"Expanded world generation is incomplete.");
             }

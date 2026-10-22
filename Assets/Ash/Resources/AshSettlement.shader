@@ -71,7 +71,26 @@ Shader "Ash/Settlement Mobile"
             }
             ENDCG
         }
-        UsePass "Legacy Shaders/VertexLit/SHADOWCASTER"
+        Pass
+        {
+            Name "SHADOWCASTER"
+            Tags { "LightMode"="ShadowCaster" }
+            ZWrite On ZTest LEqual Cull Back
+            CGPROGRAM
+            #pragma vertex shadowVert
+            #pragma fragment shadowFrag
+            #pragma target 3.0
+            #pragma multi_compile_shadowcaster
+            #include "UnityCG.cginc"
+            struct shadowInput { float4 vertex:POSITION; float3 normal:NORMAL; };
+            struct shadowOutput { V2F_SHADOW_CASTER; };
+            shadowOutput shadowVert(shadowInput v)
+            {
+                shadowOutput o;TRANSFER_SHADOW_CASTER_NORMALOFFSET(o);return o;
+            }
+            float4 shadowFrag(shadowOutput i):SV_Target { SHADOW_CASTER_FRAGMENT(i) }
+            ENDCG
+        }
     }
     Fallback Off
 }

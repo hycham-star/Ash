@@ -57,6 +57,8 @@ namespace Ash.Editor
                 var map=ScavengingMapUI.Create(canvas.transform,manager.Scavenging,Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));map.Show();
                 int homeRequests=0;map.SettlementRequested+=()=>homeRequests++;
                 var terrain=(RectTransform)typeof(ScavengingMapUI).GetField("map",flags).GetValue(map);
+                map.ZoomAt(1.12f,RectTransformUtility.WorldToScreenPoint(null,terrain.TransformPoint(Vector3.zero)));
+                Require(homeRequests==0,"Opening the closer world view must not immediately zoom back into settlement.");
                 map.ZoomAt(100,RectTransformUtility.WorldToScreenPoint(null,terrain.TransformPoint(Vector3.zero)));
                 Require(homeRequests==1,"Zooming into world-map home did not request settlement entry.");
                 Require(!map.GetComponentsInChildren<Transform>(true).Any(item=>item.name=="Site details"),"Removed map text panel is still present.");

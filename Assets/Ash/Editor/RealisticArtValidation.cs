@@ -35,6 +35,12 @@ namespace Ash.Editor
                 {
                     var shader=Resources.Load<Shader>(name);
                     Require(shader!=null && shader.isSupported && !ShaderUtil.ShaderHasError(shader),"Missing or invalid shader: "+name);
+                    if(name=="AshSettlement" || name=="AshDetail" || name=="AshComicBuilding")
+                    {
+                        var probe=new Material(shader);
+                        try{Require(probe.FindPass("SHADOWCASTER")>=0,"Settlement shader has no owned shadow-caster pass: "+name);}
+                        finally{UnityEngine.Object.DestroyImmediate(probe);}
+                    }
                 }
                 var atlas=Resources.Load<Texture2D>("Map/IsometricOverworldAtlas");
                 Require(atlas!=null && atlas.width==MapLandmarkArt.AtlasWidth && atlas.height==MapLandmarkArt.AtlasHeight,"Isometric atlas must retain its six cells.");

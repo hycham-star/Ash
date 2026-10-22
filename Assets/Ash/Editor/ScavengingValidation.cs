@@ -74,12 +74,19 @@ namespace Ash.Editor
                 Require(CampIconsSafe(map),"Camp hit areas must stay transparent and clickable.");
                 Require(terrain.texture.width==MapLandmarkArt.TerrainSize && landmarks.Select(image=>image.texture).Distinct().Count()==1,"Overworld must use tiled biome terrain and one shared landmark atlas.");
                 var campIcons=map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Rusty enemy base").ToArray();
-                Require(campIcons.Count(image=>image.rectTransform.parent.gameObject.activeSelf)<=9,"Far zoom must reduce camp clutter.");
+                Require(map.MapSize>=32+WorldRegions.TileCount*8f,"World must open at a local scale rather than shrink the whole world to the screen.");
+                Require(campIcons.Any(image=>image.rectTransform.parent.gameObject.activeSelf),"No camps visible at world-map opening zoom.");
                 map.ZoomBy(100);Require(map.MapSize==24000 && landmarks.All(image=>image.rectTransform.parent.GetComponent<RectTransform>().rect.width>150),"Close zoom does not enlarge resource landmarks.");
                 var viewfinder=map.GetComponentsInChildren<RectTransform>(true).Single(rect=>rect.name=="Visible map bounds");
                 Require(viewfinder.anchorMax.x>viewfinder.anchorMin.x && viewfinder.anchorMax.x-viewfinder.anchorMin.x<.5f,"Overview viewfinder must contract with zoom.");
                 Require(campIcons.Count(image=>image.rectTransform.parent.gameObject.activeSelf)<WorldRegions.CampCount,"Offscreen camp markers were not culled at close zoom.");
+                // Move the actual map transform into the new outer region; no selected-home shortcut.
+                var outerMarker=campIcons.Single(image=>image.transform.parent.name=="Enemy base • camp-512").rectTransform.parent.GetComponent<RectTransform>();
+                var mapContent=(RectTransform)typeof(ScavengingMapUI).GetField("map",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(map);
+                mapContent.anchoredPosition=-outerMarker.anchoredPosition;map.Refresh();
+                Require(outerMarker.gameObject.activeSelf,"Panning into the outer region hid its enemy camp.");
                 map.ZoomBy(.001f);Require(map.MapSize>=200 && map.MapSize<24000,"Map cannot zoom out again.");
+                Require(campIcons.Any(image=>image.rectTransform.parent.gameObject.activeSelf && int.Parse(image.transform.parent.name.Substring(image.transform.parent.name.LastIndexOf('-')+1))>WorldRegions.OriginalCampCount),"Outer-region camps must remain visible at far zoom.");
                 string campId=manager.WorldMap.Camps[0].Id;
                 map.GetComponentsInChildren<Button>(true).Single(button=>button.name=="Enemy base • "+campId).onClick.Invoke();
                 map.GetComponentsInChildren<Button>(true).Single(button=>button.name=="SCOUT").onClick.Invoke();

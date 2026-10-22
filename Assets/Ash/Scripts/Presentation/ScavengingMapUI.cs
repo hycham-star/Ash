@@ -48,7 +48,7 @@ namespace Ash
                 foreach(var site in service.Capture().Sites)if(site.Workers>0) { selected=site.Id; break; }
             }
             Refresh();
-            if(!opened) { Fit(); Locate(); opened=true; }
+            if(!opened) { OpenNeighborhood(); Locate(); opened=true; }
         }
         public void Hide() { CloseRaidPicker();SetMapTravelView(true);bool leaving=gameObject.activeSelf;gameObject.SetActive(false);if(leaving)VisibilityChanged?.Invoke(false); }
         public void DismissSelection(){siteSelectionOpen=false;selectedCampId=null;CloseRaidPicker();Refresh();}
@@ -170,7 +170,11 @@ namespace Ash
             float minimum=Mathf.Max(200,Mathf.Max(viewport.rect.width,viewport.rect.height));
             side=Mathf.Clamp(requested,minimum,24000); map.sizeDelta=new Vector2(side,side); PositionMarkers();
         }
-        private void Fit() { homeSelected=false;SetSize(Mathf.Max(viewport.rect.width,viewport.rect.height)); map.anchoredPosition=Vector2.zero; scroll.StopMovement();RefreshWorldOverview(); }
+        private void OpenNeighborhood()
+        {
+            homeSelected=false;SetSize(Mathf.Max(Mathf.Max(viewport.rect.width,viewport.rect.height),32+WorldRegions.TileCount*8f));
+            map.anchoredPosition=Vector2.zero;scroll.StopMovement();RefreshWorldOverview();
+        }
         private void Locate()
         {
             homeSelected=false;
