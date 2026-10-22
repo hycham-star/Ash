@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace Ash
 {
-    public enum PlotKind { Empty, Housing, Farm, WaterWell, Scrapyard, InfantryCenter, BikerCenter, ArmyCenter }
+    public enum PlotKind { Empty, Housing, Farm, WaterWell, Scrapyard, InfantryCenter, BikerCenter, ArmyCenter, Market }
     public sealed class SettlementPlotDefinition
     {
         public string Id {get;}public int X {get;}public int Z {get;}
@@ -51,7 +51,7 @@ namespace Ash
         public int GrowthSeconds=>development.GrowthSeconds;
         public static string PlotName(PlotKind kind)
         {
-            switch(kind){case PlotKind.Empty:return "Empty plot";case PlotKind.Housing:return "Housing";case PlotKind.Farm:return "Farm";case PlotKind.WaterWell:return "Water Well";case PlotKind.Scrapyard:return "Scrapyard";case PlotKind.InfantryCenter:return "Infantry Center";case PlotKind.BikerCenter:return "Biker Center";case PlotKind.ArmyCenter:return "Army Center";default:throw new ArgumentOutOfRangeException(nameof(kind));}
+            switch(kind){case PlotKind.Empty:return "Empty plot";case PlotKind.Housing:return "Housing";case PlotKind.Farm:return "Farm";case PlotKind.WaterWell:return "Water Well";case PlotKind.Scrapyard:return "Scrapyard";case PlotKind.InfantryCenter:return "Infantry Center";case PlotKind.BikerCenter:return "Biker Center";case PlotKind.ArmyCenter:return "Army Center";case PlotKind.Market:return "Market";default:throw new ArgumentOutOfRangeException(nameof(kind));}
         }
         public static int WorkersRequired(PlotKind kind){PlotName(kind);return IsTraining(kind)?2:kind==PlotKind.Farm || kind==PlotKind.Scrapyard?3:kind==PlotKind.WaterWell?2:0;}
         public static bool IsTraining(PlotKind kind)=>kind==PlotKind.InfantryCenter || kind==PlotKind.BikerCenter || kind==PlotKind.ArmyCenter;
@@ -69,6 +69,7 @@ namespace Ash
         public ResourceAmount[] PlotBuildCost(PlotKind kind)
         {
             PlotName(kind);if(kind==PlotKind.Empty)throw new ArgumentException("Choose a building type.");
+            if(kind==PlotKind.Market)return new[]{new ResourceAmount(ResourceType.Scrap,40),new ResourceAmount(ResourceType.Lumber,25)};
             if(IsTraining(kind))return new[]{new ResourceAmount(ResourceType.Scrap,40),new ResourceAmount(ResourceType.Lumber,25)};
             return new[]{new ResourceAmount(ResourceType.Scrap,kind==PlotKind.WaterWell?25:kind==PlotKind.Scrapyard?30:20),new ResourceAmount(ResourceType.Lumber,kind==PlotKind.Housing || kind==PlotKind.Scrapyard?15:10)};
         }

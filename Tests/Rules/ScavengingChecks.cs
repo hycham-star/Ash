@@ -93,12 +93,12 @@ internal static class ScavengingChecks
         var progress=new ProgressPersistence(armies,resources,fragments,buildings,scavenging);
         armies.AssignFighters(armies.Heroes[0].InstanceId,"infantry",5); buildings.Upgrade(BuildingKind.Headquarters); buildings.Advance(17); scavenging.Assign(lumber); scavenging.Advance(7);
         var saved=progress.Capture(); string exact=codec.Encode(saved);
-        var versionFour=codec.Decode(exact);versionFour.Version=4;progress.Restore(versionFour);
+        var versionFour=codec.Decode(exact);versionFour.Version=4;versionFour.Resources=versionFour.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();progress.Restore(versionFour);
         C(codec.Encode(progress.Capture())==exact,"version-four upgrade preserves exact coordinates, workers, cargo and other domains");
-        var invalidLegacy=codec.Decode(exact);invalidLegacy.Version=4;var oversizedOld=invalidLegacy.Scavenging.Sites.Single(n=>n.Id==lumber);oversizedOld.Stored=200;oversizedOld.Remaining=800;oversizedOld.Workers=5;oversizedOld.Work=0;
+        var invalidLegacy=codec.Decode(exact);invalidLegacy.Version=4;invalidLegacy.Resources=invalidLegacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();var oversizedOld=invalidLegacy.Scavenging.Sites.Single(n=>n.Id==lumber);oversizedOld.Stored=200;oversizedOld.Remaining=800;oversizedOld.Workers=5;oversizedOld.Work=0;
         Reject<ArgumentException>(()=>progress.Restore(invalidLegacy),"old save retains historical 100-unit storage validation");
         C(codec.Encode(progress.Capture())==exact,"rejected legacy cargo cannot partially change live progression");
-        var legacyFull=codec.Decode(exact);legacyFull.Version=4;var oldTeam=legacyFull.Scavenging.Sites.Single(n=>n.Id==lumber);oldTeam.Stored=100;oldTeam.Remaining=900;oldTeam.Work=0;
+        var legacyFull=codec.Decode(exact);legacyFull.Version=4;legacyFull.Resources=legacyFull.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();var oldTeam=legacyFull.Scavenging.Sites.Single(n=>n.Id==lumber);oldTeam.Stored=100;oldTeam.Remaining=900;oldTeam.Work=0;
         progress.Restore(legacyFull);scavenging.Advance(0);
         C(resources.Get(ResourceType.Lumber)==100 && scavenging.Site(lumber).Workers==0 && scavenging.Site(lumber).Stored==0,"legacy full cargo returns once even with zero elapsed time");
         scavenging.Advance(5000);C(resources.Get(ResourceType.Lumber)==100,"upgraded completed trip cannot silently restart");progress.Restore(saved);
@@ -122,7 +122,7 @@ internal static class ScavengingChecks
             C(codec.Encode(progress.Capture())==exact,"invalid map cannot partially restore any domain");
         }
         foreach(int version in new[] { 1,2 }) {
-            var legacy=codec.Decode(exact); legacy.Version=version; legacy.Scavenging=null; legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray(); if(version==1)legacy.Buildings=null;
+            var legacy=codec.Decode(exact); legacy.Version=version; legacy.Scavenging=null; legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber && r.Type!=ResourceType.Gold).ToArray(); if(version==1)legacy.Buildings=null;
             progress.Restore(legacy);
             C(resources.Get(ResourceType.Lumber)==0 && scavenging.FreeWorkers==10 && scavenging.Capture().Sites.All(s=>s.Remaining==ScavengingService.Generate(scavenging.Seed).Sites.Single(original=>original.Id==s.Id).Remaining),"legacy migration adds empty Lumber ledger and unassigned random map");
             C(armies.Heroes[0].Army.TotalUnits==5 && resources.Get(ResourceType.Scrap)==60 && buildings.Level(BuildingKind.Headquarters)==(version==1 ? 1 : 2),"legacy migration preserves armies and existing compatible building/resource progression");

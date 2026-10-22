@@ -12,6 +12,8 @@ namespace Ash.Editor
 {
     public static class WastelandHudValidation
     {
+        [MenuItem("Ashlands/Validate Shared Map And Market")]
+        public static void ValidateSharedMapAndMarket(){Run();ScavengingValidation.Run();RaidPreparationValidation.Run();}
         [MenuItem("Ashlands/Validate Wasteland HUD")]
         public static void Run()
         {
@@ -38,21 +40,37 @@ namespace Ash.Editor
                 presentation=new GameObject("Disposable themed HUD");SceneManager.MoveGameObjectToScene(presentation,scene);
                 var camera=new GameObject("Disposable HUD camera",typeof(Camera));camera.transform.SetParent(presentation.transform,false);var controls=camera.AddComponent<SettlementCamera>();controls.ResetView();Set("controls",controls);
                 Set("presentation",presentation);Set("font",Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));Call("BuildUI");Call("Refresh");Canvas.ForceUpdateCanvases();
-                Button Control(string name)=>presentation.GetComponentsInChildren<Button>(true).Single(button=>button.name==name);
-                var values=(Dictionary<ResourceType,Text>)Field("hudResourceValues");Require(values.Count==5 && values[ResourceType.Lumber].text=="1.4K","Resource cards must display live ledger values.");
+                Button Control(string name)
+                {
+                    var matches=presentation.GetComponentsInChildren<Button>(true).Where(button=>button.name==name).ToArray();
+                    return matches.SingleOrDefault(button=>button.transform.parent==(Transform)Field("ui"))??matches.Single();
+                }
+                var values=(Dictionary<ResourceType,Text>)Field("hudResourceValues");Require(values.Count==6 && values[ResourceType.Lumber].text=="1.4K","Resource cards must display live ledger values.");
                 Require(((RawImage)Field("hudMiniTerrain")).texture==((ScavengingMapUI)Field("scavengingMap")).OverviewTexture,"Thumbnail must share the real map texture.");
                 Require(presentation.GetComponentsInChildren<WastelandMetalFrame>(true).All(frame=>frame.mainTexture!=null && !frame.raycastTarget),"Decorative frames must have artwork and must not intercept input.");
-                Control("WORLD MAP").onClick.Invoke();Require(((ScavengingMapUI)Field("scavengingMap")).gameObject.activeSelf,"World map card is not wired.");Control("HOME").onClick.Invoke();
-                Control("BARRACKS").onClick.Invoke();Require(((GameObject)Field("barracksPanel")).activeSelf,"Barracks navigation is not wired.");Control("HOME").onClick.Invoke();
-                Control("CONSTRUCTION").onClick.Invoke();Require(((DevelopmentUI)Field("developmentUI")).gameObject.activeSelf,"Construction navigation is not wired.");Control("HOME").onClick.Invoke();
-                Control("HOSPITAL").onClick.Invoke();Require(((HospitalUI)Field("hospitalUI")).gameObject.activeSelf,"Hospital navigation is not wired.");Control("HOME").onClick.Invoke();
-                Control("HEROES").onClick.Invoke();Require(((GameObject)Field("heroPanel")).activeSelf,"Heroes navigation is not wired.");Control("HOME").onClick.Invoke();
-                Control("WASTELAND RAID").onClick.Invoke();Require(((ScavengingMapUI)Field("scavengingMap")).gameObject.activeSelf,"Raid must open the real map.");Control("HOME").onClick.Invoke();
+                Control("WORLD MAP").onClick.Invoke();Require(((ScavengingMapUI)Field("scavengingMap")).gameObject.activeSelf,"World map card is not wired.");Control("HUD HOME").onClick.Invoke();
+                Require(((Text)Field("hudMapCaption")).text=="WORLD MAP","Home must restore the world navigation caption.");
+                Control("WORLD MAP").onClick.Invoke();var map=(ScavengingMapUI)Field("scavengingMap");
+                Require(((Text)Field("hudMapCaption")).text=="HOME" && map.transform.GetSiblingIndex()==0,"World map must replace the playfield beneath the shared HUD.");
+                var mapRect=map.GetComponent<RectTransform>();Require(mapRect.anchorMin==Vector2.zero && mapRect.anchorMax==Vector2.one,"World map must be full screen.");
+                Control("HEROES").onClick.Invoke();Require(((GameObject)Field("heroPanel")).activeSelf && map.gameObject.activeSelf,"Heroes must retain world-map context.");
+                Control("INVENTORY").onClick.Invoke();Require(((Text)Field("navigationDetails")).text.Contains("Lumber: 1400") && map.gameObject.activeSelf,"Inventory must show real stocks over the world.");
+                Control("MARKET").onClick.Invoke();Require(((GameObject)Field("marketContent")).activeSelf && !Control("BUY Food").interactable,"Unbuilt market must prevent purchases.");
+                Control("MESSAGE").onClick.Invoke();Require(((Text)Field("navigationDetails")).text.Contains("LOCAL RAID REPORT"),"Message button must open actual local reports.");
+                Control("CLAN").onClick.Invoke();Require(((Text)Field("navigationDetails")).text.Contains("No clan joined"),"Clan must not invent online membership.");
+                Control("HUD HOME").onClick.Invoke();
+                Call("ShowBarracks");Require(((GameObject)Field("barracksPanel")).activeSelf,"Existing barracks remains available through buildings.");Control("HUD HOME").onClick.Invoke();
+                Call("ShowHospital");Require(((HospitalUI)Field("hospitalUI")).gameObject.activeSelf,"Existing hospital remains available through buildings.");Control("HUD HOME").onClick.Invoke();
                 Control("SETTINGS").onClick.Invoke();var utility=(GameObject)Field("utilityPanel");Require(utility.activeSelf,"Settings failed to open.");
                 Require(utility.GetComponentsInChildren<Button>(true).Select(button=>button.GetComponentInChildren<Text>()?.text).Contains("RESET"),"Reset must remain available inside Settings.");
                 utility.GetComponentsInChildren<Button>(true).Single(button=>button.GetComponentInChildren<Text>()?.text=="X").onClick.Invoke();Require(!utility.activeSelf,"Settings close failed.");
                 Require(codec.Encode(progress.Capture())==before && !manager.PersistenceActive,"HUD navigation mutated progression or player persistence.");
-                Debug.Log("PASS Unity wasteland HUD: atlas alpha/size/import, native raw fallback, font, live resource cards, real map thumbnail, navigation and Settings isolation. Disposable preview only. Verify portrait layout, touch and appearance on Android.");
+                manager.Resources.Add(ResourceType.Gold,30);Require(manager.Buildings.BuildPlot("plot-01",PlotKind.Market)==BuildingCommandResult.Success,"Market construction fixture failed.");
+                Control("MARKET").onClick.Invoke();Require(Control("BUY Food").interactable,"Constructed market must enable affordable offer.");
+                int food=manager.Resources.Get(ResourceType.Food);Control("BUY Food").onClick.Invoke();
+                Require(manager.Resources.Get(ResourceType.Gold)==20 && manager.Resources.Get(ResourceType.Food)==food+100,"Native market UI failed atomic exchange.");
+                string marketSave=codec.Encode(progress.Capture());progress.Restore(codec.Decode(marketSave));Require(codec.Encode(progress.Capture())==marketSave,"Native JSON lost market or gold.");
+                Debug.Log("PASS Unity shared HUD and market: full-screen world/Home switch, five shared navigation actions, live resource inventory, earned-gold purchases and market JSON restore, navigation and Settings isolation. Disposable preview only. Verify portrait layout, touch and appearance on Android.");
             }
             catch(Exception error){Debug.LogException(error);if(Application.isBatchMode)EditorApplication.Exit(1);throw;}
             finally

@@ -21,6 +21,7 @@ namespace Ash
         public BattleManager Battles { get; private set; }
         public HospitalService Hospital {get;private set;}
         public FighterTrainingService Training {get;private set;}
+        public MarketService Market {get;private set;}
         public BuildingService Buildings { get; private set; }
         public ScavengingService Scavenging { get; private set; }
         public WorldMapService WorldMap {get;private set;}
@@ -54,7 +55,7 @@ namespace Ash
             saveStore=new LocalSaveStore(directory ?? Path.Combine(Application.persistentDataPath,"Saves"),new UnityProgressCodec(),progress.Validate);
             TryLoadProgress();
             HeroArmies.Changed+=MarkDirty; Resources.Changed+=MarkDirty; Fragments.Changed+=MarkDirty;
-            Buildings.Changed+=MarkProductionDirty; Hospital.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;WorldMap.Changed+=MarkScavengingDirty;
+            Market.Changed+=MarkDirty;Buildings.Changed+=MarkProductionDirty; Hospital.Changed+=MarkProductionDirty; Scavenging.Changed+=MarkScavengingDirty;WorldMap.Changed+=MarkScavengingDirty;
             Debug.Log("Local progress file: "+saveStore.SavePath,this);
         }
         private void Update()
@@ -109,7 +110,7 @@ namespace Ash
         private void OnDisable() { if(PersistenceActive && !saveBlocked)SaveProgress(); }
         private void OnDestroy()
         {
-            if(IsInitialized) { HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; Hospital.Changed-=MarkProductionDirty;WorldMap.Changed-=MarkScavengingDirty; }
+            if(IsInitialized) { Market.Changed-=MarkDirty;HeroArmies.Changed-=MarkDirty; Resources.Changed-=MarkDirty; Fragments.Changed-=MarkDirty; Buildings.Changed-=MarkProductionDirty; Scavenging.Changed-=MarkScavengingDirty; Hospital.Changed-=MarkProductionDirty;WorldMap.Changed-=MarkScavengingDirty; }
         }
         public bool SaveProgress()
         {
@@ -223,6 +224,7 @@ namespace Ash
             var battles = new BattleManager(service, resources, fragments);
             Buildings = new BuildingService(resources);
             Training=new FighterTrainingService(service,resources,Buildings,Hospital);
+            Market=new MarketService(resources,Buildings);
             Scavenging = new ScavengingService(resources,NewMapSeed());
             WorldMap=new WorldMapService(service,Scavenging,resources,Buildings,battles);
             OfflineScavenging = new OfflineScavenging(Scavenging);

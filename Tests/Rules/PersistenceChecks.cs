@@ -56,7 +56,7 @@ internal static class PersistenceChecks
         var patrol=AssetFixtures.Encounter(Path.Combine(AssetFixtures.Root,"Assets/Ash/Data/Encounters/RaiderPatrol.asset"));
         source.Battles.RunBattle(source.Mara.InstanceId,patrol);
         var captured=source.Progress.Capture();
-        C(captured.Version==ProgressPersistence.Version && captured.Resources.Length==6 && captured.Armies.Heroes.Length==8 && captured.Fragments.Length==8,"capture includes all domains and schema");
+        C(captured.Version==ProgressPersistence.Version && captured.Resources.Length==7 && captured.Armies.Heroes.Length==8 && captured.Fragments.Length==8,"capture includes all domains and schema");
         var target=new Context(heroes,fighters); var originalService=target.Armies; var originalHero=target.Mara; var originalArmy=target.Mara.Army;
         target.Progress.Restore(codec.Decode(codec.Encode(captured)));
         C(Snapshot(target)==codec.Encode(captured),"complete save/restore JSON round trip");

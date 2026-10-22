@@ -111,3 +111,9 @@ assert terrain.size == (1024,1024), "Painted wasteland terrain must be 1024px"
 assert (assets / "Ash/Resources/Map/WastelandTerrainPixels.bytes").read_bytes() == terrain.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes(), "Terrain RGBA backup must match source art exactly"
 assert len(terrain.resize((32,32)).getcolors(1024) or []) > 500, "Terrain illustration lost its colour detail"
 print("PASS painted wasteland terrain and exact RGBA backup.")
+
+nav = Image.open(assets / "Ash/Resources/HUD/WastelandNavigation.png").convert("RGBA")
+assert nav.size == (768,512), "Navigation must retain its six 256px cells"
+assert (assets / "Ash/Resources/HUD/WastelandNavigationPixels.bytes").read_bytes() == nav.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes(), "Navigation raw backup differs from PNG"
+assert nav.getextrema()[3][0] == 0 and nav.getextrema()[3][1] > 240, "Navigation icons lost their alpha"
+print("PASS navigation artwork, alpha and exact RGBA backup.")

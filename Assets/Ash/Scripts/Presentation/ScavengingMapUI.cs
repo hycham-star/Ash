@@ -12,7 +12,11 @@ namespace Ash
         private Font font;
         private Func<bool> save;
         private Func<string> saveStatus;
-        private bool opened;
+        private bool opened,siteSelectionOpen;
+        private Text siteTitle;
+        public Func<bool> InputAllowed;
+        public bool CanInteract=>InputAllowed?.Invoke()!=false;
+        public event Action<bool> VisibilityChanged;
         private RectTransform map,viewport,markerRoot;
         private ScrollRect scroll;
         private Text feedback,workforce,teamSelection;
@@ -31,14 +35,14 @@ namespace Ash
         {
             var root=new GameObject("Wasteland scavenging map",typeof(RectTransform),typeof(Image),typeof(ScavengingMapUI));
             root.transform.SetParent(parent,false);
-            var rect=(RectTransform)root.transform; rect.anchorMin=new Vector2(.015f,.108f); rect.anchorMax=new Vector2(.985f,.887f); rect.offsetMin=rect.offsetMax=Vector2.zero;
-            root.GetComponent<Image>().color=new Color32(24,32,35,255);
+            var rect=(RectTransform)root.transform; rect.anchorMin=Vector2.zero; rect.anchorMax=Vector2.one; rect.offsetMin=rect.offsetMax=Vector2.zero;
+            root.GetComponent<Image>().color=new Color32(102,74,46,255);
             var view=root.GetComponent<ScavengingMapUI>(); view.service=service; view.font=font; view.save=save; view.saveStatus=saveStatus;MapLandmarkArt.AcquireAtlas();WastelandHudSkin.Acquire(); view.Build();
             service.Changed+=view.Refresh; root.SetActive(false); return view;
         }
         public void Show()
         {
-            gameObject.SetActive(true); Canvas.ForceUpdateCanvases();
+            bool entering=!gameObject.activeSelf;gameObject.SetActive(true);if(entering){siteSelectionOpen=false;selectedCampId=null;VisibilityChanged?.Invoke(true);} Canvas.ForceUpdateCanvases();
             if(!opened) {
                 // Start at an existing assignment rather than implying every worker returned home.
                 foreach(var site in service.Capture().Sites)if(site.Workers>0) { selected=site.Id; break; }
@@ -46,7 +50,8 @@ namespace Ash
             Refresh();
             if(!opened) { Fit(); Locate(); opened=true; }
         }
-        public void Hide() { CloseRaidPicker();SetMapTravelView(false);gameObject.SetActive(false); }
+        public void Hide() { CloseRaidPicker();SetMapTravelView(true);bool leaving=gameObject.activeSelf;gameObject.SetActive(false);if(leaving)VisibilityChanged?.Invoke(false); }
+        public void DismissSelection(){siteSelectionOpen=false;selectedCampId=null;CloseRaidPicker();Refresh();}
         private void OnDestroy() { gameObject.SetActive(false);WastelandHudSkin.Release();MapLandmarkArt.ReleaseAtlas();if(service!=null)service.Changed-=Refresh; if(worldService!=null)worldService.Changed-=Refresh; if(terrainTexture!=null)SettlementArt.Release(terrainTexture); }
         public void ShowOfflineSummary(string message) { if(!string.IsNullOrEmpty(message))feedback.text=message; }
         private RectTransform Rect(Transform parent,string title,Vector2 min,Vector2 max,Vector2 lower,Vector2 upper,Color color)
@@ -70,14 +75,13 @@ namespace Ash
             // Landmark hit areas stay transparent. Frames belong only to interface controls.
             bool landmark=parent==map || parent==markerRoot;
             button.targetGraphic=landmark?(Graphic)rect.GetComponent<Image>():WastelandHudSkin.Frame(rect,7);
-            button.colors=new ColorBlock{normalColor=Color.white,highlightedColor=new Color(1,.85f,.62f),pressedColor=new Color(.65f,.48f,.30f),selectedColor=Color.white,disabledColor=new Color(.5f,.5f,.5f,.65f),colorMultiplier=1,fadeDuration=.12f}; button.onClick.AddListener(()=>{if(Time.unscaledTime>=suppressClicksUntil)action();}); return button;
+            button.colors=new ColorBlock{normalColor=Color.white,highlightedColor=new Color(1,.85f,.62f),pressedColor=new Color(.65f,.48f,.30f),selectedColor=Color.white,disabledColor=new Color(.5f,.5f,.5f,.65f),colorMultiplier=1,fadeDuration=.12f}; button.onClick.AddListener(()=>{if(CanInteract && Time.unscaledTime>=suppressClicksUntil)action();}); return button;
         }
         private void Build()
         {
-            var title=Rect(transform,"Map heading",new Vector2(0,1),Vector2.one,new Vector2(6,-48),new Vector2(-66,-6),ink); Label(title,"WASTELAND WORLD MAP",21);
-            Control(transform,"X",new Vector2(1,1),Vector2.one,new Vector2(-58,-48),new Vector2(-6,-6),Hide);
-            var workerRect=Rect(transform,"Workforce",new Vector2(0,1),Vector2.one,new Vector2(6,-80),new Vector2(-6,-51),ink); workforce=Label(workerRect,"",14);
-            viewport=Rect(transform,"Map viewport",Vector2.zero,Vector2.one,new Vector2(8,200),new Vector2(-8,-86),new Color32(81,84,64,255));
+            var workerRect=Rect(transform,"Region coordinates",new Vector2(0,1),Vector2.one,new Vector2(12,-140),new Vector2(-132,-110),new Color32(25,18,12,180));
+            workerRect.GetComponent<Image>().raycastTarget=false;workforce=Label(workerRect,"",12);
+            viewport=Rect(transform,"Map viewport",Vector2.zero,Vector2.one,new Vector2(0,99),new Vector2(0,-106),new Color32(81,84,64,255));
             viewport.gameObject.AddComponent<RectMask2D>();
             map=Rect(viewport,"Map terrain",new Vector2(.5f,.5f),new Vector2(.5f,.5f),Vector2.zero,Vector2.zero,new Color32(102,98,73,255)); map.sizeDelta=new Vector2(side,side);
             var terrainRoot=new GameObject("Textured wasteland",typeof(RectTransform),typeof(RawImage));terrainRoot.transform.SetParent(map,false);
@@ -90,20 +94,19 @@ namespace Ash
             markerRoot=new GameObject("Scavenging sites",typeof(RectTransform)).GetComponent<RectTransform>(); markerRoot.SetParent(map,false); markerRoot.anchorMin=Vector2.zero; markerRoot.anchorMax=Vector2.one; markerRoot.offsetMin=markerRoot.offsetMax=Vector2.zero;
             scroll=viewport.gameObject.AddComponent<ScrollRect>(); scroll.viewport=viewport; scroll.content=map; scroll.horizontal=scroll.vertical=true; scroll.movementType=ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity=0;viewport.gameObject.AddComponent<MapZoomInput>().Owner=this;
-            Control(transform,"−",Vector2.zero,new Vector2(.2f,0),new Vector2(8,156),new Vector2(-3,194),()=>ZoomBy(1/1.4f));
-            Control(transform,"+",new Vector2(.2f,0),new Vector2(.4f,0),new Vector2(3,156),new Vector2(-3,194),()=>ZoomBy(1.4f));
-            Control(transform,"FIT",new Vector2(.4f,0),new Vector2(.7f,0),new Vector2(3,156),new Vector2(-3,194),Fit);
-            Control(transform,"LOCATE",new Vector2(.7f,0),new Vector2(1,0),new Vector2(3,156),new Vector2(-8,194),Locate);
-            Control(transform,"−",Vector2.zero,new Vector2(.16f,0),new Vector2(8,74),new Vector2(-3,110),()=> { teamSize=Mathf.Max(1,teamSize-1);Refresh(); });
-            var team=Rect(transform,"Selected team",new Vector2(.16f,0),new Vector2(.84f,0),new Vector2(3,74),new Vector2(-3,110),ink);teamSelection=Label(team,"",14);teamSelection.resizeTextForBestFit=true;teamSelection.resizeTextMinSize=10;teamSelection.resizeTextMaxSize=14;
-            Control(transform,"+",new Vector2(.84f,0),new Vector2(1,0),new Vector2(3,74),new Vector2(-8,110),()=> { teamSize=Mathf.Min(ScavengingService.MaximumWorkersPerSite,teamSize+1);Refresh(); });
-            var status=Rect(transform,"Scavenging status",Vector2.zero,new Vector2(.76f,0),new Vector2(8,43),new Vector2(-8,68),ink); feedback=Label(status,"Drag to explore • Tap a resource site",12);
+            mapFooter=Rect(transform,"Resource site actions",Vector2.zero,new Vector2(1,0),new Vector2(8,161),new Vector2(-8,421),ink);WastelandHudSkin.Frame(mapFooter,10);
+            siteTitle=Label(Rect(mapFooter,"Resource site details",new Vector2(0,1),Vector2.one,new Vector2(10,-100),new Vector2(-50,-8),Color.clear),"",18);siteTitle.alignment=TextAnchor.MiddleLeft;
+            Control(mapFooter,"X",Vector2.one,Vector2.one,new Vector2(-44,-40),new Vector2(-6,-6),DismissSelection);
+            Control(mapFooter,"−",Vector2.zero,new Vector2(.16f,0),new Vector2(8,74),new Vector2(-3,110),()=> { teamSize=Mathf.Max(1,teamSize-1);Refresh(); });
+            var team=Rect(mapFooter,"Selected team",new Vector2(.16f,0),new Vector2(.84f,0),new Vector2(3,74),new Vector2(-3,110),ink);teamSelection=Label(team,"",14);teamSelection.resizeTextForBestFit=true;teamSelection.resizeTextMinSize=10;teamSelection.resizeTextMaxSize=14;
+            Control(mapFooter,"+",new Vector2(.84f,0),new Vector2(1,0),new Vector2(3,74),new Vector2(-8,110),()=> { teamSize=Mathf.Min(ScavengingService.MaximumWorkersPerSite,teamSize+1);Refresh(); });
+            var status=Rect(mapFooter,"Scavenging status",Vector2.zero,new Vector2(.76f,0),new Vector2(8,43),new Vector2(-8,68),ink); feedback=Label(status,"Drag to explore • Tap a resource site",12);
             feedback.resizeTextForBestFit=true; feedback.resizeTextMinSize=9; feedback.resizeTextMaxSize=12;
-            assign=Control(transform,"COLLECT",Vector2.zero,new Vector2(.25f,0),new Vector2(8,5),new Vector2(-2,41),()=>Command(()=>service.Assign(selected,teamSize)));
-            armyGather=Control(transform,"GATHER",new Vector2(.25f,0),new Vector2(.5f,0),new Vector2(2,5),new Vector2(-2,41),()=>WorldCommand(()=>worldService.Dispatch(CurrentHero.InstanceId,selected,MapMissionKind.Gather)));
-            recall=Control(transform,"RECALL",new Vector2(.5f,0),new Vector2(.75f,0),new Vector2(2,5),new Vector2(-2,41),()=> {if(worldService!=null && worldService.IsDeployed(CurrentHero.InstanceId))WorldCommand(()=>worldService.Recall(CurrentHero.InstanceId));else Command(()=>service.Recall(selected));});
-            collect=Control(transform,"DELIVER",new Vector2(.75f,0),new Vector2(1,0),new Vector2(2,5),new Vector2(-8,41),()=>Command(()=>service.Collect(selected)));
-            BuildWorldControls();BuildMapTravelControls();BuildWorldOverview();
+            assign=Control(mapFooter,"COLLECT",Vector2.zero,new Vector2(.25f,0),new Vector2(8,5),new Vector2(-2,41),()=>Command(()=>service.Assign(selected,teamSize)));
+            armyGather=Control(mapFooter,"GATHER",new Vector2(.25f,0),new Vector2(.5f,0),new Vector2(2,5),new Vector2(-2,41),()=>WorldCommand(()=>worldService.Dispatch(CurrentHero.InstanceId,selected,MapMissionKind.Gather)));
+            recall=Control(mapFooter,"RECALL",new Vector2(.5f,0),new Vector2(.75f,0),new Vector2(2,5),new Vector2(-2,41),()=> {if(worldService!=null && worldService.IsDeployed(CurrentHero.InstanceId))WorldCommand(()=>worldService.Recall(CurrentHero.InstanceId));else Command(()=>service.Recall(selected));});
+            collect=Control(mapFooter,"DELIVER",new Vector2(.75f,0),new Vector2(1,0),new Vector2(2,5),new Vector2(-8,41),()=>Command(()=>service.Collect(selected)));
+            BuildWorldControls();BuildWorldOverview();workforce.transform.parent.SetAsLastSibling();mapFooter.gameObject.SetActive(false);
         }
         private void Command(Func<ScavengingResult> action)
         {
@@ -125,7 +128,7 @@ namespace Ash
                 terrainTexture=MapLandmarkArt.Terrain(service.Seed);terrain.texture=terrainTexture;if(worldOverview!=null)worldOverview.texture=terrainTexture;
                 foreach(var site in service.Capture().Sites) {
                     string id=site.Id;
-                    var button=Control(markerRoot,MapLandmarkArt.Name(site.Resource),new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-32),new Vector2(28,32),()=> { SetMapTravelView(false);selected=id;selectedCampId=null;homeSelected=false; Refresh(); });
+                    var button=Control(markerRoot,MapLandmarkArt.Name(site.Resource),new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-28,-32),new Vector2(28,32),()=> { SetMapTravelView(true);siteSelectionOpen=true;selected=id;selectedCampId=null;homeSelected=false; Refresh(); });
                     button.gameObject.name=MapLandmarkArt.Name(site.Resource)+" • "+id;
                     var label=button.GetComponentInChildren<Text>(true);label.fontSize=10;label.resizeTextForBestFit=true;label.resizeTextMinSize=8;label.resizeTextMaxSize=10;
                     label.rectTransform.anchorMax=new Vector2(1,.24f);label.rectTransform.offsetMin=Vector2.zero;label.rectTransform.offsetMax=Vector2.zero;
@@ -139,6 +142,7 @@ namespace Ash
             }
             foreach(var site in service.Capture().Sites)labels[site.Id].text=site.Remaining==0 ? "EMPTY" : site.Workers>0 ? site.Workers+" working" : site.Id==selected ? MapLandmarkArt.Name(site.Resource) : "";
             var node=service.Site(selected);
+            if(siteTitle!=null)siteTitle.text=MapLandmarkArt.Name(node.Resource)+"  ["+node.X+", "+node.Z+"]\nDeposit "+node.Remaining+" • Workers "+node.Workers+" • Cargo "+node.Stored;
             workforce.text="World "+service.Seed+" • Scavengers "+service.FreeWorkers+" free / "+ScavengingService.TotalWorkers+" total";
             teamSelection.text=teamSize+" scavenger"+(teamSize==1?"":"s")+" • Carry "+ScavengingService.CarryCapacity(teamSize);
             assign.interactable=service.FreeWorkers>=teamSize && node.Workers==0 && node.Stored==0 && node.Remaining>0;
@@ -148,7 +152,7 @@ namespace Ash
                 item.Value.GetComponent<Image>().color=item.Key==selected ? new Color32(122,102,53,100) : new Color32(0,0,0,0);
                 item.Value.GetComponent<Outline>().enabled=item.Key==selected;
             }
-            RefreshWorld();RefreshCaptionPlates();RefreshWorldOverview();
+            RefreshWorld();mapFooter.gameObject.SetActive(siteSelectionOpen && selectedCampId==null);RefreshCaptionPlates();RefreshWorldOverview();
         }
         public string SelectedSiteId => selected;
         public int DisplayedWorkerCount => service.Site(selected).Workers;
@@ -163,10 +167,10 @@ namespace Ash
         }
         private void SetSize(float requested)
         {
-            float minimum=Mathf.Max(200,Mathf.Min(viewport.rect.width,viewport.rect.height));
+            float minimum=Mathf.Max(200,Mathf.Max(viewport.rect.width,viewport.rect.height));
             side=Mathf.Clamp(requested,minimum,10000); map.sizeDelta=new Vector2(side,side); PositionMarkers();
         }
-        private void Fit() { homeSelected=false;SetSize(Mathf.Min(viewport.rect.width,viewport.rect.height)); map.anchoredPosition=Vector2.zero; scroll.StopMovement();RefreshWorldOverview(); }
+        private void Fit() { homeSelected=false;SetSize(Mathf.Max(viewport.rect.width,viewport.rect.height)); map.anchoredPosition=Vector2.zero; scroll.StopMovement();RefreshWorldOverview(); }
         private void Locate()
         {
             homeSelected=false;

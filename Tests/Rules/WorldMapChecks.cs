@@ -74,10 +74,10 @@ internal static class WorldMapChecks
         Check(battles.Hospital.TotalWounded==world.LastRaid.PlayerFighters.Sum(f=>f.Casualties),"all raid casualties enter hospital");
         int xp=hero.Xp;progress.Restore(settlementSnapshot);world.Advance(100,false);
         Check(settled==1 && hero.Xp==xp && !world.IsDeployed(hero.InstanceId),"saved returning raid cannot grant rewards twice");
-        var legacy=progress.Capture();legacy.Version=7;legacy.WorldMap=null;progress.Restore(legacy);
+        var legacy=progress.Capture();legacy.Version=7;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.WorldMap=null;progress.Restore(legacy);
         Check(world.Capture().Missions.Length==0 && world.Camps[0].X==camps[0].X,"version seven migration preserves camp seed without phantom missions");
         var broken=progress.Capture();broken.WorldMap=null;Reject(()=>progress.Restore(broken),"current save missing world state rejected");
-        var oldBusy=progress.Capture();oldBusy.Version=7;oldBusy.WorldMap=null;
+        var oldBusy=progress.Capture();oldBusy.Version=7;oldBusy.Resources=oldBusy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();oldBusy.WorldMap=null;
         for(int i=0;i<6;i++){oldBusy.Development.Plots[i].Kind=PlotKind.Farm;oldBusy.Development.Plots[i].Level=1;}
         oldBusy.Scavenging.Sites[0].Workers=5;oldBusy.Scavenging.Sites[0].Stored=10;oldBusy.Scavenging.Sites[0].Remaining=990;
         oldBusy.Scavenging.Sites[1].Workers=5;progress.Restore(oldBusy);

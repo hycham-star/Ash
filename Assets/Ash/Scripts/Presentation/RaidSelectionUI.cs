@@ -20,7 +20,7 @@ namespace Ash
         private readonly List<RaidHeroRow> raidRows=new List<RaidHeroRow>();
         private void BuildRaidPicker()
         {
-            var root=Rect(transform,"Raid hero selection",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,new Color32(16,23,25,253));raidPicker=root.gameObject;
+            var root=Rect(transform,"Raid hero selection",Vector2.zero,Vector2.one,new Vector2(0,161),new Vector2(0,-106),new Color32(16,23,25,253));raidPicker=root.gameObject;
             var heading=Rect(root,"Raid selection heading",new Vector2(0,1),Vector2.one,new Vector2(10,-58),new Vector2(-60,-6),ink);
             raidSelectionTitle=Label(heading,"CHOOSE RAID HERO",19);raidSelectionTitle.resizeTextForBestFit=true;raidSelectionTitle.resizeTextMinSize=12;raidSelectionTitle.resizeTextMaxSize=19;
             Control(root,"X",Vector2.one,Vector2.one,new Vector2(-52,-50),new Vector2(-8,-8),CloseRaidPicker);

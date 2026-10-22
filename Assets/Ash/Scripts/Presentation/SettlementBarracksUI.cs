@@ -32,7 +32,7 @@ namespace Ash
         }
         private void ShowBarracks()
         {
-            CancelReset();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);hospitalUI.Hide();developmentUI.Hide();scavengingMap.Hide();
+            CloseNavigationPanel();CancelReset();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);hospitalUI.Hide();developmentUI.Hide();scavengingMap.Hide();
             barracksPanel.SetActive(true);barracksPanel.transform.SetAsLastSibling();RefreshBarracksRoster();
         }
         private void PrepareSelectedHero()

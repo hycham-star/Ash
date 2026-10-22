@@ -13,7 +13,6 @@ namespace Ash
         private Action<CombatResult> showRaidResult;
         private Action<string> selectHero;
         private Action prepareArmies;
-        private Button raidReport;
         private Button armyGather;
         private GameObject campPanel;
         private Text campDetails,heroLabel;
@@ -26,7 +25,7 @@ namespace Ash
         private bool homeSelected;
         private void SelectHome()
         {
-            SetMapTravelView(false);homeSelected=true;selectedCampId=null;scroll.StopMovement();
+            SetMapTravelView(true);homeSelected=true;selectedCampId=null;scroll.StopMovement();
             SetSize(Mathf.Max(side,1200));map.anchoredPosition=Vector2.zero;
             homeMarker.SetAsLastSibling();Refresh();
             feedback.text="HOME selected • Zoom in or press + to enter settlement.";
@@ -56,20 +55,17 @@ namespace Ash
         }
         private void BuildWorldControls()
         {
-            Control(transform,"‹",Vector2.zero,new Vector2(.12f,0),new Vector2(8,118),new Vector2(-3,152),()=>{cycleHero?.Invoke(-1);Refresh();});
-            var heroRect=Rect(transform,"Map hero",new Vector2(.12f,0),new Vector2(.88f,0),new Vector2(3,118),new Vector2(-3,152),ink);
+            Control(mapFooter,"‹",Vector2.zero,new Vector2(.12f,0),new Vector2(8,118),new Vector2(-3,152),()=>{cycleHero?.Invoke(-1);Refresh();});
+            var heroRect=Rect(mapFooter,"Map hero",new Vector2(.12f,0),new Vector2(.88f,0),new Vector2(3,118),new Vector2(-3,152),ink);
             heroLabel=Label(heroRect,"Choose a hero in the settlement",13);
             heroLabel.resizeTextForBestFit=true;heroLabel.resizeTextMinSize=9;heroLabel.resizeTextMaxSize=13;
-            Control(transform,"›",new Vector2(.88f,0),new Vector2(1,0),new Vector2(3,118),new Vector2(-8,152),()=>{cycleHero?.Invoke(1);Refresh();});
-            var card=Rect(transform,"Enemy camp card",Vector2.zero,new Vector2(1,0),new Vector2(8,200),new Vector2(-8,350),ink);campPanel=card.gameObject;
+            Control(mapFooter,"›",new Vector2(.88f,0),new Vector2(1,0),new Vector2(3,118),new Vector2(-8,152),()=>{cycleHero?.Invoke(1);Refresh();});
+            var card=Rect(transform,"Enemy camp card",Vector2.zero,new Vector2(1,0),new Vector2(8,161),new Vector2(-8,361),ink);campPanel=card.gameObject;
             var description=Rect(card,"Scout information",new Vector2(0,.30f),new Vector2(.9f,1),new Vector2(2,2),new Vector2(-2,-2),ink);
             Control(card,"X",Vector2.one,Vector2.one,new Vector2(-32,-30),new Vector2(-3,-3),()=>{selectedCampId=null;Refresh();});
             campDetails=Label(description,"",14);campDetails.alignment=TextAnchor.MiddleLeft;campDetails.resizeTextForBestFit=true;campDetails.resizeTextMinSize=10;campDetails.resizeTextMaxSize=14;
             Control(card,"SCOUT",Vector2.zero,new Vector2(.5f,.29f),new Vector2(3,3),new Vector2(-2,-2),()=>WorldCommand(()=>worldService.Scout(selectedCampId)));
             Control(card,"RAID",new Vector2(.5f,0),new Vector2(1,.29f),new Vector2(2,3),new Vector2(-2,-2),OpenRaidPicker);
-            raidReport=Control(transform,"RAID REPORT",new Vector2(.76f,0),new Vector2(1,0),new Vector2(2,43),new Vector2(-8,68),()=>{if(worldService?.LastRaid!=null)showRaidResult?.Invoke(worldService.LastRaid);});
-            raidReport.GetComponentInChildren<Text>(true).fontSize=10;
-            raidReport.gameObject.SetActive(false);
             BuildRaidPicker();
             campPanel.SetActive(false);
         }
@@ -100,7 +96,7 @@ namespace Ash
                 foreach(var camp in MapCamps)
                 {
                     string id=camp.Id;
-                    var button=Control(markerRoot,"CAMP ?",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-32,-35),new Vector2(32,35),()=>{SetMapTravelView(false);selectedCampId=id;homeSelected=false;Refresh();});
+                    var button=Control(markerRoot,"CAMP ?",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(-32,-35),new Vector2(32,35),()=>{SetMapTravelView(true);selectedCampId=id;homeSelected=false;Refresh();});
                     button.gameObject.name="Enemy base • "+id;button.GetComponent<Image>().color=new Color32(0,0,0,0);
                     var label=button.GetComponentInChildren<Text>(true);label.fontSize=10;label.rectTransform.anchorMax=new Vector2(1,.20f);label.rectTransform.offsetMin=label.rectTransform.offsetMax=Vector2.zero;
                     var icon=Icon(button.transform,"Rusty enemy base",null,new Vector2(64,56));MapLandmarkArt.Apply(icon,4);icon.rectTransform.anchoredPosition=new Vector2(0,5);
@@ -138,7 +134,6 @@ namespace Ash
                 campDetails.text=info+"\n"+worldService.Report;
             }
             homeMarker.GetComponent<Image>().color=homeSelected?new Color32(163,124,49,110):new Color32(0,0,0,0);
-            raidReport.gameObject.SetActive(worldService.LastRaid!=null);
             RefreshGatheringSites();
             RefreshConvoys();
             RefreshRaidPicker();CullMapMarkers();
@@ -235,7 +230,7 @@ namespace Ash
         }
         public void ZoomAt(float factor,Vector2 screenPoint)
         {
-            if(raidPicker!=null && raidPicker.activeSelf)return;
+            if(!CanInteract || (raidPicker!=null && raidPicker.activeSelf))return;
             if(factor<=0 || float.IsNaN(factor) || float.IsInfinity(factor) || Time.unscaledTime<homeTransitionReadyAt)return;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(viewport,screenPoint,null,out var point);
             var old=map.anchoredPosition;float before=side;SetSize(side*factor);
@@ -251,6 +246,7 @@ namespace Ash
         }
         private void Update()
         {
+            if(!CanInteract){scroll.enabled=false;return;}
             if(raidPicker!=null && raidPicker.activeSelf){if(Input.GetKeyDown(KeyCode.Escape))CloseRaidPicker();return;}
             if(homeSelected && map.anchoredPosition.magnitude>Mathf.Min(viewport.rect.width,viewport.rect.height)*.25f){homeSelected=false;Refresh();}
             if(Input.touchCount==2)

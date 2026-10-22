@@ -31,18 +31,22 @@ def frame(rect,b=9):
 def icon(cell,cx,cy,w,h=None):
  h=h or w;x0=(cell%4*320+4)/1280;y0=((3-cell//4)*320+4)/1280
  return mesh('Illustration '+str(cell),[(cx-w/2,cy-h/2,cx+w/2,cy+h/2,x0,y0,x0+312/1280,y0+312/1280)],skin,-1.09)
+nav_atlas=bpy.data.images.load(os.path.join(root,'Assets/Ash/Resources/HUD/WastelandNavigation.png'));nav_skin=unlit('Navigation atlas',image=nav_atlas)
+def nav_icon(cell,cx,cy,w,h=None):
+ h=h or w;u=(cell%3*256+4)/768;v=((1-cell//3)*256+4)/512
+ return mesh('Navigation illustration '+str(cell),[(cx-w/2,cy-h/2,cx+w/2,cy+h/2,u,v,u+248/768,v+248/512)],nav_skin,-1.09)
 def text(body,x,y,size=16,material=cream):
  curve=bpy.data.curves.new('HUD label','FONT');curve.body=body;curve.font=title;curve.align_x='CENTER';curve.align_y='CENTER';curve.size=size*unit
  obj=bpy.data.objects.new('Text '+body,curve);bpy.context.collection.objects.link(obj);obj.parent=camera;obj.location=((x-270)*unit,(y-480)*unit,-1.06);obj.data.materials.append(material);obj.visible_shadow=False;return obj
 frame((4,854,536,960),10);frame((8,840,79,956),9);icon(14,44,914,54,73);text('LEVEL 1',44,860,15)
-resources=[('SCRAP','100',1),('LUMBER','0',2),('WATER','50',3),('FOOD','100',5),('FUEL','20',6),('ARMY','0/30',7)]
+resources=[('SCRAP','100',1),('LUMBER','0',2),('WATER','50',3),('FOOD','100',5),('FUEL','20',6),('GOLD','0',4)]
 for i,(name,value,cell) in enumerate(resources):
  col=i%3;row=i//3;x0=(.16+col*.245)*540+4;x1=(.16+(col+1)*.245)*540-4;y1=955-row*47;y0=911-row*47
- frame((x0,y0,x1,y1),7);icon(cell,x0+(x1-x0)*.17,(y0+y1)/2,31);text(name,x0+(x1-x0)*.64,y1-10,9,muted);text(value,x0+(x1-x0)*.62,y0+16,19)
+ frame((x0,y0,x1,y1),7);(nav_icon if name=='GOLD' else icon)(cell,x0+(x1-x0)*.17,(y0+y1)/2,31);text(name,x0+(x1-x0)*.64,y1-10,9,muted);text(value,x0+(x1-x0)*.62,y0+16,19)
 for cell,y in [(13,933),(15,886)]:frame((.898*540+4,y-22,536,y+22),7);icon(cell,513,y,32)
 frame((4,0,536,99),10)
-for i,(name,cell) in enumerate([('Heroes',7),('Barracks',9),('Build',8),('Hospital',10),('Raid',12)]):
- x0=i*108+4;x1=(i+1)*108-4;frame((x0,5,x1,95),9);icon(cell,(x0+x1)/2,61,57);text(name,(x0+x1)/2,20,16)
+for i,(name,cell) in enumerate([('Heroes',7),('Inventory',0),('Market',1),('Message',2),('Clan',3)]):
+ x0=i*108+4;x1=(i+1)*108-4;frame((x0,5,x1,95),9);(icon if i==0 else nav_icon)(cell,(x0+x1)/2,61,57);text(name,(x0+x1)/2,20,16)
 frame((4,105,.27*540-4,242),10);icon(11,74,183,98,96);text('WORLD MAP',73,123,16)
 frame((.28*540+4,151,536,187),7);text('MARA FLINT  •  Lv 1  •  0/30',348,169,13)
 mesh('XP track',[(160,144,533,148,0,0,1,1)],muted,-1.10)

@@ -59,6 +59,8 @@ namespace Ash.Editor
                 map.Refresh(); // Actual refresh of the inactive panel, including real button references.
                 Require(!map.gameObject.activeSelf && map.GetComponentsInChildren<Button>(true).Length>=24,"Map UI controls incomplete.");
                 map.Show();
+                var siteActions=map.GetComponentsInChildren<RectTransform>(true).Single(rect=>rect.name=="Resource site actions");
+                Require(!siteActions.gameObject.activeSelf && !map.GetComponentsInChildren<Button>(true).Any(button=>button.name=="FIT" || button.name=="LOCATE" || button.name=="CONTROLS"),"World must not show permanent map action buttons.");
                 var landmarks=map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Miniature landmark").ToArray();
                 Require(landmarks.Length==16 && landmarks.All(image=>image.texture!=null && image.texture.width==MapLandmarkArt.AtlasWidth && !image.raycastTarget),"Miniature landmarks are missing or blocking site buttons.");
                 Require(map.GetComponentsInChildren<RawImage>(true).Count(image=>image.name=="Rusty enemy base" && image.texture!=null)==WorldRegions.CampCount,"Clickable world camps missing.");
@@ -84,6 +86,8 @@ namespace Ash.Editor
                 Require(manager.WorldMap.IsScouted(campId),"Camp scout button is not connected to world reports.");
                 var siteButton=map.GetComponentsInChildren<Button>(true).Single(button=>button.name.EndsWith(" • "+lumber.Id,StringComparison.Ordinal));
                 siteButton.onClick.Invoke();
+                Require(siteActions.gameObject.activeSelf,"Resource selection must open context actions.");
+                map.DismissSelection();Require(!siteActions.gameObject.activeSelf,"Blank terrain must close context actions.");siteButton.onClick.Invoke();
                 Require(map.SelectedSiteId==lumber.Id && service.Capture().Sites.All(site=>nodes.Any(before=>before.Id==site.Id && before.X==site.X && before.Z==site.Z && site.Workers==0)),"Landmark selection changed saved positions or worker allocation.");
                 Require(service.Assign(lumber.Id)==ScavengingResult.Success && service.FreeWorkers==9,"Worker allocation failed.");
                 service.Advance(37);
@@ -102,7 +106,7 @@ namespace Ash.Editor
                 Require(service.Site(lumber.Id).Workers==0 && manager.Resources.Get(ResourceType.Lumber)==208,"Completed trip failed native disk restart.");
                 manager.Buildings.Upgrade(BuildingKind.Headquarters);
                 var old=progress.Capture();
-                string oldJson=JsonUtility.ToJson(new LegacyV2 { Version=2,Format=old.Format,Armies=old.Armies,Resources=old.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray(),Fragments=old.Fragments,Buildings=old.Buildings });
+                string oldJson=JsonUtility.ToJson(new LegacyV2 { Version=2,Format=old.Format,Armies=old.Armies,Resources=old.Resources.Where(r=>r.Type!=ResourceType.Lumber && r.Type!=ResourceType.Gold).ToArray(),Fragments=old.Fragments,Buildings=old.Buildings });
                 progress.Restore(codec.Decode(oldJson)); progress.NotifyRestored();
                 Require(service.FreeWorkers==10 && manager.Resources.Get(ResourceType.Lumber)==0 && manager.Buildings.Level(BuildingKind.Headquarters)==2,"Version-two migration lost buildings or failed to initialize map.");
                 var hero=manager.Heroes[0];manager.HeroArmies.AssignFighters(hero.InstanceId,manager.Units[0].Definition.Id,5);

@@ -203,6 +203,7 @@ namespace Ash
                 var root=new GameObject(p.Id+" "+BuildingService.PlotName(p.Kind)).transform;root.SetParent(developmentWorld.transform,false);root.localPosition=new Vector3(position.X,0,position.Z);
                 root.gameObject.AddComponent<SettlementBuilding>().Configure(BuildingService.PlotName(p.Kind),"",plotId:p.Id);
                 if(p.Kind==PlotKind.Housing)ResidentialShelters(root,p.Level);
+                else if(p.Kind==PlotKind.Market)BuildMarketLandmark(root);
                 else if(p.Kind!=PlotKind.Empty)
                 {
                     string asset=p.Kind==PlotKind.BikerCenter?"Workshop":p.Kind==PlotKind.InfantryCenter || p.Kind==PlotKind.ArmyCenter?"Barracks":p.Kind==PlotKind.Farm?"FoodGarden":p.Kind==PlotKind.WaterWell?"WaterStation":p.Kind==PlotKind.Scrapyard?"Workshop":"Barracks";
@@ -272,12 +273,13 @@ namespace Ash
                 ShowDevelopment();developmentUI.ShowSpot(building.PlotId);
                 controls.FocusOn(building.transform.position,8);
             }
+            else if(building.PlotId!=null && gameManager.Buildings.Plot(building.PlotId).Kind==PlotKind.Market)ShowMarket();
             else if(building.PlotId!=null)ShowDevelopment(building.PlotId);
             else if(building.PlacementId=="core-barracks")ShowBarracks();
             else if(building.IsHospital)ShowHospital();
             else if(building.Kind.HasValue)ShowBuilding(building.Kind.Value);
         }
-        private bool SettlementInputAllowed()=>Time.unscaledTime>=navigationReadyAt && (utilityPanel==null || !utilityPanel.activeSelf) && (barracksPanel==null || !barracksPanel.activeSelf)
+        private bool SettlementInputAllowed()=>Time.unscaledTime>=navigationReadyAt && (navigationPanel==null || !navigationPanel.activeSelf) && (utilityPanel==null || !utilityPanel.activeSelf) && (barracksPanel==null || !barracksPanel.activeSelf)
             && (heroPanel==null || !heroPanel.activeSelf) && (raidPanel==null || !raidPanel.activeSelf)
             && (buildingPanel==null || !buildingPanel.activeSelf) && (scavengingMap==null || !scavengingMap.gameObject.activeSelf)
             && (hospitalUI==null || !hospitalUI.gameObject.activeSelf) && (developmentUI==null || !developmentUI.gameObject.activeSelf);
@@ -330,6 +332,7 @@ namespace Ash
         }
         private void ShowBuilding(BuildingKind kind)
         {
+            CloseNavigationPanel();
             if(barracksPanel!=null)barracksPanel.SetActive(false);
             developmentUI.Hide();scavengingMap.Hide();hospitalUI.Hide();
             CancelReset(); selectedBuilding=kind; heroPanel.SetActive(false); raidPanel.SetActive(false);
@@ -418,21 +421,21 @@ namespace Ash
         private void ShowDevelopment(string id=null)
         {
             if(barracksPanel!=null)barracksPanel.SetActive(false);
-            CancelReset();scavengingMap.Hide();hospitalUI.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);if(id==null)developmentUI.ShowConstruction();else developmentUI.Show(id);
+            CloseNavigationPanel();CancelReset();scavengingMap.Hide();hospitalUI.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);if(id==null)developmentUI.ShowConstruction();else developmentUI.Show(id);
         }
         private void ShowHospital()
         {
             if(barracksPanel!=null)barracksPanel.SetActive(false);
-            CancelReset();developmentUI.Hide();scavengingMap.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);hospitalUI.Show();
+            CloseNavigationPanel();CancelReset();developmentUI.Hide();scavengingMap.Hide();heroPanel.SetActive(false);raidPanel.SetActive(false);buildingPanel.SetActive(false);hospitalUI.Show();
         }
         private void ShowMap()
         {
             if(barracksPanel!=null)barracksPanel.SetActive(false);
-            developmentUI.Hide();hospitalUI.Hide();
+            CloseNavigationPanel();developmentUI.Hide();hospitalUI.Hide();
             CancelReset(); heroPanel.SetActive(false); raidPanel.SetActive(false); buildingPanel.SetActive(false);
-            scavengingMap.Show(); scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); scavengingMap.transform.SetAsLastSibling();
+            scavengingMap.Show(); scavengingMap.ShowOfflineSummary(gameManager.OfflineSummary); scavengingMap.transform.SetAsFirstSibling();
         }
-        private void ShowHeroes(bool visible) { preparingFromBarracks=false;if(barracksPanel!=null)barracksPanel.SetActive(false); heroHeading.text="SURVIVOR DOSSIER"; developmentUI.Hide();hospitalUI.Hide();scavengingMap.Hide(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); Refresh(); }
+        private void ShowHeroes(bool visible) { CloseNavigationPanel();preparingFromBarracks=false;if(barracksPanel!=null)barracksPanel.SetActive(false); heroHeading.text="SURVIVOR DOSSIER"; developmentUI.Hide();hospitalUI.Hide();if(!worldMapMode)scavengingMap.Hide();else scavengingMap.DismissSelection(); buildingPanel.SetActive(false); heroPanel.SetActive(visible); raidPanel.SetActive(false); Refresh(); }
         private void ShowRaid()=>ShowMap();
         private void ShowWorldRaidResult(CombatResult outcome)
         {
@@ -566,7 +569,7 @@ namespace Ash
             hospitalUI=HospitalUI.Create(ui,gameManager,font);
             developmentUI=DevelopmentUI.Create(ui,gameManager,font);
             developmentUI.PlotSelected+=id=>{var p=gameManager.Buildings.Position(id);controls.FocusOn(new Vector3(p.X,0,p.Z),8);};
-            WastelandHudSkin.Frame(scavengingMap.GetComponent<RectTransform>(),10);
+            scavengingMap.VisibilityChanged+=SetWorldHudMode;scavengingMap.InputAllowed=MapInputAllowed;scavengingMap.transform.SetAsFirstSibling();
             WastelandHudSkin.Frame(hospitalUI.GetComponent<RectTransform>(),10);
             WastelandHudSkin.Frame(developmentUI.GetComponent<RectTransform>(),10);
             BuildBarracksRoster();

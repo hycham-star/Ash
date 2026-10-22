@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Ash
 {
-    public enum ResourceType { Food, Scrap, Water, Fuel, Survivors, Lumber }
+    public enum ResourceType { Food, Scrap, Water, Fuel, Survivors, Lumber, Gold }
 
     [Serializable]
     public struct ResourceAmount
@@ -13,7 +13,7 @@ namespace Ash
         public ResourceAmount(ResourceType type, int amount) { Type = type; Amount = amount; }
     }
 
-    /// <summary>Single resource ledger. No production timers, purchases, or premium currency.</summary>
+    /// <summary>Single resource ledger. Gold is earned in PvE; transactions share this ledger.</summary>
     public sealed class ResourceManager
     {
         private readonly Dictionary<ResourceType, int> balances = new Dictionary<ResourceType, int>();

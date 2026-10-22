@@ -47,7 +47,7 @@ internal static class MigrationCodecChecks
         foreach(int version in new[] { 1,2 }) {
             var root=JsonNode.Parse(codec.Encode(current)); root["Version"]=version; root.AsObject().Remove("Scavenging");
             if(version==1)root.AsObject().Remove("Buildings");
-            root["Resources"]=JsonSerializer.SerializeToNode(current.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray(),Options);
+            root["Resources"]=JsonSerializer.SerializeToNode(current.Resources.Where(r=>r.Type!=ResourceType.Lumber && r.Type!=ResourceType.Gold).ToArray(),Options);
             string json=root.ToJsonString();
             var before=(ProgressState)UnityLikeRead(json,typeof(ProgressState));
             Reject(()=>context.Progress.Validate(before),"reproduce legacy rejection with emulated Unity inline defaults");

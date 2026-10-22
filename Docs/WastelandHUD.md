@@ -1,5 +1,7 @@
 # Illustrated wasteland settlement HUD
 
+Current navigation and market behavior: see [Shared navigation and Market](SharedNavigationAndMarket.md). The art notes below also document the earlier layout.
+
 The supplied portrait interface is the visual reference for original UI art: rusty riveted frames, dark iron/leather panels, bone-colored serif lettering, a torn red insignia and painted resource/navigation icons. The screenshot itself is not embedded in the game. The existing interactive 3D settlement remains the background.
 
 ## Working actions and live values

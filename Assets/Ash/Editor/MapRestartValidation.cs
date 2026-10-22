@@ -54,8 +54,8 @@ namespace Ash.Editor
                 legacySession.Buildings.Advance(38);
                 Require(legacySession.SaveProgress(),"Cannot checkpoint legacy test setup.");
                 var legacyProgress=new ProgressPersistence(legacySession.HeroArmies,legacySession.Resources,legacySession.Fragments,legacySession.Buildings,legacySession.Scavenging);
-                var legacy=legacyProgress.Capture(); legacy.Version=2; legacy.Scavenging=null;
-                legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber).ToArray();
+                var legacy=legacyProgress.Capture(); legacy.Version=2;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray(); legacy.Scavenging=null;
+                legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber && r.Type!=ResourceType.Gold).ToArray();
                 // Write an authentic old JSON shape with no Scavenging/Lumber, into temporary storage only.
                 new LocalSaveStore(directory,new LegacyCodec(),legacyProgress.Validate).Reset(legacy);
                 EditorSceneManager.ClosePreviewScene(scenes[0]);

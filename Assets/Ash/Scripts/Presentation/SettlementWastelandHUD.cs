@@ -9,8 +9,12 @@ namespace Ash
     public sealed partial class SettlementView
     {
         private bool hudAtlasAcquired;
-        private GameObject utilityPanel,hospitalBadge;
-        private Text hqLevelLabel,hudArmyLabel,hospitalBadgeLabel;
+        private GameObject utilityPanel;
+        private bool worldMapMode;
+        private RectTransform hudMapCard;
+        private Text hudMapCaption;
+        private GameObject hudHomeIcon;
+        private Text hqLevelLabel;
         private readonly Dictionary<ResourceType,Text> hudResourceValues=new Dictionary<ResourceType,Text>();
         private readonly List<RectTransform> hudSiteDots=new List<RectTransform>();
         private RawImage hudMiniTerrain;
@@ -49,36 +53,28 @@ namespace Ash
             HudIcon(banner,14,new Vector2(.5f,1),new Vector2(0,-42),new Vector2(54,73));
             hqLevelLabel=HudText(banner,"Headquarters level","",16,Vector2.zero,new Vector2(1,0),new Vector2(6,9),new Vector2(-6,31));
             HudAction(banner,()=>ShowBuilding(BuildingKind.Headquarters));
-            var types=new[]{ResourceType.Scrap,ResourceType.Lumber,ResourceType.Water,ResourceType.Food,ResourceType.Fuel};
-            var cells=new[]{1,2,3,5,6};
+            var types=new[]{ResourceType.Scrap,ResourceType.Lumber,ResourceType.Water,ResourceType.Food,ResourceType.Fuel,ResourceType.Gold};
+            var cells=new[]{1,2,3,5,6,4};
             for(int i=0;i<types.Length;i++)
             {
                 var type=types[i];int column=i%3,row=i/3;float x0=.16f+column*.245f,x1=x0+.245f;
                 var card=HudBox(ui,"Resource "+type,x0,x1,-49-row*47,-5-row*47,true,7);
-                HudIcon(card,cells[i],new Vector2(.17f,.5f),Vector2.zero,new Vector2(31,31));
+                var resourceIcon=HudIcon(card,cells[i],new Vector2(.17f,.5f),Vector2.zero,new Vector2(31,31));if(type==ResourceType.Gold)WastelandHudSkin.NavigationIcon(resourceIcon,4);
                 var value=HudText(card,"Resource value","",20,new Vector2(.34f,0),Vector2.one,new Vector2(0,5),new Vector2(-6,-17));value.alignment=TextAnchor.MiddleLeft;
                 HudText(card,"Resource name",type.ToString().ToUpperInvariant(),10,new Vector2(.34f,1),Vector2.one,new Vector2(0,-16),new Vector2(-6,-4)).alignment=TextAnchor.MiddleLeft;
-                hudResourceValues.Add(type,value);HudAction(card,type==ResourceType.Fuel?(Action)ShowRaid:ShowMap);
+                hudResourceValues.Add(type,value);HudAction(card,type==ResourceType.Gold?(Action)ShowMarket:ShowInventory);
             }
-            var army=HudBox(ui,"Selected hero army",.65f,.895f,-96,-52,true,7);HudIcon(army,7,new Vector2(.17f,.5f),Vector2.zero,new Vector2(30,30));
-            hudArmyLabel=HudText(army,"Army quantity","",18,new Vector2(.34f,0),Vector2.one,new Vector2(0,3),new Vector2(-6,-17));hudArmyLabel.alignment=TextAnchor.MiddleLeft;
-            HudText(army,"Army name","ARMY",10,new Vector2(.34f,1),Vector2.one,new Vector2(0,-15),new Vector2(-6,-3)).alignment=TextAnchor.MiddleLeft;HudAction(army,ShowBarracks);
-            var settings=HudBox(ui,"SETTINGS",.898f,1,-49,-5,true,7);HudIcon(settings,13,new Vector2(.5f,.5f),Vector2.zero,new Vector2(32,32));HudAction(settings,()=>{CancelReset();utilityPanel.SetActive(true);utilityPanel.transform.SetAsLastSibling();});
-            var home=HudBox(ui,"HOME",.898f,1,-96,-52,true,7);HudIcon(home,15,new Vector2(.5f,.5f),Vector2.zero,new Vector2(32,32));HudAction(home,HudHome);
+            var settings=HudBox(ui,"SETTINGS",.898f,1,-49,-5,true,7);HudIcon(settings,13,new Vector2(.5f,.5f),Vector2.zero,new Vector2(32,32));HudAction(settings,()=>{CloseNavigationPanel();CancelReset();utilityPanel.SetActive(true);utilityPanel.transform.SetAsLastSibling();});
+            var home=HudBox(ui,"HUD HOME",.898f,1,-96,-52,true,7);HudIcon(home,15,new Vector2(.5f,.5f),Vector2.zero,new Vector2(32,32));HudAction(home,HudHome);
             HudBox(ui,"Wasteland navigation rail",0,1,0,99,false,10);
-            var names=new[]{"HEROES","BARRACKS","CONSTRUCTION","HOSPITAL","WASTELAND RAID"};var captions=new[]{"Heroes","Barracks","Build","Hospital","Raid"};var icons=new[]{7,9,8,10,12};
-            var actions=new Action[]{()=>ShowHeroes(true),ShowBarracks,()=>ShowDevelopment(),ShowHospital,ShowRaid};
+            var names=new[]{"HEROES","INVENTORY","MARKET","MESSAGE","CLAN"};var captions=new[]{"Heroes","Inventory","Market","Message","Clan"};var icons=new[]{7,0,1,2,3};
+            var actions=new Action[]{()=>ShowHeroes(true),ShowInventory,ShowMarket,ShowMessages,ShowClan};
             for(int i=0;i<names.Length;i++)
             {
-                var card=HudBox(ui,names[i],i/5f,(i+1)/5f,5,95,false,9);HudIcon(card,icons[i],new Vector2(.5f,1),new Vector2(0,-34),new Vector2(57,57));
+                var card=HudBox(ui,names[i],i/5f,(i+1)/5f,5,95,false,9);var icon=HudIcon(card,i==0?7:0,new Vector2(.5f,1),new Vector2(0,-34),new Vector2(57,57));if(i>0)WastelandHudSkin.NavigationIcon(icon,icons[i]);
                 HudText(card,"Navigation label",captions[i],17,Vector2.zero,new Vector2(1,0),new Vector2(6,7),new Vector2(-6,28));HudAction(card,actions[i]);
-                if(i==3)
-                {
-                    var badge=Panel(card,"Hospital patients",new Vector2(1,1),Vector2.one,new Vector2(-26,-28),new Vector2(-7,-8),new Color32(155,32,20,255));hospitalBadge=badge.gameObject;
-                    badge.GetComponent<Image>().raycastTarget=false;hospitalBadgeLabel=HudText(badge,"Wounded count","",11,Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero);hospitalBadge.SetActive(false);
-                }
             }
-            var map=HudBox(ui,"WORLD MAP",0,.27f,105,242,false,10);HudAction(map,ShowMap);
+            var map=HudBox(ui,"WORLD MAP",0,.27f,105,242,false,10);hudMapCard=map;HudAction(map,()=>{if(worldMapMode)HudHome();else ShowMap();});
             var terrain=new GameObject("World overview",typeof(RectTransform),typeof(RawImage));terrain.transform.SetParent(map,false);var tr=(RectTransform)terrain.transform;tr.anchorMin=new Vector2(0,0);tr.anchorMax=Vector2.one;tr.offsetMin=new Vector2(9,30);tr.offsetMax=new Vector2(-9,-9);
             hudMiniTerrain=terrain.GetComponent<RawImage>();hudMiniTerrain.raycastTarget=false;hudMiniTerrain.color=new Color32(193,166,128,255);
             foreach(var site in gameManager.Scavenging.Capture().Sites)
@@ -87,28 +83,48 @@ namespace Ash
                 dot.GetComponent<Image>().raycastTarget=false;hudSiteDots.Add(dot);
             }
             HudIcon(tr,15,new Vector2(.5f,.5f),Vector2.zero,new Vector2(22,22));
-            HudText(map,"Map label","WORLD MAP",18,Vector2.zero,new Vector2(1,0),new Vector2(10,6),new Vector2(-10,29));
+            hudHomeIcon=HudIcon(map,15,new Vector2(.5f,.55f),Vector2.zero,new Vector2(85,85)).gameObject;hudHomeIcon.SetActive(false);
+            hudMapCaption=HudText(map,"Map label","WORLD MAP",18,Vector2.zero,new Vector2(1,0),new Vector2(10,6),new Vector2(-10,29));
             var leader=HudBox(ui,"Selected survivor",.28f,1,151,187,false,7);HudAction(leader,()=>ShowHeroes(true));
             leaderLabel=HudText(leader,"Survivor name","",15,Vector2.zero,Vector2.one,new Vector2(10,5),new Vector2(-10,-5));
             var xp=Panel(ui,"Hero XP track",new Vector2(.29f,0),new Vector2(.99f,0),new Vector2(2,144),new Vector2(-2,148),new Color32(34,27,18,255));xp.GetComponent<Image>().raycastTarget=false;
             heroXpFill=Panel(xp,"Hero XP",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,new Color32(188,132,53,255));heroXpFill.GetComponent<Image>().raycastTarget=false;
-            BuildHudUtilities();
+            BuildHudUtilities();BuildNavigationPanels();
         }
         private void BuildHudUtilities()
         {
             utilityPanel=Panel(ui,"Settings backdrop",Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero,new Color(0,0,0,.65f)).gameObject;
-            var box=Panel(utilityPanel.transform,"Settings",new Vector2(.12f,.29f),new Vector2(.88f,.75f),Vector2.zero,Vector2.zero,new Color32(19,17,15,255));WastelandHudSkin.Frame(box,14);
+            var box=Panel(utilityPanel.transform,"Settings",new Vector2(.12f,.22f),new Vector2(.88f,.82f),Vector2.zero,Vector2.zero,new Color32(19,17,15,255));WastelandHudSkin.Frame(box,14);
             HudText(box,"Settings title","OUTPOST SETTINGS",25,new Vector2(0,1),Vector2.one,new Vector2(15,-62),new Vector2(-60,-14));
             Button(box,"X",.82f,1,1,1,2,-56,-12,-14,()=>{CancelReset();utilityPanel.SetActive(false);});
             Button(box,"SAVE",0,1,1,1,18,-124,-18,-76,SaveProgress);Button(box,"LOAD",0,1,1,1,18,-182,-18,-134,LoadProgress);
-            resetButton=Button(box,"RESET",0,1,1,1,18,-240,-18,-192,RequestReset);Button(box,"HOME",0,1,1,1,18,-298,-18,-250,HudHome);
+            resetButton=Button(box,"RESET",0,1,1,1,18,-240,-18,-192,RequestReset);Button(box,"CONSTRUCTION",0,1,1,1,18,-298,-18,-250,()=>ShowDevelopment());Button(box,"HOME",0,1,1,1,18,-356,-18,-308,HudHome);
             saveStatus=HudText(box,"Local save status",gameManager.SaveStatus,13,Vector2.zero,new Vector2(1,0),new Vector2(18,13),new Vector2(-18,56));utilityPanel.SetActive(false);
         }
         private void HudHome()
         {
-            CancelReset();if(utilityPanel!=null)utilityPanel.SetActive(false);
+            CancelReset();if(navigationPanel!=null)navigationPanel.SetActive(false);if(utilityPanel!=null)utilityPanel.SetActive(false);
             heroPanel?.SetActive(false);raidPanel?.SetActive(false);buildingPanel?.SetActive(false);barracksPanel?.SetActive(false);
             hospitalUI?.Hide();developmentUI?.Hide();scavengingMap?.Hide();controls?.ResetView();
+        }
+        private void SetWorldHudMode(bool active)
+        {
+            worldMapMode=active;if(world!=null){world.gameObject.SetActive(!active);if(!active)SyncPlacement();}
+            if(hudMapCaption!=null)hudMapCaption.text=active?"HOME":"WORLD MAP";
+            if(hudMapCard!=null){hudMapCard.offsetMin=new Vector2(4,105);hudMapCard.offsetMax=new Vector2(-4,active?153:242);}
+            if(hudHomeIcon!=null)
+            {
+                hudHomeIcon.SetActive(active);var icon=(RectTransform)hudHomeIcon.transform;icon.anchorMin=icon.anchorMax=new Vector2(.22f,.5f);icon.sizeDelta=new Vector2(32,32);
+            }
+            if(hudMapCaption!=null)
+            {
+                var caption=hudMapCaption.rectTransform;caption.anchorMin=active?new Vector2(.4f,0):Vector2.zero;caption.anchorMax=active?Vector2.one:new Vector2(1,0);
+                caption.offsetMin=active?new Vector2(0,4):new Vector2(10,6);caption.offsetMax=active?new Vector2(-4,-4):new Vector2(-10,29);
+            }
+            if(hudMiniTerrain!=null)hudMiniTerrain.gameObject.SetActive(!active);
+            if(leaderLabel!=null)leaderLabel.transform.parent.gameObject.SetActive(!active);
+            if(heroXpFill!=null)heroXpFill.transform.parent.gameObject.SetActive(!active);
+            if(toast!=null)toast.transform.parent.gameObject.SetActive(!active);
         }
         private static string HudQuantity(int value)
         {
@@ -120,10 +136,8 @@ namespace Ash
         {
             foreach(var entry in hudResourceValues)entry.Value.text=HudQuantity(gameManager.Resources.Get(entry.Key));
             if(hqLevelLabel==null)return;hqLevelLabel.text="LEVEL "+gameManager.Buildings.Level(BuildingKind.Headquarters);
-            hudArmyLabel.text=hero.Army.TotalUnits+"/"+hero.Army.Capacity;
             heroXpFill.anchorMax=new Vector2(hero.XpToNextLevel==0?1:Mathf.Clamp01(hero.Xp/(float)hero.XpToNextLevel),1);
-            long wounded=0;foreach(var patient in gameManager.Hospital.Capture().Patients)wounded+=patient.Quantity;
-            hospitalBadge.SetActive(wounded>0);hospitalBadgeLabel.text=wounded>99?"99+":wounded.ToString(CultureInfo.InvariantCulture);
+            RefreshNavigationPanel();
             if(scavengingMap!=null && scavengingMap.OverviewTexture!=null)hudMiniTerrain.texture=scavengingMap.OverviewTexture;
             var sites=gameManager.Scavenging.Capture().Sites;
             for(int i=0;i<hudSiteDots.Count && i<sites.Length;i++)hudSiteDots[i].anchorMin=hudSiteDots[i].anchorMax=new Vector2(WorldRegions.Normalized(sites[i].X),WorldRegions.Normalized(sites[i].Z));

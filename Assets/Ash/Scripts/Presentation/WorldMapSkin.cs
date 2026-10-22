@@ -10,7 +10,7 @@ namespace Ash
         private RectTransform overviewWindow;
         private void BuildWorldOverview()
         {
-            var root=Rect(transform,"World overview",Vector2.one,Vector2.one,new Vector2(-118,-186),new Vector2(-12,-90),new Color32(30,23,18,255));
+            var root=Rect(transform,"World overview",Vector2.one,Vector2.one,new Vector2(-118,-216),new Vector2(-12,-120),new Color32(30,23,18,255));
             root.GetComponent<Image>().raycastTarget=false;WastelandHudSkin.Frame(root,7);
             var image=Icon(root,"Live region overview",terrainTexture,new Vector2(90,76));worldOverview=image;
             image.rectTransform.anchoredPosition=new Vector2(0,3);

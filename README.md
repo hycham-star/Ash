@@ -200,3 +200,5 @@ Output: `Builds/Ashlands.apk`; signing/store configuration is not included. The 
 See [local persistence](Docs/LocalPersistence.md) for storage and recovery details. See [PvE combat architecture](Docs/PvECombat.md) for formulas, state settlement, and limitations. Earlier milestone documents are historical records.
 
 The world map shares the rusty settlement HUD and now uses a painted desert terrain with a live overview. See [Wasteland world presentation](Docs/WastelandWorldPresentation.md) for the native validation menu, art packing and preview limitations.
+
+Latest: [Shared navigation and earned-gold Market](Docs/SharedNavigationAndMarket.md). Both views now use Heroes / Inventory / Market / Message / Clan; world actions appear only on selection. World Map becomes Home outside. Construct a Market and exchange PvE raid Gold for resources; save schema 11 migrates existing progress.

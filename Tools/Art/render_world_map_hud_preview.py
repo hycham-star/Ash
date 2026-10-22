@@ -1,10 +1,9 @@
-"""Actual bundled UI/terrain/landmark asset preview, not a Unity screenshot.
-Seed-42 positions are exported from ScavengingService.Generate and WorldMapService.GenerateCamps.
+"""Blender asset/layout preview of full-screen map and shared HUD, not a Unity screenshot.
+Uses actual bundled textures and seed-42 generator coordinates. No painted UI mock screenshot.
 Blender -b -t 4 --python-exit-code 1 --python this_file -- repo
 """
 import bpy,sys,os,json
 root=sys.argv[sys.argv.index('--')+1]
-# Reuse established UI mesh/UV/font helpers without executing its settlement scene or render.
 sourcefile=os.path.join(root,'Tools/Art/render_wasteland_hud_preview.py');source=open(sourcefile).read()
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.samples=8;scene.cycles.use_denoising=False
@@ -13,33 +12,42 @@ bpy.ops.object.camera_add(location=(0,0,0));camera=bpy.context.object;scene.came
 scene.render.resolution_x=540;scene.render.resolution_y=960;scene.render.resolution_percentage=100
 start=source.index('atlas=bpy.data.images.load');end=source.index('frame((4,854')
 exec(compile(source[start:end],sourcefile,'exec'),globals())
-# Reference the real sixteen-cell HUD at its actual portrait screen positions.
-header=source[end:source.index('frame((4,105')];exec(compile(header,sourcefile,'exec'),globals())
+# Shared resource ribbon and exact five-button navigation.
+exec(compile(source[end:source.index('frame((4,105')],sourcefile,'exec'),globals())
 terrain_image=bpy.data.images.load(os.path.join(root,'Assets/Ash/Resources/Map/WastelandTerrain.png'));terrain_mat=unlit('Bundled painted desert',image=terrain_image)
 landmarks=bpy.data.images.load(os.path.join(root,'Assets/Ash/Resources/Map/IsometricOverworldAtlas.png'));landmark_mat=unlit('Actual isometric landmarks',image=landmarks)
-black=unlit('Map interface background',(.075,.052,.035))
-mesh('World map background',[(8,104,532,851,0,0,1,1)],black,-1.18)
-frame((8,104,532,851),10);frame((14,803,466,845),7);text('WASTELAND WORLD MAP',240,824,20);frame((474,803,526,845),7);text('X',500,824,18)
-frame((14,771,526,800),7);text('Heartland  •  Lv 1  •  X 0 / Y 0',270,786,13)
-# Fit view: the map's square area follows the viewport's smaller dimension.
-viewport=(16,304,524,765);side=min(viewport[2]-viewport[0],viewport[3]-viewport[1]);span=side-32;cx=270;cy=(viewport[1]+viewport[3])/2
-mesh('World terrain painting',[(cx-span/2,cy-span/2,cx+span/2,cy+span/2,0,0,1,1)],terrain_mat,-1.115)
+black=unlit('World background',(.18,.11,.055))
+mesh('Opaque world playfield',[(0,0,540,960,0,0,1,1)],black,-1.18)
+# Actual portrait viewport below the 106px ribbon and above the 99px footer.
+span=755-32;cx=270;cy=(99+854)/2;left=cx-span/2;bottom=cy-span/2
+mesh('Full-screen world terrain',[(0,bottom,540,bottom+span,(0-left)/span,0,(540-left)/span,1)],terrain_mat,-1.115)
 fixture=json.load(open(os.path.join(root,'Tools/Art/WorldMapPreviewFixture.json')))
 def landmark(cell,x,y,w,h):
- u=(cell%3*384+2)/1152;v=((1-cell//3)*384+2)/768
- return mesh('Interactive landmark asset',[(x-w/2,y-h/2,x+w/2,y+h/2,u,v,u+380/1152,v+380/768)],landmark_mat,-1.09)
+ x0=max(0,x-w/2);x1=min(540,x+w/2);y0=max(99,y-h/2);y1=min(854,y+h/2)
+ if x1<=x0 or y1<=y0:return
+ u=(cell%3*384+2)/1152;v=((1-cell//3)*384+2)/768;du=380/1152;dv=380/768
+ return mesh('Interactive landmark',[(x0,y0,x1,y1,u+(x0-x+w/2)/w*du,v+(y0-y+h/2)/h*dv,u+(x1-x+w/2)/w*du,v+(y1-y+h/2)/h*dv)],landmark_mat,-1.09)
 for site in fixture['Sites']:
  x=cx+site['X']*span/201;y=cy+site['Z']*span/201;cell={'Food':0,'Water':1,'Scrap':2,'Lumber':3}[site['Resource']];landmark(cell,x,y+4,36,34)
 for camp in fixture['Camps']:landmark(4,cx+camp['X']*span/201,cy+camp['Z']*span/201+3,35,31)
 landmark(5,cx,cy+6,42,42)
-# Overview references the same source terrain. Its viewfinder is full extent in Fit mode.
-frame((414,665,520,761),7);mesh('Live overview artwork',[(422,677,512,753,0,0,1,1)],terrain_mat,-1.105);icon(15,467,715,16)
-for rect in [(422,677,512,678),(422,752,512,753),(422,677,423,753),(511,677,512,753)]:mesh('Overview viewfinder',[(*rect,0,0,1,1)],cream,-1.07)
-def button(label,x0,y0,x1,y1,size=14):frame((x0,y0,x1,y1),7);text(label,(x0+x1)/2,(y0+y1)/2,size)
-for label,x0,x1 in [('−',16,110),('+',116,214),('FIT',220,369),('LOCATE',375,524)]:button(label,x0,260,x1,298)
-button('‹',16,222,66,256);button('Mara Flint • 0 fighters • HOME',72,222,468,256,13);button('›',474,222,524,256)
-button('−',16,178,86,214);button('Farm [−86,48] • 1 / 10 civilians',92,178,448,214,12);button('+',454,178,524,214)
-text('Drag to explore • Tap a resource site',270,160,12,muted)
-for i,label in enumerate(['COLLECT','GATHER','RECALL','AUTO']):button(label,16+i*128,109,140+i*128,145,13)
+base_frame=frame
+def frame(rect,b=9):
+ obj=base_frame(rect,b);obj.location.z=.015;return obj
+text('Heartland • Lv 1 • X 0 / Y 0',204,835,12)
+frame((422,744,528,840),7);mesh('Live overview',[(430,756,520,832,0,0,1,1)],terrain_mat,-1.095);icon(15,475,794,16)
+for rect in [(441,756,509,757),(441,831,509,832),(441,756,442,832),(508,756,509,832)]:mesh('Viewfinder',[(*rect,0,0,1,1)],cream,-1.07)
+frame((4,105,142,153),10);icon(15,34,129,32);text('HOME',99,129,17)
 scene.render.filepath=os.path.join(root,'Tools/Art/WorldMapHUD_Preview.png');bpy.ops.render.render(write_still=True)
-print('PASS world map asset/layout Blender preview',flush=True)
+# Selected-site context preview: the card exists only after a site tap in the real UI.
+# Put modal frames above landmark sprites, with their labels above both.
+def frame(rect,b=9):
+ obj=base_frame(rect,b);obj.location.z=.045;return obj
+frame((8,161,532,421),10);text('WOODLAND  [48, 14]',237,392,19);text('Deposit 1000 • Workers 0 • Cargo 0',237,365,14);text('X',505,397,18)
+for label,x0,x1 in [('‹',16,68),('Mara Flint • 0 fighters • HOME',74,466),('›',472,524)]:frame((x0,279,x1,313),7);text(label,(x0+x1)/2,296,13)
+for label,x0,x1 in [('−',16,88),('1 / 10 civilians • Woodland',94,446),('+',452,524)]:frame((x0,235,x1,271),7);text(label,(x0+x1)/2,253,13)
+text('Select team size, then COLLECT or GATHER',270,216,12)
+for i,label in enumerate(['COLLECT','GATHER','RECALL','AUTO']):
+ x0=16+i*128;frame((x0,166,x0+124,202),7);text(label,x0+62,184,13)
+scene.render.filepath=os.path.join(root,'Tools/Art/WorldMapSelection_Preview.png');bpy.ops.render.render(write_still=True)
+print('PASS full-screen world and context selection asset/layout previews',flush=True)

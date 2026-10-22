@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 10;
+        public const int Version = 11;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -124,6 +124,7 @@ namespace Ash
             var savedDevelopment=state.Version<7?SettlementDevelopmentState.Fresh():state.Development;
             int headquarters=0;foreach(var b in savedBuildings)if(b.Kind==BuildingKind.Headquarters)headquarters=b.Level;
             if(state.Version>=7 && state.Version<10)savedDevelopment=ExpandLegacyDevelopment(savedDevelopment);
+            if(state.Version<11 && savedDevelopment?.Plots!=null)foreach(var plot in savedDevelopment.Plots)if(plot!=null && plot.Kind==PlotKind.Market)throw new ArgumentException("Unexpected market in legacy save.");
             buildings.ValidateDevelopment(savedDevelopment,headquarters);
             var savedPlacement=state.Version<9?SettlementPlacementState.Fresh():state.Placement;
             if(state.Version==9)savedPlacement=ExpandLegacyPlacement(savedPlacement);
@@ -205,11 +206,11 @@ namespace Ash
             foreach(var total in totals.Values) if(total>int.MaxValue) throw new ArgumentException("Saved fighter total overflows the reserve.");
             var savedWorld=state.Version<8?WorldMapState.Fresh():state.WorldMap;
             WorldMapService.Validate(savedWorld,candidateArmies,savedScavenging);
-            int resourceCount=state.Version<3 ? 5 : Enum.GetValues(typeof(ResourceType)).Length;
+            int resourceCount=state.Version<3 ? 5 : state.Version<11 ? 6 : Enum.GetValues(typeof(ResourceType)).Length;
             if(state.Resources.Length!=resourceCount) throw new ArgumentException("Incomplete resource ledger.");
             var seenResources=new HashSet<ResourceType>();
             foreach(var resource in state.Resources)
-                if(!Enum.IsDefined(typeof(ResourceType),resource.Type) || (state.Version<3 && resource.Type==ResourceType.Lumber) || resource.Amount<0 || !seenResources.Add(resource.Type))
+                if(!Enum.IsDefined(typeof(ResourceType),resource.Type) || (state.Version<3 && resource.Type==ResourceType.Lumber) || (state.Version<11 && resource.Type==ResourceType.Gold) || resource.Amount<0 || !seenResources.Add(resource.Type))
                     throw new ArgumentException("Invalid or duplicate resource balance.");
             var fragmentBalances=new Dictionary<string,int>(StringComparer.Ordinal);
             foreach(var stock in state.Fragments)

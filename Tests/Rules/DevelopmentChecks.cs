@@ -58,7 +58,7 @@ internal static class DevelopmentChecks
         foreach(Action<ProgressState> corrupt in new Action<ProgressState>[] {
             s=>s.Development=null,s=>s.Development.Plots=null,s=>s.Development.Plots=new SettlementPlotState[0],s=>s.Development.Plots[0]=null,s=>s.Development.Plots[1]=s.Development.Plots[0],s=>s.Development.Plots[0].Id="wrong",s=>s.Development.Population=0,s=>s.Development.Population=9999,s=>s.Development.GrowthSeconds=60,s=>s.Development.Plots[0].Kind=(PlotKind)99,s=>s.Development.Plots[0].Level=11,s=>s.Development.Plots[0].Stored=-1,s=>s.Development.Plots[0].Seconds=60,s=>s.Development.Plots[0].Level=3,s=>s.Development.Plots[4].Stored=1,s=>s.Development.Plots[3].Stored=1 })
         {var bad=codec.Decode(exact);corrupt(bad);Reject<ArgumentException>(()=>progress.Restore(bad),"malformed development rejected");C(codec.Encode(progress.Capture())==exact,"rejected development cannot partially restore any domain");}
-        var legacy=codec.Decode(exact);legacy.Version=6;legacy.Development=null;progress.Restore(legacy);
+        var legacy=codec.Decode(exact);legacy.Version=6;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Development=null;progress.Restore(legacy);
         C(b.Population==20 && b.CaptureDevelopment().Plots.All(p=>p.Kind==PlotKind.Empty) && b.Level(BuildingKind.Headquarters)==2 && scav.Seed==125,"version-six migration adds empty plots and residents without resetting old progression");
         string directory=Path.Combine(Path.GetTempPath(),"ash-development-"+Guid.NewGuid().ToString("N"));
         try

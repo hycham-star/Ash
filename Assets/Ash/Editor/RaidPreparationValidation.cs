@@ -64,12 +64,12 @@ namespace Ash.Editor
                 Control("PREPARE AT BARRACKS").onClick.Invoke();
                 Require((int)Field("selectedHero")==2 && !picker.activeSelf && ((GameObject)Field("heroPanel")).activeSelf,"Preparing from raid selection lost chosen hero identity.");
                 Fill(2,0);Require(empty.Army.TotalUnits==empty.Army.Capacity && first.Army.TotalUnits==first.Army.Capacity && second.Army.TotalUnits==second.Army.Capacity,"Preparing another hero changed an existing army.");
-                Call("ShowMap");Control("RAID").onClick.Invoke();Control("Raid hero • "+second.InstanceId).onClick.Invoke();
+                Call("ShowMap");Control("Enemy base • "+campId).onClick.Invoke();Control("RAID").onClick.Invoke();Control("Raid hero • "+second.InstanceId).onClick.Invoke();
                 Require(Control("LAUNCH RAID").interactable && manager.WorldMap.Capture().Missions.Length==0,"Selecting a prepared hero dispatched before confirmation.");
                 Control("LAUNCH RAID").onClick.Invoke();var mission=manager.WorldMap.Mission(second.InstanceId);
                 Require(mission!=null && mission.TargetId==campId && mission.Kind==MapMissionKind.Raid && manager.WorldMap.Mission(first.InstanceId)==null && manager.WorldMap.Mission(empty.InstanceId)==null && !picker.activeSelf,"Confirmed raid did not use exactly the selected hero and camp.");
                 Require(!((RectTransform)MapField("mapFooter")).gameObject.activeSelf && !campPanel.activeSelf,"Launched raid must hide bottom controls and camp card.");
-                Control("CONTROLS").onClick.Invoke();Control("Enemy base • "+campId).onClick.Invoke();
+                Control("Enemy base • "+campId).onClick.Invoke();
                 Control("RAID").onClick.Invoke();Require(!Control("Raid hero • "+second.InstanceId).interactable,"Deployed hero must be unavailable in raid selection.");
                 Control("Raid hero • "+first.InstanceId).onClick.Invoke();
                 picker.GetComponentsInChildren<Button>(true).Single(button=>button.name=="X").onClick.Invoke();

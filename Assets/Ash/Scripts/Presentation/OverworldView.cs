@@ -6,7 +6,6 @@ namespace Ash
     public sealed partial class ScavengingMapUI
     {
         private RectTransform mapFooter;
-        private GameObject restoreMapControls;
         private readonly Vector3[] visibleCorners=new Vector3[4];
         private WorldCamp[] atlasCamps;
         private int atlasSeed;
@@ -14,27 +13,12 @@ namespace Ash
         {
             get{if(atlasCamps==null || atlasSeed!=service.Seed){atlasCamps=worldService.Camps;atlasSeed=service.Seed;}return atlasCamps;}
         }
-        private void BuildMapTravelControls()
-        {
-            var footer=new GameObject("World map bottom controls",typeof(RectTransform));mapFooter=(RectTransform)footer.transform;mapFooter.SetParent(transform,false);
-            mapFooter.anchorMin=Vector2.zero;mapFooter.anchorMax=Vector2.one;mapFooter.offsetMin=mapFooter.offsetMax=Vector2.zero;
-            var controls=new List<RectTransform>();
-            foreach(Transform child in transform)
-            {
-                var rect=child as RectTransform;
-                if(rect!=null && rect!=mapFooter && rect.anchorMax.y==0 && child.gameObject!=campPanel)controls.Add(rect);
-            }
-            foreach(var control in controls)control.SetParent(mapFooter,false);
-            restoreMapControls=Control(transform,"CONTROLS",Vector2.zero,Vector2.zero,new Vector2(10,10),new Vector2(122,44),()=>SetMapTravelView(false)).gameObject;
-            restoreMapControls.SetActive(false);
-        }
         private void SetMapTravelView(bool clean)
         {
-            if(mapFooter==null)return;
-            mapFooter.gameObject.SetActive(!clean);restoreMapControls.SetActive(clean);
-            workforce.transform.parent.gameObject.SetActive(!clean);
-            viewport.offsetMin=new Vector2(8,clean?8:200);viewport.offsetMax=new Vector2(-8,clean?-52:-86);
-            Canvas.ForceUpdateCanvases();ClampMap();CullMapMarkers();
+            if(!clean)return;
+            siteSelectionOpen=false;selectedCampId=null;
+            if(mapFooter!=null)mapFooter.gameObject.SetActive(false);
+            if(campPanel!=null)campPanel.SetActive(false);
         }
         private void RefreshMapCoordinates()
         {

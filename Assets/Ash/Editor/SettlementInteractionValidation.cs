@@ -51,7 +51,7 @@ namespace Ash.Editor
                 var reset=progress.Capture();reset.Placement=SettlementPlacementState.Fresh();progress.Restore(reset);
                 progress.Restore(store.Load().State);Call("SyncPlacement");
                 Require(codec.Encode(saved)==codec.Encode(progress.Capture()),"Native layout disk round trip changed game state.");
-                var legacy=progress.Capture();legacy.Version=8;legacy.Placement=null;progress.Restore(codec.Decode(codec.Encode(legacy)));
+                var legacy=progress.Capture();legacy.Version=8;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Placement=null;progress.Restore(codec.Decode(codec.Encode(legacy)));
                 Require(manager.Buildings.Position("core-headquarters").X==-3 && manager.Buildings.Plot("plot-01").Kind==PlotKind.Farm,"Version eight migration did not preserve progression with default placement.");
                 var canvas=new GameObject("Disposable world navigation UI",typeof(RectTransform),typeof(Canvas));SceneManager.MoveGameObjectToScene(canvas,scene);canvas.GetComponent<Canvas>().renderMode=RenderMode.ScreenSpaceOverlay;
                 var map=ScavengingMapUI.Create(canvas.transform,manager.Scavenging,Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));map.Show();
@@ -61,7 +61,7 @@ namespace Ash.Editor
                 Require(homeRequests==1,"Zooming into world-map home did not request settlement entry.");
                 Require(!map.GetComponentsInChildren<Transform>(true).Any(item=>item.name=="Site details"),"Removed map text panel is still present.");
                 var viewport=(RectTransform)typeof(ScavengingMapUI).GetField("viewport",flags).GetValue(map);
-                Require(viewport.offsetMin.y==200,"Map did not reclaim removed panel space.");
+                Require(viewport.offsetMin.y==99 && viewport.offsetMax.y==-106,"World map must fill the area between the shared HUD and footer.");
                 typeof(ScavengingMapUI).GetField("homeTransitionReadyAt",flags).SetValue(map,0f);
                 map.GetComponentsInChildren<UnityEngine.UI.Button>(true).Single(button=>button.name=="Ember Outpost — enter settlement").onClick.Invoke();
                 Require(homeRequests==1,"Selecting HOME should center it before zoom entry.");

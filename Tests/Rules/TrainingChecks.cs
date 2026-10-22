@@ -45,7 +45,7 @@ internal static class TrainingChecks
         Check(codec.Encode(progress.Capture())==exact,"new center types, trained reserves and paid costs survive exact save/load");
         stock=armies.Available(melee.Definition.Id);armies.RestoreReserveValidated(melee.Definition.Id,int.MaxValue-3);
         Check(training.CanTrain("plot-01",1)==TrainingResult.FighterLimit,"assigned plus reserve overflow rejected before purchase");armies.RestoreReserveValidated(melee.Definition.Id,stock);
-        var legacy=progress.Capture();legacy.Version=9;legacy.Development.Plots=legacy.Development.Plots.Take(12).ToArray();legacy.Placement.Positions=legacy.Placement.Positions.Take(18).ToArray();
+        var legacy=progress.Capture();legacy.Version=9;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Development.Plots=legacy.Development.Plots.Take(12).ToArray();legacy.Placement.Positions=legacy.Placement.Positions.Take(18).ToArray();
         // Legacy files have the old building kinds. Retain live production in a farm instead.
         foreach(var p in legacy.Development.Plots){p.Kind=PlotKind.Empty;p.Level=0;p.Stored=0;p.Seconds=0;}
         legacy.Development.Plots[0].Kind=PlotKind.Farm;legacy.Development.Plots[0].Level=1;legacy.Development.Plots[0].Stored=7;legacy.Development.Plots[0].Seconds=23;
@@ -53,7 +53,7 @@ internal static class TrainingChecks
         var savedResources=codec.Encode(legacy);progress.Restore(legacy);
         Check(buildings.CaptureDevelopment().Plots.Length==24 && buildings.CapturePlacement().Positions.Length==30 && buildings.Position("core-headquarters").X==-6,"version-nine migration expands plots while preserving moved core buildings");
         Check(buildings.Plot("plot-01").Stored==7 && buildings.Plot("plot-01").Seconds==23 && armies.Heroes[0].Army.TotalUnits==2 && armies.Heroes[1].Army.TotalUnits==1,"migration preserves production and both independent hero armies");
-        Check(buildings.CaptureDevelopment().Plots.Skip(12).All(p=>p.Kind==PlotKind.Empty) && progress.Capture().Version==10,"migration adds only empty expansion spots and writes version ten");
+        Check(buildings.CaptureDevelopment().Plots.Skip(12).All(p=>p.Kind==PlotKind.Empty) && progress.Capture().Version==ProgressPersistence.Version,"migration adds only empty expansion spots and writes current version");
         string migrated=codec.Encode(progress.Capture());var brokenSave=codec.Decode(savedResources);brokenSave.Development.Plots=brokenSave.Development.Plots.Skip(1).ToArray();
         bool rejected=false;try{progress.Restore(brokenSave);}catch(ArgumentException){rejected=true;}Check(rejected && codec.Encode(progress.Capture())==migrated,"incomplete legacy expansion rejects atomically");
         Check(SettlementLayout.HalfWidth*2==56 && SettlementLayout.HalfDepth*2==64 && SettlementLayout.Plots.Select(p=>p.Id).Distinct().Count()==24,"expanded settlement measures 56 by 64 with 24 distinct spots");

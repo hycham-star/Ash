@@ -31,3 +31,5 @@ MonoBehaviour:
     Amount: 15
   - Type: 2
     Amount: 5
+  - Type: 6
+    Amount: 10

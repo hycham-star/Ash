@@ -1,5 +1,7 @@
 # Wasteland world presentation
 
+Current navigation and market behavior: see [Shared navigation and Market](SharedNavigationAndMarket.md). The art notes below also document the earlier layout.
+
 The overworld now shares the settlement's original riveted metal HUD, ivory lettering and illustrated navigation. A new original painted desert adds sandstone relief, tracks, sparse vegetation and a river. Interactive farms, wells, scrapyards, woods, camps and home remain separate atlas markers. Roads, rocks and water in the painting are decorative; they do not introduce pathfinding obstacles or change mission travel times.
 
 The map opens between the resource ribbon and the settlement navigation. Zoom, drag, resource team controls, hero gathering, camp Scout/Raid and the raid hero picker retain their existing callbacks. Launching a raid still hides the map's bottom controls; CONTROLS restores them. Resource markers and enemy camps deliberately do **not** receive opaque metal frames. Gathering still tints the resource site and hides parked convoys.
