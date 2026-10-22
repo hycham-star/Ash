@@ -70,7 +70,7 @@ namespace Ash
             if(productionSeconds>=1) {
                 int seconds=(int)productionSeconds; productionSeconds-=seconds; AdvanceSettlementProduction(seconds); Hospital.Advance(seconds);
                 advancingScavenging=true;
-                try { Scavenging.Advance(seconds); WorldMap.Advance(seconds); } finally { advancingScavenging=false; }
+                try { Scavenging.Advance(seconds); WorldMap.Advance(seconds); Training.ReinforceHomeArmies(); } finally { advancingScavenging=false; }
             }
             if(productionCheckpoint>=10) { productionCheckpoint=0; if(unsaved && !saveBlocked)dirty=true; }
         }
@@ -102,7 +102,7 @@ namespace Ash
             {
                 var report=OfflineScavenging.Resume(utcNow());int before=Hospital.TotalWounded;
                 Hospital.Advance(report.Seconds);OfflineSummary=report.Summary;
-                WorldMap.Advance(report.Seconds,false);
+                WorldMap.Advance(report.Seconds,false);Training.ReinforceHomeArmies();
                 if(report.Seconds>0 && WorldMap.Report.Length>0)OfflineSummary+="\n"+WorldMap.Report;
                 int recovered=before-Hospital.TotalWounded;
                 if(recovered>0)OfflineSummary+="\nHospital: "+recovered+" fighters recovered to reserve.";

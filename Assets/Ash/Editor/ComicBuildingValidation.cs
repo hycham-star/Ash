@@ -34,12 +34,13 @@ namespace Ash.Editor
                 long triangles=(long)meshes[0].GetIndexCount(0)/3;Require(triangles>0 && triangles<4000,"Comic model exceeds 4000 triangles: "+name);
                 var material=Resources.Load<Material>("Art/"+name+"Material");
                 Require(material!=null && material.shader==shader && material.mainTexture!=null && material.GetTexture("_BumpMap")!=null,"Missing painted material/normal: "+name);
+                Require(material.mainTexture==Resources.Load<Texture2D>("Art/"+name+"Albedo") && material.GetTexture("_BumpMap")==Resources.Load<Texture2D>("Art/"+name+"Normal"),"Wrong building texture binding: "+name);
                 Require(material.GetFloat("_OutlineWidth")>0 && material.GetFloat("_OutlineWidth")<=.025f,"Comic outline width invalid: "+name);
                 Require(model.GetComponentsInChildren<Collider>(true).Length==0,"Visual mesh must leave picking to its existing movable parent: "+name);
             }
             Require(new[]{PlotKind.InfantryCenter,PlotKind.BikerCenter,PlotKind.ArmyCenter}.Select(SettlementVisualCatalog.ModelFor).Distinct().Count()==3,"Each training category needs its own authored model.");
             Require(SettlementVisualCatalog.ModelFor(PlotKind.Scrapyard)=="Scrapyard","Scrap yards must use wrecked-car salvage art.");
-            Debug.Log("PASS Unity comic buildings: fifteen single-mesh/single-atlas models below 4000 triangles, painted materials, bundled shader and ink widths. Run Play/Android to verify actual lighting and outlines; no player progression changed.");
+            Debug.Log("PASS Unity comic buildings: sixteen single-mesh/single-atlas models below 4000 triangles, painted materials, bundled shader and ink widths. Run Play/Android to verify actual lighting and outlines; no player progression changed.");
         }
         private static void Require(bool condition,string message){if(!condition)throw new InvalidOperationException(message);}
     }

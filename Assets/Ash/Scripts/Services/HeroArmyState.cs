@@ -19,6 +19,7 @@ namespace Ash
         public int Xp;
         public string ArmyId;
         public FighterState[] Fighters;
+        public FighterState[] Formation;
     }
     [Serializable]
     public sealed class FighterState

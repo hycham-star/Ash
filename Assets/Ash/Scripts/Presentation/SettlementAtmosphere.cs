@@ -30,8 +30,8 @@ namespace Ash
             // Runtime-created lights are realtime; bake-type editing is an Editor-only API.
             sun.lightmapBakeType=LightmapBakeType.Realtime;
 #endif
-            sun.shadowCustomResolution=2048;sun.intensity=1.4f;sun.color=new Color(1,.93f,.81f);sun.shadows=LightShadows.Soft;
-            sun.shadowStrength=.9f;sun.shadowBias=.015f;sun.shadowNormalBias=.06f;
+            sun.shadowCustomResolution=2048;sun.intensity=1.75f;sun.color=new Color(1,.93f,.81f);sun.shadows=LightShadows.Soft;
+            sun.shadowStrength=.78f;sun.shadowBias=.015f;sun.shadowNormalBias=.06f;
         }
         private void OnEnable(){if(settlementSun!=null)Configure(settlementSun);}
         private void OnPreCull()

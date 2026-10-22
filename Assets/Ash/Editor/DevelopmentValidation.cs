@@ -47,13 +47,18 @@ namespace Ash.Editor
                     ui.GetComponentsInChildren<Slider>(true).Single().value=2;FindButton("TRAIN ").onClick.Invoke();
                     Require(manager.HeroArmies.Available(fighter.Definition.Id)==before+2,"Training button must add chosen fighter quantity to reserve.");
                 }
-                Require(service.HousingCapacity==50 && service.EmployedResidents==14,"Training centers must employ residents without adding housing.");
+                ui.Show(SettlementLayout.Plots[7].Id);FindButton("LUMBER MILL").onClick.Invoke();FindButton("BUILD ").onClick.Invoke();
+                Require(service.Plot(SettlementLayout.Plots[7].Id).Kind==PlotKind.LumberMill,"Lumber mill construction button failed.");
+                Require(service.HousingCapacity==50 && service.EmployedResidents==17,"Training centers must employ residents without adding housing.");
                 var progress=new ProgressPersistence(manager.HeroArmies,manager.Resources,manager.Fragments,service,manager.Scavenging,manager.OfflineScavenging);var codec=new UnityProgressCodec();var store=new LocalSaveStore(directory,codec,progress.Validate);var saved=progress.Capture();string exact=codec.Encode(saved);store.Save(saved);
                 ui.Show(SettlementLayout.Plots[0].Id);
                 int beforeFood=manager.Resources.Get(ResourceType.Food);service.AdvanceDevelopment(1,true);
                 Require(service.CaptureDevelopment().Plots.All(plot=>plot.Stored==0) && manager.Resources.Get(ResourceType.Food)==beforeFood+10,"Banked plot output must automatically enter the shared ledger.");
                 Require(!ui.GetComponentsInChildren<Button>(true).Any(button=>button.name=="COLLECT"),"Construction must not create a manual production collection button.");
                 progress.Restore(store.Load().State);progress.NotifyRestored();Require(codec.Encode(progress.Capture())==exact,"Native development disk round trip changed progression.");
+                int oldLumber=manager.Resources.Get(ResourceType.Lumber);service.AdvanceDevelopment(3600,true);
+                Require(manager.Resources.Get(ResourceType.Lumber)==oldLumber+100 && service.CaptureDevelopment().Plots.All(plot=>plot.Stored==0),"Mill must auto-produce exactly 100 Lumber/hour.");
+                progress.Restore(saved);
                 var old=new LegacyV6{Version=6,Format=saved.Format,Armies=saved.Armies,Resources=saved.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray(),Fragments=saved.Fragments,Buildings=saved.Buildings,Hospital=saved.Hospital,Scavenging=new ScavengingState{Seed=saved.Scavenging.Seed,Sites=saved.Scavenging.Sites.Take(ScavengingService.LegacySiteCount).ToArray()},ScavengingUtcSeconds=saved.ScavengingUtcSeconds};
                 progress.Restore(codec.Decode(JsonUtility.ToJson(old)));Require(service.Population==20 && service.CaptureDevelopment().Plots.All(p=>p.Kind==PlotKind.Empty) && service.Level(BuildingKind.Headquarters)==2,"Native version-six migration lost core progression or failed plot initialization.");
                 Debug.Log("PASS Unity settlement development: actual construction/upgrade buttons and automatic producer collection, resident growth and jobs, housing, farm/well/scrapyard, native JSON/disk and version-six migration. Unique temporary saves only. Run Validate Settlement Presentation and check expanded plots/portrait touch on device.");

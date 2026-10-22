@@ -38,13 +38,13 @@ namespace Ash
             population=Label("Population",new Vector2(0,1),Vector2.one,new Vector2(14,-113),new Vector2(-14,-55),15);
             Control("<",0,.15f,-160,-118,()=>Select(-1),out ignored,true);Control(">",.85f,1,-160,-118,()=>Select(1),out ignored,true);
             plotTitle=Label("Plot title",new Vector2(.15f,1),new Vector2(.85f,1),new Vector2(4,-160),new Vector2(-4,-118),16);plotTitle.alignment=TextAnchor.MiddleCenter;
-            stats=Label("Plot details",Vector2.zero,Vector2.one,new Vector2(14,224),new Vector2(-14,-168),15);
-            var kinds=new[]{PlotKind.Housing,PlotKind.Farm,PlotKind.WaterWell,PlotKind.Scrapyard,PlotKind.InfantryCenter,PlotKind.BikerCenter,PlotKind.ArmyCenter,PlotKind.Market};
-            var names=new[]{"HOUSING","FARM","WELL","SCRAPYARD","INFANTRY","BIKER","ARMY","MARKET BUILDING"};
+            stats=Label("Plot details",Vector2.zero,Vector2.one,new Vector2(14,234),new Vector2(-14,-168),15);
+            var kinds=new[]{PlotKind.Housing,PlotKind.Farm,PlotKind.WaterWell,PlotKind.Scrapyard,PlotKind.InfantryCenter,PlotKind.BikerCenter,PlotKind.ArmyCenter,PlotKind.Market,PlotKind.LumberMill};
+            var names=new[]{"HOUSING","FARM","WELL","SCRAPYARD","INFANTRY","BIKER","ARMY","MARKET BUILDING","LUMBER MILL"};
             for(int i=0;i<kinds.Length;i++)
             {
-                var kind=kinds[i];int column=i<4?i:i-4,count=4;float bottom=i<4?180:136;
-                Control(names[i],column/(float)count,(column+1)/(float)count,bottom,bottom+38,()=>{choice=kind;Refresh();},out ignored);
+                var kind=kinds[i];int column=i%3,count=3;float bottom=210-(i/3)*37;
+                Control(names[i],column/(float)count,(column+1)/(float)count,bottom,bottom+33,()=>{choice=kind;Refresh();},out ignored);
             }
             build=Control("BUILD",0,1,87,129,BuildSelected,out buildText);
             upgrade=Control("UPGRADE",0,.5f,43,83,()=>Command(manager.Buildings.UpgradePlot(SelectedPlotId)),out upgradeText);
@@ -120,13 +120,13 @@ namespace Ash
             if(p.Kind==PlotKind.Empty)
             {
                 text.Append("\nChoose: ").Append(BuildingService.PlotName(choice)).Append("\nWorkers needed: ").Append(BuildingService.WorkersRequired(choice));
-                text.Append(BuildingService.IsTraining(choice)?"\nTrains "+BuildingService.TrainedType(choice)+" to reserve. Batch: 10 per center level.":choice==PlotKind.Market?"\nExchange earned raid Gold for resources.":choice==PlotKind.Housing?"\nAdds 10 housing spaces per level.":"\nOutput: "+BuildingService.PlotRate(choice,1)+" "+BuildingService.PlotProduct(choice)+" / minute");
+                text.Append(BuildingService.IsTraining(choice)?"\nTrains "+BuildingService.TrainedType(choice)+" to reserve. Batch: 10 per center level.":choice==PlotKind.Market?"\nExchange earned raid Gold for resources.":choice==PlotKind.Housing?"\nAdds 10 housing spaces per level.":"\nOutput: "+BuildingService.PlotHourlyRate(choice,1)+" "+BuildingService.PlotProduct(choice)+" / hour");
                 text.Append("\nBuild cost:");foreach(var cost in service.PlotBuildCost(choice))text.Append("\n").Append(cost.Type).Append(' ').Append(cost.Amount).Append(" / have ").Append(manager.Resources.Get(cost.Type));
                 text.Append("\n").Append(service.CanBuildPlotAt(p.Id,choice,definition.X,definition.Z));
             }
             else
             {
-                int rate=BuildingService.PlotRate(p.Kind,p.Level);text.Append(" / ").Append(BuildingService.MaximumPlotLevel).Append("\nResidents employed: ").Append(BuildingService.WorkersRequired(p.Kind));
+                int rate=BuildingService.PlotHourlyRate(p.Kind,p.Level);text.Append(" / ").Append(BuildingService.MaximumPlotLevel).Append("\nResidents employed: ").Append(BuildingService.WorkersRequired(p.Kind));
                 if(p.Kind==PlotKind.Market)text.Append("\nBuy resources with earned raid Gold. Open MARKET to trade.");
                 else if(p.Kind==PlotKind.Housing)text.Append("\nHousing spaces: +").Append(p.Level*BuildingService.ResidentsPerHouseLevel);
                 else if(training)
@@ -134,9 +134,9 @@ namespace Ash
                     var unit=manager.Training.Fighter(p.Kind);
                     text.Append("\nTrains: ").Append(unit.Definition.Type).Append(" • Reserve: ").Append(manager.HeroArmies.Available(unit.Definition.Id)).Append("\nBatch limit: ").Append(FighterTrainingService.BatchCapacity(p.Level)).Append("\nCost for ").Append(trainCount).Append(":");
                     foreach(var cost in manager.Training.Cost(p.Kind,trainCount))text.Append(" ").Append(cost.Amount).Append(' ').Append(cost.Type);
-                    text.Append("\nTraining completes immediately. Assign reserves at the Barracks.");
+                    text.Append("\nTraining completes immediately. Reserves refill planned home armies automatically.");
                 }
-                else text.Append("\nOutput: ").Append(rate).Append(' ').Append(BuildingService.PlotProduct(p.Kind)).Append(" / minute\nAutomatically added to resources.\nBuffered: ").Append(p.Stored).Append('/').Append(rate*5);
+                else text.Append("\nOutput: ").Append(rate).Append(' ').Append(BuildingService.PlotProduct(p.Kind)).Append(" / hour\nAutomatically added to resources.\nBuffered: ").Append(p.Stored).Append('/').Append(BuildingService.PlotRate(p.Kind,p.Level)*5).Append("\nNext resource in ").Append(service.NextPlotResourceSeconds(p.Id)).Append("s");
                 text.Append("\nUpgrade cost:");foreach(var cost in service.PlotUpgradeCost(p.Id))text.Append(' ').Append(cost.Amount).Append(' ').Append(cost.Type);
                 text.Append("\n").Append(service.CanUpgradePlot(p.Id));
             }

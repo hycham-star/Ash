@@ -12,7 +12,7 @@ namespace Ash.Editor
     public static class ArmyReinforcementValidation
     {
         [MenuItem("Ashlands/Validation/Workflows/Production and Army Travel")]
-        public static void ValidateProductionAndTravel(){Run();DevelopmentValidation.Run();ScavengingValidation.Run();RaidPreparationValidation.Run();}
+        public static void ValidateProductionAndTravel(){Run();DevelopmentValidation.Run();ScavengingValidation.Run();RaidPreparationValidation.Run();ComicBuildingValidation.ValidatePolishedSample();}
         public static void ValidateIllustrations()=>Run();
         [MenuItem("Ashlands/Validation/Gameplay/Army Sliders and Hero Illustrations")]
         public static void Run()
@@ -65,10 +65,18 @@ namespace Ash.Editor
                 // Test the exact production entry point used by the foreground GameManager tick.
                 int food=manager.Resources.Get(ResourceType.Food),water=manager.Resources.Get(ResourceType.Water);
                 typeof(GameManager).GetMethod("AdvanceSettlementProduction",flags).Invoke(manager,new object[]{60});
-                Require(manager.Buildings.Stored(BuildingKind.FoodGarden)==0 && manager.Resources.Get(ResourceType.Food)==food+8 && manager.Resources.Get(ResourceType.Water)==water+5,"Foreground production must credit resources automatically, with resident food/water consumption.");
+                Require(manager.Buildings.Stored(BuildingKind.FoodGarden)==0 && manager.Resources.Get(ResourceType.Food)==food-1 && manager.Resources.Get(ResourceType.Water)==water,"Foreground production must credit resources automatically, with resident food/water consumption.");
                 Call("ShowBuilding",BuildingKind.WaterStation);
                 Require(!((Text)Field("viewHeadquarters")).transform.parent.gameObject.activeSelf,"Producer panel must hide collection button.");
-                Debug.Log("PASS Unity army composition: three live sliders, exact −1/+1, deselection/refund, shared level-based capacity, stable hero switching, automatic foreground settlement income and no producer collect button. Preview only; player saves untouched.");
+                manager.Resources.Add(ResourceType.Lumber,1000);manager.Resources.Add(ResourceType.Scrap,1000);
+                var centers=new[]{PlotKind.InfantryCenter,PlotKind.ArmyCenter,PlotKind.BikerCenter};
+                for(int i=0;i<3;i++)Require(manager.Buildings.BuildPlot(SettlementLayout.Plots[i].Id,centers[i])==BuildingCommandResult.Success,"Disposable training station could not be built.");
+                var enemy=new NpcEncounter("replacement-check","Strong test camp",new BattleArmy("replacement-enemy",manager.Units.Select(f=>new BattleFighter(f,1000))),0,Array.Empty<ResourceAmount>(),0);
+                manager.Battles.RunBattle(hero.InstanceId,enemy);
+                Require(hero.Army.TotalUnits==0 && manager.HeroArmies.FormationTotal(hero.InstanceId)==50 && manager.Hospital.TotalWounded==50,"Wounds must preserve selected formation.");
+                food=manager.Resources.Get(ResourceType.Food);
+                Require(manager.Training.ReinforceHomeArmies()==50 && hero.Army.TotalUnits==50 && manager.Hospital.TotalWounded==50 && manager.Resources.Get(ResourceType.Food)==food,"Training stations must replace wounded from healthy reserves without automatic spending or healing.");
+                Debug.Log("PASS Unity army composition: three live sliders, exact −1/+1, deselection/refund, shared level-based capacity, stable hero switching, hourly automatic foreground income, no producer collect button and saved formation replacement from reserves. Preview only; player saves untouched.");
             }
             catch(Exception error){Debug.LogException(error);if(Application.isBatchMode)EditorApplication.Exit(1);throw;}
             finally

@@ -12,6 +12,7 @@ namespace Ash
         public int Level;
         public int Stored;
         public int Seconds;
+        public int ProductionWork;
     }
 
     /// <summary>Local prototype rules. Caller supplies active-play seconds; no Unity or wall clock dependency.</summary>
@@ -47,7 +48,11 @@ namespace Ash
         public int Level(BuildingKind kind) => Find(kind).Level;
         public int Stored(BuildingKind kind) => Find(kind).Stored;
         public int Seconds(BuildingKind kind) => Find(kind).Seconds;
+        // Legacy storage-adapter rate; active gameplay uses HourlyRate.
         public int Rate(BuildingKind kind) => kind==BuildingKind.Headquarters ? 0 : BaseRate(kind)*Level(kind);
+        public static int ProductionPerHour(int level){if(level<1)throw new ArgumentOutOfRangeException(nameof(level));return checked(100+50*(level-1));}
+        public int HourlyRate(BuildingKind kind)=>kind==BuildingKind.Headquarters?0:ProductionPerHour(Level(kind));
+        public int NextResourceSeconds(BuildingKind kind)=>(3600-Find(kind).ProductionWork-Find(kind).Seconds*60+HourlyRate(kind)-1)/HourlyRate(kind);
         public int Capacity(BuildingKind kind) => Rate(kind)*5;
         private static int BaseRate(BuildingKind kind) { Product(kind); return kind==BuildingKind.FoodGarden ? 10 : 6; }
         private BuildingState Find(BuildingKind kind)
@@ -104,7 +109,7 @@ namespace Ash
             {
                 if(state.Kind==BuildingKind.Headquarters)continue;
                 if(automaticCollection)
-                    changed|=AdvanceAutomatic(Product(state.Kind),Rate(state.Kind),activeSeconds,ref state.Stored,ref state.Seconds,ref ledger);
+                    changed|=AdvanceAutomatic(Product(state.Kind),HourlyRate(state.Kind),Capacity(state.Kind),activeSeconds,ref state.Stored,ref state.Seconds,ref state.ProductionWork,ref ledger);
                 else if(state.Stored<Capacity(state.Kind)) {
                     AdvanceStock(state.Stored,state.Seconds,activeSeconds,Rate(state.Kind),Capacity(state.Kind),out state.Stored,out state.Seconds);changed=true;
                 }
@@ -114,28 +119,26 @@ namespace Ash
                 try { Notify(ledger); } finally { commanding=false; }
             }
         }
-        private bool AdvanceAutomatic(ResourceType product,int rate,int seconds,ref int stored,ref int timer,ref bool ledger)
+        private bool AdvanceAutomatic(ResourceType product,int hourlyRate,int capacity,int seconds,ref int stored,ref int legacySeconds,ref int work,ref bool ledger)
         {
-            int beforeStored=stored,beforeTimer=timer,balance=resources.Get(product);
-            long elapsed=(long)timer+seconds;
-            // Full storage pauses production, but previously stored output is still delivered first.
-            int delivered=Math.Min(stored,int.MaxValue-balance);
-            stored-=delivered;balance+=delivered;
-            long output=stored==rate*5?stored:stored+(elapsed/60)*rate;
+            int beforeStored=stored,beforeWork=work,balance=resources.Get(product);
+            // Migrate a saved partial minute to the equivalent fraction of the new production cycle.
+            work+=legacySeconds*60;legacySeconds=0;
+            int delivered=Math.Min(stored,int.MaxValue-balance);stored-=delivered;balance+=delivered;
+            long elapsed=(long)work+(long)seconds*hourlyRate;
+            long output=stored==capacity?stored:stored+elapsed/3600;
             int income=(int)Math.Min(output,int.MaxValue-balance);
-            stored=(int)Math.Min(rate*5,output-income);
-            timer=stored==rate*5?0:(int)(elapsed%60);
+            stored=(int)Math.Min(capacity,output-income);work=stored==capacity?0:(int)(elapsed%3600);
             if(delivered+income>0) {
-                resources.CommitAdditionSilently(new Dictionary<ResourceType,int>{{product,balance+income}});
-                ledger=true;
+                resources.CommitAdditionSilently(new Dictionary<ResourceType,int>{{product,balance+income}});ledger=true;
             }
-            return delivered+income>0 || stored!=beforeStored || timer!=beforeTimer;
+            return delivered+income>0 || stored!=beforeStored || work!=beforeWork;
         }
         public BuildingState[] Capture()
         {
             var copy=new List<BuildingState>();
             foreach(BuildingKind kind in Enum.GetValues(typeof(BuildingKind))) {
-                var state=Find(kind); copy.Add(new BuildingState { Kind=kind,Level=state.Level,Stored=state.Stored,Seconds=state.Seconds });
+                var state=Find(kind); copy.Add(new BuildingState { Kind=kind,Level=state.Level,Stored=state.Stored,Seconds=state.Seconds,ProductionWork=state.ProductionWork });
             }
             return copy.ToArray();
         }
@@ -145,14 +148,14 @@ namespace Ash
             var seen=new HashSet<BuildingKind>(); int hq=0;
             foreach(var state in saved) {
                 if(state==null || !Enum.IsDefined(typeof(BuildingKind),state.Kind) || !seen.Add(state.Kind)
-                    || state.Level<1 || state.Level>MaximumLevel(state.Kind) || state.Stored<0 || state.Seconds<0 || state.Seconds>=60)
+                    || state.Level<1 || state.Level>MaximumLevel(state.Kind) || state.Stored<0 || state.Seconds<0 || state.Seconds>=60 || state.ProductionWork<0 || state.ProductionWork>=3600 || (state.Seconds>0 && state.ProductionWork>0))
                     throw new ArgumentException("Invalid building state.");
                 if(state.Kind==BuildingKind.Headquarters) {
                     hq=state.Level;
-                    if(state.Stored!=0 || state.Seconds!=0)throw new ArgumentException("Headquarters cannot store production.");
+                    if(state.Stored!=0 || state.Seconds!=0 || state.ProductionWork!=0)throw new ArgumentException("Headquarters cannot store production.");
                 } else {
                     int cap=BaseRate(state.Kind)*state.Level*5;
-                    if(state.Stored>cap || (state.Stored==cap && state.Seconds!=0))throw new ArgumentException("Invalid building storage.");
+                    if(state.Stored>cap || (state.Stored==cap && (state.Seconds!=0 || state.ProductionWork!=0)))throw new ArgumentException("Invalid building storage.");
                 }
             }
             foreach(var state in saved)if(state.Kind!=BuildingKind.Headquarters && state.Level>hq)
@@ -161,7 +164,7 @@ namespace Ash
         internal void RestoreValidated(BuildingState[] saved)
         {
             foreach(var state in saved) {
-                var target=Find(state.Kind); target.Level=state.Level; target.Stored=state.Stored; target.Seconds=state.Seconds;
+                var target=Find(state.Kind); target.Level=state.Level; target.Stored=state.Stored; target.Seconds=state.Seconds; target.ProductionWork=state.ProductionWork;
             }
         }
         internal void NotifyChanged() => Changed?.Invoke();

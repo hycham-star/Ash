@@ -71,7 +71,10 @@ Shader "Ash/Comic Outpost"
                 half shadow=SHADOW_ATTENUATION(i);
                 half3 ambient=max(ShadeSH9(half4(n,1)),half3(.17h,.18h,.19h));
                 half3 albedo=tex2D(_MainTex,i.uv).rgb*_Color.rgb;
-                fixed4 color=fixed4(albedo*(ambient+AshFillLight(n)+_LightColor0.rgb*paint*shadow),1);
+                half3 shaded=albedo*(ambient+AshFillLight(n)+_LightColor0.rgb*paint*shadow);
+                // Preserve painted texture detail under the brighter sun instead of clipping to white.
+                shaded/=1+max(shaded-.8h,0.0h);
+                fixed4 color=fixed4(shaded,1);
                 color=AshBoundaryHaze(color,i.world);UNITY_APPLY_FOG(i.fogCoord,color);return color;
             }
             ENDCG

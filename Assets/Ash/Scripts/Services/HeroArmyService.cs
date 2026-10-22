@@ -12,6 +12,7 @@ namespace Ash
         private readonly Dictionary<string, HeroData> heroes = new Dictionary<string, HeroData>(StringComparer.Ordinal);
         private readonly Dictionary<string, UnitData> fighters = new Dictionary<string, UnitData>(StringComparer.Ordinal);
         private readonly Dictionary<string, int> reserve = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<string,Dictionary<string,int>> formations=new Dictionary<string,Dictionary<string,int>>(StringComparer.Ordinal);
         public ReadOnlyCollection<HeroData> Heroes { get; }
         public ReadOnlyCollection<UnitData> Fighters { get; }
         public event Action Changed;
@@ -26,7 +27,7 @@ namespace Ash
             {
                 if (hero == null || heroes.ContainsKey(hero.InstanceId)) throw new ArgumentException("Missing or duplicate hero instance.");
                 if (hero.Army.TotalUnits != 0) throw new ArgumentException("Initial heroes must have empty armies; restore via a future explicit persistence adapter.");
-                heroes.Add(hero.InstanceId, hero); roster.Add(hero);
+                heroes.Add(hero.InstanceId, hero);formations.Add(hero.InstanceId,new Dictionary<string,int>(StringComparer.Ordinal)); roster.Add(hero);
             }
             foreach (var fighter in fighterCatalogue)
             {
@@ -59,15 +60,7 @@ namespace Ash
 
         /// <summary>Set an absolute assigned count; reducing it returns fighters to the shared reserve.</summary>
         public ArmyCommandResult SetFighterQuantity(string heroId,string fighterId,int quantity)
-        {
-            if(DeploymentBlocked?.Invoke(heroId)==true)return ArmyCommandResult.ArmyDeployed;
-            if(quantity<0)return ArmyCommandResult.InvalidQuantity;
-            var hero=FindHero(heroId);if(hero==null)return ArmyCommandResult.HeroNotFound;
-            if(fighterId==null || !fighters.TryGetValue(fighterId,out var fighter))return ArmyCommandResult.FighterNotFound;
-            int current=hero.Army.QuantityOf(fighterId,fighter.Level);
-            return quantity==current?ArmyCommandResult.Success:quantity>current
-                ?AssignFighters(heroId,fighterId,quantity-current):RemoveFighters(heroId,fighterId,current-quantity);
-        }
+            =>SetFormationQuantity(heroId,fighterId,quantity);
 
         public ArmyCommandResult AssignFighters(string heroId, string fighterId, int quantity)
         {
@@ -77,8 +70,9 @@ namespace Ash
             if (hero == null) return ArmyCommandResult.HeroNotFound;
             if (fighterId == null || !fighters.TryGetValue(fighterId, out var fighter)) return ArmyCommandResult.FighterNotFound;
             if (reserve[fighterId] < quantity) return ArmyCommandResult.InsufficientReserve;
+            if((long)FormationTotal(heroId)-FormationQuantity(heroId,fighterId)+hero.Army.QuantityOf(fighterId,fighter.Level)+quantity>hero.Army.Capacity)return ArmyCommandResult.CapacityExceeded;
             if (!hero.Army.TryAddUnits(fighter, quantity)) return ArmyCommandResult.CapacityExceeded;
-            reserve[fighterId] -= quantity;
+            reserve[fighterId] -= quantity;Remember(hero,fighter);
             Changed?.Invoke();
             return ArmyCommandResult.Success;
         }
@@ -94,9 +88,54 @@ namespace Ash
             // Check reserve overflow before touching the army.
             int returned = checked(reserve[fighterId] + quantity);
             if (!hero.Army.TryRemoveUnits(fighterId, fighter.Level, quantity)) return ArmyCommandResult.InsufficientAssigned;
-            reserve[fighterId] = returned;
+            reserve[fighterId] = returned;Remember(hero,fighter);
             Changed?.Invoke();
             return ArmyCommandResult.Success;
+        }
+
+        private void Remember(HeroData hero,UnitData fighter)=>formations[hero.InstanceId][fighter.Definition.Id]=hero.Army.QuantityOf(fighter.Definition.Id,fighter.Level);
+        public int FormationQuantity(string heroId,string fighterId)
+        {
+            if(heroId==null || fighterId==null)return 0;
+            if(formations.TryGetValue(heroId,out var plan) && plan.TryGetValue(fighterId,out int quantity))return quantity;
+            return FindHero(heroId)!=null && fighters.TryGetValue(fighterId,out var fighter)?FindHero(heroId).Army.QuantityOf(fighterId,fighter.Level):0;
+        }
+        public int FormationTotal(string heroId){int total=0;foreach(var fighter in Fighters)total+=FormationQuantity(heroId,fighter.Definition.Id);return total;}
+        public ArmyCommandResult SetFormationQuantity(string heroId,string fighterId,int quantity)
+        {
+            if(DeploymentBlocked?.Invoke(heroId)==true)return ArmyCommandResult.ArmyDeployed;
+            var hero=FindHero(heroId);if(hero==null)return ArmyCommandResult.HeroNotFound;
+            if(fighterId==null || !fighters.TryGetValue(fighterId,out var fighter))return ArmyCommandResult.FighterNotFound;
+            if(quantity<0)return ArmyCommandResult.InvalidQuantity;
+            int target=FormationQuantity(heroId,fighterId),current=hero.Army.QuantityOf(fighterId,fighter.Level);
+            if((long)FormationTotal(heroId)-target+quantity>hero.Army.Capacity)return ArmyCommandResult.CapacityExceeded;
+            int delta=quantity-current;
+            if(quantity>target && delta>reserve[fighterId])return ArmyCommandResult.InsufficientReserve;
+            if(delta<0)_=checked(reserve[fighterId]-delta);
+            bool changed=target!=quantity;
+            if(delta<0){hero.Army.TryRemoveUnits(fighterId,fighter.Level,-delta);reserve[fighterId]-=delta;changed=true;}
+            else if(delta>0){int count=Math.Min(delta,reserve[fighterId]);if(count>0){hero.Army.TryAddUnits(fighter,count);reserve[fighterId]-=count;changed=true;}}
+            formations[heroId][fighterId]=quantity;if(changed)Changed?.Invoke();return ArmyCommandResult.Success;
+        }
+        internal int RefillFormation(string heroId,Func<FighterType,bool> stationAvailable)
+        {
+            if(DeploymentBlocked?.Invoke(heroId)==true)return 0;
+            var hero=FindHero(heroId);int total=0;
+            foreach(var fighter in Fighters) {
+                if(!stationAvailable(fighter.Definition.Type))continue;
+                int missing=FormationQuantity(heroId,fighter.Definition.Id)-hero.Army.QuantityOf(fighter.Definition.Id,fighter.Level);
+                int count=Math.Min(Math.Max(0,missing),Math.Min(reserve[fighter.Definition.Id],hero.Army.Capacity-hero.Army.TotalUnits));
+                if(count<=0)continue;hero.Army.TryAddUnits(fighter,count);reserve[fighter.Definition.Id]-=count;total+=count;
+            }
+            if(total>0)Changed?.Invoke();return total;
+        }
+        internal FighterState[] CaptureFormation(string heroId)
+        {
+            var result=new List<FighterState>();foreach(var fighter in Fighters){int count=FormationQuantity(heroId,fighter.Definition.Id);if(count>0)result.Add(new FighterState{DefinitionId=fighter.Definition.Id,Level=fighter.Level,Quantity=count});}return result.ToArray();
+        }
+        internal void RestoreFormationValidated(string heroId,FighterState[] saved)
+        {
+            formations[heroId].Clear();foreach(var stack in saved)formations[heroId].Add(stack.DefinitionId,stack.Quantity);
         }
 
         public bool GrantHeroXp(string heroId, int amount)
@@ -119,6 +158,7 @@ namespace Ash
 
         internal void CommitCombatSilently(HeroData hero, CombatResult result)
         {
+            foreach(var fighter in Fighters)if(!formations[hero.InstanceId].ContainsKey(fighter.Definition.Id))Remember(hero,fighter);
             foreach (var stack in result.PlayerFighters)
                 if (stack.Casualties > 0) hero.Army.TryRemoveUnits(stack.Fighter.Definition.Id, stack.Fighter.Level, stack.Casualties);
             hero.AddXp(result.Rewards.HeroXp);
@@ -131,7 +171,7 @@ namespace Ash
             foreach(var hero in Heroes)
             {
                 var saved=source.FindHero(hero.InstanceId);
-                hero.RestoreProgress(saved.Level,saved.Xp); hero.Army.RestoreValidatedFrom(saved.Army);
+                hero.RestoreProgress(saved.Level,saved.Xp); hero.Army.RestoreValidatedFrom(saved.Army);RestoreFormationValidated(hero.InstanceId,source.CaptureFormation(hero.InstanceId));
             }
             foreach(var fighter in Fighters)reserve[fighter.Definition.Id]=source.Available(fighter.Definition.Id);
         }
@@ -143,7 +183,7 @@ namespace Ash
             {
                 var hero = Heroes[i];
                 var snapshot = new HeroState { InstanceId = hero.InstanceId, DefinitionId = hero.Definition.Id,
-                    Level = hero.Level, Xp = hero.Xp, ArmyId = hero.Army.Id, Fighters = new FighterState[hero.Army.Units.Count] };
+                    Level = hero.Level, Xp = hero.Xp, ArmyId = hero.Army.Id, Formation=CaptureFormation(hero.InstanceId), Fighters = new FighterState[hero.Army.Units.Count] };
                 for (int j = 0; j < snapshot.Fighters.Length; j++)
                 {
                     var stack = hero.Army.Units[j];

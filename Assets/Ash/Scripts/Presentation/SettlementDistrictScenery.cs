@@ -10,7 +10,6 @@ namespace Ash
         private GameObject districtScenery;
         private SettlementArt districtArt;
         private string districtSignature;
-        private static readonly Color DistrictShoulder=new Color32(203,148,89,255);
         private void RefreshDistrictScenery()
         {
             if(world==null)return;
@@ -46,18 +45,14 @@ namespace Ash
                     Vector3 pos=across?new Vector3(middle,.035f,fixedAxis):new Vector3(fixedAxis,.03f,middle);
                     Vector3 size=across?new Vector3(b-a,.018f,width):new Vector3(width,.018f,b-a);
                     roads.Add(new Bounds(pos,size+new Vector3(.7f,1,.7f)));
-                    districtArt.Box(root,"Dusty road shoulder",pos-Vector3.up*.012f,size+new Vector3(across?0:.65f,0,across?.65f:0),DistrictShoulder);
+
                     districtArt.Box(root,"Worn asphalt street",pos,size,SettlementArt.Asphalt);
                 }
                 foreach(var cut in cuts){if(cut.x>extent)break;Segment(start,Mathf.Min(extent,cut.x));start=Mathf.Max(start,cut.y);}
                 Segment(start,extent);
             }
-            // Connected spines run between the saved lots; the outer ring joins all districts.
-            foreach(float x in new[]{-18f,-8,8,18})Road(x,false,1.8f,20);
-            Road(0,false,1.2f,10);
-            foreach(float z in new[]{-20f,-10,-1.9f,20})Road(z,true,z==-1.9f?1.2f:1.8f);
-            foreach(float x in new[]{-26.8f,26.8f})Road(x,false,1.2f,30);
-            foreach(float z in new[]{-30f,30f})Road(z,true,1.2f);
+            // A pair of central dirt paths leaves the ground continuous; no rectangular lot grid.
+            Road(0,false,1.2f,30);Road(-1.9f,true,1.2f,12);
             bool Free(Vector3 p,float radius)
             {
                 foreach(var b in blocked)if(Mathf.Abs(p.x-b.center.x)<b.extents.x+radius && Mathf.Abs(p.z-b.center.z)<b.extents.z+radius)return false;

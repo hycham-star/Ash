@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 12;
+        public const int Version = 13;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -139,6 +139,7 @@ namespace Ash
             int headquarters=0;foreach(var b in savedBuildings)if(b.Kind==BuildingKind.Headquarters)headquarters=b.Level;
             if(state.Version>=7 && state.Version<10)savedDevelopment=ExpandLegacyDevelopment(savedDevelopment);
             if(state.Version<11 && savedDevelopment?.Plots!=null)foreach(var plot in savedDevelopment.Plots)if(plot!=null && plot.Kind==PlotKind.Market)throw new ArgumentException("Unexpected market in legacy save.");
+            if(state.Version<13 && savedDevelopment?.Plots!=null)foreach(var plot in savedDevelopment.Plots)if(plot!=null && plot.Kind==PlotKind.LumberMill)throw new ArgumentException("Unexpected lumber mill in legacy save.");
             buildings.ValidateDevelopment(savedDevelopment,headquarters);
             var savedPlacement=state.Version<9?SettlementPlacementState.Fresh():state.Placement;
             if(state.Version==9)savedPlacement=ExpandLegacyPlacement(savedPlacement);
@@ -219,6 +220,19 @@ namespace Ash
             }
             foreach(var patient in savedHospital.Patients)totals[patient.DefinitionId]+=patient.Quantity;
             foreach(var total in totals.Values) if(total>int.MaxValue) throw new ArgumentException("Saved fighter total overflows the reserve.");
+            foreach(var saved in state.Armies.Heroes) {
+                var plan=state.Version<13?saved.Fighters:saved.Formation;
+                if(plan==null)throw new ArgumentException("Missing army formation.");
+                var seen=new HashSet<string>(StringComparer.Ordinal);long count=0;var hero=owned[saved.InstanceId];
+                foreach(var stack in plan) {
+                    if(stack==null || stack.DefinitionId==null || !expectedFighters.TryGetValue(stack.DefinitionId,out var fighter) || stack.Level!=fighter.Level || stack.Quantity<=0 || !seen.Add(stack.DefinitionId))throw new ArgumentException("Invalid formation fighter.");
+                    count+=stack.Quantity;
+                    if(stack.Quantity<hero.Army.QuantityOf(stack.DefinitionId,stack.Level))throw new ArgumentException("Formation below current army.");
+                }
+                foreach(var actual in hero.Army.Units)if(!seen.Contains(actual.Unit.Definition.Id))throw new ArgumentException("Formation missing assigned fighter.");
+                if(count>hero.Army.Capacity)throw new ArgumentException("Formation exceeds hero capacity.");
+                candidateArmies.RestoreFormationValidated(saved.InstanceId,plan);
+            }
             var savedWorld=state.Version<8?WorldMapState.Fresh():state.WorldMap;
             WorldMapService.Validate(savedWorld,candidateArmies,savedScavenging);
             int resourceCount=state.Version<3 ? 5 : state.Version<11 ? 6 : Enum.GetValues(typeof(ResourceType)).Length;

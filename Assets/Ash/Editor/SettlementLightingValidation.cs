@@ -50,7 +50,7 @@ namespace Ash.Editor
                     subject=GameObject.CreatePrimitive(name=="AshDetail"?PrimitiveType.Capsule:PrimitiveType.Cube);SceneManager.MoveGameObjectToScene(subject,scene);
                     subject.transform.position=new Vector3(0,1,0);subject.transform.localScale=name=="AshDetail"?Vector3.one:new Vector3(2,2,2);
                     var renderer=subject.GetComponent<Renderer>();renderer.sharedMaterial=subjectMaterial;renderer.shadowCastingMode=ShadowCastingMode.On;renderer.receiveShadows=true;
-                    Capture();var lit=Capture();sun.intensity=0;var unlit=Capture();sun.intensity=1.4f;
+                    float intensity=sun.intensity;Capture();var lit=Capture();sun.intensity=0;var unlit=Capture();sun.intensity=intensity;
                     int brighter=0;for(int i=0;i<lit.Length;i++)if(Brightness(lit[i])-Brightness(unlit[i])>.03f)brighter++;
                     if(brighter<100)throw new InvalidOperationException(name+" received no visible sunlight ("+brighter+" changed pixels).");
                     renderer.shadowCastingMode=ShadowCastingMode.Off;var noCast=Capture();

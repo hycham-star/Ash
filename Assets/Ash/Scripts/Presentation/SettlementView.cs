@@ -62,7 +62,7 @@ namespace Ash
             art = new SettlementArt(); font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             presentation = new GameObject("Original Ashlands Settlement");
             world = new GameObject("Settlement World").transform; world.SetParent(presentation.transform,false);
-            oldAmbientMode=RenderSettings.ambientMode; oldAmbient = RenderSettings.ambientLight; RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,160); RenderSettings.ambientLight = new Color(.20f,.22f,.24f);
+            oldAmbientMode=RenderSettings.ambientMode; oldAmbient = RenderSettings.ambientLight; RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,160); RenderSettings.ambientLight = new Color(.32f,.33f,.32f);
             BuildWorld(); BuildUI(); BuildPortrait();
             controls.FocusOn(new Vector3(0,0,1),18);
             gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh; gameManager.Buildings.Changed += Refresh;
@@ -190,13 +190,6 @@ namespace Ash
                 var pad=new GameObject("Fixed building spot "+definition.Id).transform;pad.SetParent(developmentWorld.transform,false);pad.localPosition=new Vector3(definition.X,0,definition.Z);
                 pad.gameObject.AddComponent<SettlementBuilding>().Configure("Building spot","",plotId:definition.Id,movable:false,spot:true);
                 var padCollider=pad.gameObject.AddComponent<BoxCollider>();padCollider.center=new Vector3(0,.10f,0);padCollider.size=new Vector3(6,.10f,6);
-                // Ground-level corner marks keep empty construction lots visible without raised square pads.
-                for(int x=-1;x<=1;x+=2)for(int z=-1;z<=1;z+=2)
-                {
-                    developmentArt.Box(pad,"Lot corner",new Vector3(x*2.85f,.022f,z*2.85f),new Vector3(.32f,.018f,.055f),new Color32(163,143,109,255));
-                    developmentArt.Box(pad,"Lot corner",new Vector3(x*2.85f,.022f,z*2.85f),new Vector3(.055f,.018f,.32f),new Color32(163,143,109,255));
-                }
-                developmentArt.Combine(pad);
                 if(p.Kind==PlotKind.Empty)continue;
                 var position=gameManager.Buildings.Position(p.Id);
                 var root=new GameObject(p.Id+" "+BuildingService.PlotName(p.Kind)).transform;root.SetParent(developmentWorld.transform,false);root.localPosition=new Vector3(position.X,0,position.Z);
@@ -335,9 +328,9 @@ namespace Ash
             text.Append("  LV ").Append(buildings.Level(kind)).Append('/').Append(BuildingService.MaximumLevel(kind));
             if(kind==BuildingKind.Headquarters)text.Append("\n\nGoverns the maximum level of the Garden and Water Station.");
             else {
-                text.Append("\n\nProduction: ").Append(buildings.Rate(kind)).Append(' ').Append(BuildingService.Product(kind)).Append(" / minute")
+                text.Append("\n\nProduction: ").Append(buildings.HourlyRate(kind)).Append(' ').Append(BuildingService.Product(kind)).Append(" / hour")
                     .Append("\nStored: ").Append(buildings.Stored(kind)).Append('/').Append(buildings.Capacity(kind))
-                    .Append("\n").Append(buildings.Stored(kind)==buildings.Capacity(kind) ? "Resource balance full — spend resources to resume." : "Next batch in "+(60-buildings.Seconds(kind))+"s")
+                    .Append("\n").Append(buildings.Stored(kind)==buildings.Capacity(kind) ? "Resource balance full — spend resources to resume." : "Next batch in "+buildings.NextResourceSeconds(kind)+"s")
                     .Append("\nAutomatically added to resources while the game is open.");
             }
             var status=buildings.CanUpgrade(kind);
@@ -385,6 +378,7 @@ namespace Ash
             var text = new StringBuilder(HeroRarityColors.Text(hero.Definition.DisplayName+"\n"+hero.Definition.Rarity,hero.Definition.Rarity)+" • "+hero.Definition.Specialization+"\n\n");
             text.Append("LEVEL ").Append(hero.Level).Append("    XP ").Append(hero.Xp).Append('/').Append(hero.XpToNextLevel)
                 .Append("\nARMY ").Append(hero.Army.TotalUnits).Append('/').Append(hero.Army.Capacity).Append("\nPOWER ").Append(hero.Army.Power.ToString("0.##"))
+                .Append("\nFORMATION ").Append(gameManager.HeroArmies.FormationTotal(hero.InstanceId)).Append(": reserves refill at home")
                 .Append("\nCAPACITY +").Append(hero.Definition.CapacityPerLevel).Append(" per level");
             foreach(var unit in gameManager.Units)text.Append("\n").Append(unit.Definition.Type).Append(": ").Append(hero.Army.QuantityOf(unit.Definition.Id,unit.Level));
             text
@@ -433,13 +427,13 @@ namespace Ash
                 var hero=gameManager.Heroes[selectedHero];bool deployed=gameManager.WorldMap.IsDeployed(hero.InstanceId);
                 for(int i=0;i<fighterSliders.Count;i++) {
                     var unit=gameManager.Units[i];int current=hero.Army.QuantityOf(unit.Definition.Id,unit.Level);
-                    int reserve=gameManager.HeroArmies.Available(unit.Definition.Id);
-                    int maximum=current+Math.Min(reserve,Math.Max(0,hero.Army.Capacity-hero.Army.TotalUnits));
+                    int reserve=gameManager.HeroArmies.Available(unit.Definition.Id),target=gameManager.HeroArmies.FormationQuantity(hero.InstanceId,unit.Definition.Id);
+                    int maximum=target+Math.Min(Math.Max(0,reserve-(target-current)),Math.Max(0,hero.Army.Capacity-gameManager.HeroArmies.FormationTotal(hero.InstanceId)));
                     var slider=fighterSliders[i];slider.minValue=0;slider.maxValue=Math.Max(1,maximum);
-                    slider.SetValueWithoutNotify(current);slider.interactable=!deployed && maximum>0;
-                    fighterCounts[i].text=unit.Definition.Type+"  "+current+" / "+maximum+" • Reserve "+reserve;
-                    fighterMinus[i].interactable=!deployed && current>0;
-                    fighterPlus[i].interactable=!deployed && current<maximum;
+                    slider.SetValueWithoutNotify(target);slider.interactable=!deployed && maximum>0;
+                    fighterCounts[i].text=unit.Definition.Type+"  "+current+" / "+target+" planned • Reserve "+reserve;
+                    fighterMinus[i].interactable=!deployed && target>0;
+                    fighterPlus[i].interactable=!deployed && target<maximum;
                 }
             } finally { refreshingFighters=false; }
         }
@@ -447,7 +441,7 @@ namespace Ash
         {
             if(refreshingFighters)return;
             CancelReset();var hero=gameManager.Heroes[selectedHero];var unit=gameManager.Units[index];
-            var result=gameManager.HeroArmies.SetFighterQuantity(hero.InstanceId,unit.Definition.Id,quantity);
+            var result=gameManager.HeroArmies.SetFormationQuantity(hero.InstanceId,unit.Definition.Id,quantity);
             if(result!=ArmyCommandResult.Success)toast.text="Army adjustment: "+result;
             RefreshFighterControls();
         }

@@ -1,4 +1,7 @@
-> Later scavenging milestone: current save schema is **3**, accepting both old versions; Garden/Water production remains enabled. See ScavengingMap.md for current behavior and tests.
+> Current gameplay and save schema 13 are described in [Hourly Production and Formations](HourlyProductionAndFormations.md). This document retains the historical building-adapter implementation notes.
+
+Current gameplay uses **100/hour at level 1, +50/hour per level**, including the new Lumber Mill. See [hourly production and formations](HourlyProductionAndFormations.md). Minute-rate storage values below describe the retained legacy adapter, not current automatic gameplay.
+
 
 # Building progression
 

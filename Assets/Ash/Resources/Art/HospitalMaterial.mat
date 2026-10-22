@@ -29,4 +29,4 @@ Material:
     - _OutlineWidth: 0.012
     m_Colors:
     - _OutlineColor: {r: 0.075, g: 0.063, b: 0.047, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.72, g: 0.68, b: 0.53, a: 1}

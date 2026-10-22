@@ -60,7 +60,7 @@
     "texture": 1024
   },
   "Hospital": {
-    "triangles": 280,
+    "triangles": 360,
     "materials": 1,
     "texture": 1024
   },
@@ -71,6 +71,11 @@
   },
   "OutpostWatchtower": {
     "triangles": 956,
+    "materials": 1,
+    "texture": 1024
+  },
+  "LumberMill": {
+    "triangles": 1828,
     "materials": 1,
     "texture": 1024
   }

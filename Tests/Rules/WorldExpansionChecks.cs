@@ -36,7 +36,7 @@ internal static class WorldExpansionChecks
         sites.Recall("site-01");world.Recall(roster[0].InstanceId);progress.Restore(Clone(oldSave));var expanded=progress.Capture();
         C(Encode(expanded.Scavenging.Sites.Take(16).ToArray())==oldSitesExact,"version eleven upgrade preserves workers, fractional work, cargo, depletion and coordinates exactly");
         C(Encode(expanded.WorldMap)==oldMissions && world.IsDeployed(roster[0].InstanceId) && world.IsScouted("camp-190") && world.Mission(roster[0].InstanceId).Cargo>0,"active gathering cargo and army mission and scouted target survive expansion exactly");
-        C(ledger.Get(ResourceType.Gold)==77 && expanded.Version==12 && expanded.Scavenging.Sites.Skip(16).All(s=>s.Workers==0 && s.Stored==0 && s.Work==0 && s.Remaining>0),"new deposits begin idle; gold and ownership are preserved");
+        C(ledger.Get(ResourceType.Gold)==77 && expanded.Version==ProgressPersistence.Version && expanded.Scavenging.Sites.Skip(16).All(s=>s.Workers==0 && s.Stored==0 && s.Work==0 && s.Remaining>0),"new deposits begin idle; gold and ownership are preserved");
         string exact=Encode(expanded);progress.Restore(Clone(expanded));C(Encode(progress.Capture())==exact,"current save restart does not reroll map or reapply migration");
         foreach(int kind in Enumerable.Range(0,4))
         {

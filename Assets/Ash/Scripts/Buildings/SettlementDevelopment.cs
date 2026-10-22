@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace Ash
 {
-    public enum PlotKind { Empty, Housing, Farm, WaterWell, Scrapyard, InfantryCenter, BikerCenter, ArmyCenter, Market }
+    public enum PlotKind { Empty, Housing, Farm, WaterWell, Scrapyard, InfantryCenter, BikerCenter, ArmyCenter, Market, LumberMill }
     public sealed class SettlementPlotDefinition
     {
         public string Id {get;}public int X {get;}public int Z {get;}
@@ -27,7 +27,7 @@ namespace Ash
     }
     [Serializable] public sealed class SettlementPlotState
     {
-        public string Id;public PlotKind Kind;public int Level,Stored,Seconds;
+        public string Id;public PlotKind Kind;public int Level,Stored,Seconds,ProductionWork;
     }
     [Serializable] public sealed class SettlementDevelopmentState
     {
@@ -51,19 +51,21 @@ namespace Ash
         public int GrowthSeconds=>development.GrowthSeconds;
         public static string PlotName(PlotKind kind)
         {
-            switch(kind){case PlotKind.Empty:return "Empty plot";case PlotKind.Housing:return "Housing";case PlotKind.Farm:return "Farm";case PlotKind.WaterWell:return "Water Well";case PlotKind.Scrapyard:return "Scrapyard";case PlotKind.InfantryCenter:return "Infantry Center";case PlotKind.BikerCenter:return "Biker Center";case PlotKind.ArmyCenter:return "Army Center";case PlotKind.Market:return "Market";default:throw new ArgumentOutOfRangeException(nameof(kind));}
+            switch(kind){case PlotKind.Empty:return "Empty plot";case PlotKind.Housing:return "Housing";case PlotKind.Farm:return "Farm";case PlotKind.WaterWell:return "Water Well";case PlotKind.Scrapyard:return "Scrapyard";case PlotKind.InfantryCenter:return "Infantry Center";case PlotKind.BikerCenter:return "Biker Center";case PlotKind.ArmyCenter:return "Army Center";case PlotKind.Market:return "Market";case PlotKind.LumberMill:return "Lumber Mill";default:throw new ArgumentOutOfRangeException(nameof(kind));}
         }
-        public static int WorkersRequired(PlotKind kind){PlotName(kind);return IsTraining(kind)?2:kind==PlotKind.Farm || kind==PlotKind.Scrapyard?3:kind==PlotKind.WaterWell?2:0;}
+        public static int WorkersRequired(PlotKind kind){PlotName(kind);return IsTraining(kind)?2:kind==PlotKind.Farm || kind==PlotKind.Scrapyard || kind==PlotKind.LumberMill?3:kind==PlotKind.WaterWell?2:0;}
         public static bool IsTraining(PlotKind kind)=>kind==PlotKind.InfantryCenter || kind==PlotKind.BikerCenter || kind==PlotKind.ArmyCenter;
         public static FighterType TrainedType(PlotKind kind)
         {
             switch(kind){case PlotKind.InfantryCenter:return FighterType.Melee;case PlotKind.BikerCenter:return FighterType.Biker;case PlotKind.ArmyCenter:return FighterType.Sharpshooter;default:throw new ArgumentException("Not a training center.");}
         }
         public static ResourceType PlotProduct(PlotKind kind)
-        {switch(kind){case PlotKind.Farm:return ResourceType.Food;case PlotKind.WaterWell:return ResourceType.Water;case PlotKind.Scrapyard:return ResourceType.Scrap;default:throw new ArgumentException("Plot does not produce resources.");}}
-        public static int PlotRate(PlotKind kind,int level)=>kind==PlotKind.Farm?10*level:kind==PlotKind.WaterWell?8*level:kind==PlotKind.Scrapyard?6*level:0;
+        {switch(kind){case PlotKind.Farm:return ResourceType.Food;case PlotKind.WaterWell:return ResourceType.Water;case PlotKind.Scrapyard:return ResourceType.Scrap;case PlotKind.LumberMill:return ResourceType.Lumber;default:throw new ArgumentException("Plot does not produce resources.");}}
+        public static int PlotRate(PlotKind kind,int level)=>kind==PlotKind.Farm || kind==PlotKind.LumberMill?10*level:kind==PlotKind.WaterWell?8*level:kind==PlotKind.Scrapyard?6*level:0;
+        public static int PlotHourlyRate(PlotKind kind,int level)=>PlotRate(kind,level)>0?ProductionPerHour(level):0;
+        public int NextPlotResourceSeconds(string id){var p=FindPlot(id);int rate=PlotHourlyRate(p.Kind,p.Level);return rate==0?0:(3600-p.ProductionWork-p.Seconds*60+rate-1)/rate;}
         private SettlementPlotState FindPlot(string id){foreach(var p in development.Plots)if(p.Id==id)return p;throw new ArgumentException("Unknown settlement plot.",nameof(id));}
-        private static SettlementPlotState CopyPlot(SettlementPlotState p)=>new SettlementPlotState{Id=p.Id,Kind=p.Kind,Level=p.Level,Stored=p.Stored,Seconds=p.Seconds};
+        private static SettlementPlotState CopyPlot(SettlementPlotState p)=>new SettlementPlotState{Id=p.Id,Kind=p.Kind,Level=p.Level,Stored=p.Stored,Seconds=p.Seconds,ProductionWork=p.ProductionWork};
         public SettlementPlotState Plot(string id)=>CopyPlot(FindPlot(id));
         public SettlementDevelopmentState CaptureDevelopment(){var copy=new List<SettlementPlotState>();foreach(var p in development.Plots)copy.Add(CopyPlot(p));return new SettlementDevelopmentState{Population=Population,GrowthSeconds=GrowthSeconds,Plots=copy.ToArray()};}
         public ResourceAmount[] PlotBuildCost(PlotKind kind)
@@ -131,7 +133,7 @@ namespace Ash
             {
                 foreach(var p in development.Plots) {
                     int rate=PlotRate(p.Kind,p.Level);if(rate==0)continue;
-                    if(automaticCollection)changed|=AdvanceAutomatic(PlotProduct(p.Kind),rate,activeSeconds,ref p.Stored,ref p.Seconds,ref ledger);
+                    if(automaticCollection)changed|=AdvanceAutomatic(PlotProduct(p.Kind),PlotHourlyRate(p.Kind,p.Level),rate*5,activeSeconds,ref p.Stored,ref p.Seconds,ref p.ProductionWork,ref ledger);
                     else if(p.Stored<rate*5){AdvanceStock(p.Stored,p.Seconds,activeSeconds,rate,rate*5,out p.Stored,out p.Seconds);changed=true;}
                 }
                 int before=development.GrowthSeconds;
@@ -153,10 +155,10 @@ namespace Ash
             foreach(var p in state.Plots)
             {
                 if(p==null || p.Id==null || !known.Remove(p.Id) || !Enum.IsDefined(typeof(PlotKind),p.Kind))throw new ArgumentException("Invalid or duplicate settlement plot.");
-                if(p.Kind==PlotKind.Empty){if(p.Level!=0 || p.Stored!=0 || p.Seconds!=0)throw new ArgumentException("Empty plot cannot contain production.");continue;}
-                if(p.Level<1 || p.Level>MaximumPlotLevel || p.Level>headquartersLevel || p.Stored<0 || p.Seconds<0 || p.Seconds>=60)throw new ArgumentException("Invalid plot level or production.");
-                int rate=PlotRate(p.Kind,p.Level);if(rate==0){if(p.Stored!=0 || p.Seconds!=0)throw new ArgumentException("Non-production building contains resource stock.");if(p.Kind==PlotKind.Housing)capacity+=p.Level*ResidentsPerHouseLevel;}
-                else if(p.Stored>rate*5 || (p.Stored==rate*5 && p.Seconds!=0))throw new ArgumentException("Invalid plot storage.");
+                if(p.Kind==PlotKind.Empty){if(p.Level!=0 || p.Stored!=0 || p.Seconds!=0 || p.ProductionWork!=0)throw new ArgumentException("Empty plot cannot contain production.");continue;}
+                if(p.Level<1 || p.Level>MaximumPlotLevel || p.Level>headquartersLevel || p.Stored<0 || p.Seconds<0 || p.Seconds>=60 || p.ProductionWork<0 || p.ProductionWork>=3600 || (p.Seconds>0 && p.ProductionWork>0))throw new ArgumentException("Invalid plot level or production.");
+                int rate=PlotRate(p.Kind,p.Level);if(rate==0){if(p.Stored!=0 || p.Seconds!=0 || p.ProductionWork!=0)throw new ArgumentException("Non-production building contains resource stock.");if(p.Kind==PlotKind.Housing)capacity+=p.Level*ResidentsPerHouseLevel;}
+                else if(p.Stored>rate*5 || (p.Stored==rate*5 && (p.Seconds!=0 || p.ProductionWork!=0)))throw new ArgumentException("Invalid plot storage.");
                 employed+=WorkersRequired(p.Kind);
             }
             if(state.Population>capacity || state.Population<employed || (state.Population==capacity && state.GrowthSeconds!=0))throw new ArgumentException("Invalid population, housing or workforce.");
@@ -164,7 +166,7 @@ namespace Ash
         internal void RestoreDevelopmentValidated(SettlementDevelopmentState saved)
         {
             var ordered=SettlementDevelopmentState.Fresh();ordered.Population=saved.Population;ordered.GrowthSeconds=saved.GrowthSeconds;
-            foreach(var p in ordered.Plots)foreach(var s in saved.Plots)if(p.Id==s.Id){p.Kind=s.Kind;p.Level=s.Level;p.Stored=s.Stored;p.Seconds=s.Seconds;}
+            foreach(var p in ordered.Plots)foreach(var s in saved.Plots)if(p.Id==s.Id){p.Kind=s.Kind;p.Level=s.Level;p.Stored=s.Stored;p.Seconds=s.Seconds;p.ProductionWork=s.ProductionWork;}
             development=ordered;
         }
     }

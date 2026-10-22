@@ -23,6 +23,19 @@ namespace Ash
             var type=BuildingService.TrainedType(center);foreach(var unit in armies.Fighters)if(unit.Definition.Type==type)return unit;
             throw new ArgumentException("Missing fighter definition for training center.");
         }
+        public bool HasStation(FighterType type)
+        {
+            foreach(var plot in buildings.CaptureDevelopment().Plots)
+                if(BuildingService.IsTraining(plot.Kind) && BuildingService.TrainedType(plot.Kind)==type)return true;
+            return false;
+        }
+        /// <summary>Refill home armies from already-trained reserves; wounded fighters remain in hospital.</summary>
+        public int ReinforceHomeArmies()
+        {
+            var stations=new HashSet<FighterType>();
+            foreach(var plot in buildings.CaptureDevelopment().Plots)if(BuildingService.IsTraining(plot.Kind))stations.Add(BuildingService.TrainedType(plot.Kind));
+            int count=0;foreach(var hero in armies.Heroes)count+=armies.RefillFormation(hero.InstanceId,stations.Contains);return count;
+        }
         public static int BatchCapacity(int level)=>checked(10*level);
         public ResourceAmount[] Cost(PlotKind center,int quantity)
         {
