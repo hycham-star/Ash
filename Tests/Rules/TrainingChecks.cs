@@ -45,7 +45,7 @@ internal static class TrainingChecks
         Check(codec.Encode(progress.Capture())==exact,"new center types, trained reserves and paid costs survive exact save/load");
         stock=armies.Available(melee.Definition.Id);armies.RestoreReserveValidated(melee.Definition.Id,int.MaxValue-3);
         Check(training.CanTrain("plot-01",1)==TrainingResult.FighterLimit,"assigned plus reserve overflow rejected before purchase");armies.RestoreReserveValidated(melee.Definition.Id,stock);
-        var legacy=progress.Capture();legacy.Version=9;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Development.Plots=legacy.Development.Plots.Take(12).ToArray();legacy.Placement.Positions=legacy.Placement.Positions.Take(18).ToArray();
+        var legacy=progress.Capture();legacy.Version=9;AssetFixtures.AsLegacyWorld(legacy);legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Development.Plots=legacy.Development.Plots.Take(12).ToArray();legacy.Placement.Positions=legacy.Placement.Positions.Take(18).ToArray();
         // Legacy files have the old building kinds. Retain live production in a farm instead.
         foreach(var p in legacy.Development.Plots){p.Kind=PlotKind.Empty;p.Level=0;p.Stored=0;p.Seconds=0;}
         legacy.Development.Plots[0].Kind=PlotKind.Farm;legacy.Development.Plots[0].Level=1;legacy.Development.Plots[0].Stored=7;legacy.Development.Plots[0].Seconds=23;

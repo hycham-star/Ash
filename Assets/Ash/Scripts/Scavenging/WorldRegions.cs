@@ -6,7 +6,7 @@ namespace Ash
     public enum WorldBiome { DryGrassland, Badlands, AshWastes }
     public static class WorldRegions
     {
-        public const int HalfSize=100,TileCount=201,LegacyCampCount=9,CampCount=256;
+        public const int HalfSize=200,TileCount=401,LegacyCampCount=9,OriginalCampCount=256,CampCount=512;
         public static int Tile(float coordinate)
         {
             if(float.IsNaN(coordinate)||float.IsInfinity(coordinate))throw new ArgumentOutOfRangeException(nameof(coordinate));

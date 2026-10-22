@@ -20,7 +20,7 @@ internal static class WorldMapChecks
         var progress=new ProgressPersistence(armies,resources,fragments,buildings,scavenging);
         var hero=roster[0];string fighter=units[0].Id;var site=scavenging.Capture().Sites[0];
         var camps=world.Camps;
-        Check(camps.Length==WorldRegions.CampCount && camps.Select(c=>c.Level).Distinct().Count()==3,"256 grid camps in three difficulty regions");
+        Check(camps.Length==WorldRegions.CampCount && camps.Select(c=>c.Level).Distinct().Count()==3,"512 grid camps in three difficulty regions");
         Check(camps.Select(c=>c.Id+":"+c.X+":"+c.Z).SequenceEqual(world.Camps.Select(c=>c.Id+":"+c.X+":"+c.Z)),"stable camp IDs and coordinates");
         Check(camps.All(c=>scavenging.Capture().Sites.All(s=>(s.X-c.X)*(s.X-c.X)+(s.Z-c.Z)*(s.Z-c.Z)>=225)),"camps do not overlap resource nodes");
         for(int seed=1;seed<=100;seed++)WorldMapService.GenerateCamps(ScavengingService.Generate(seed));
@@ -74,10 +74,10 @@ internal static class WorldMapChecks
         Check(battles.Hospital.TotalWounded==world.LastRaid.PlayerFighters.Sum(f=>f.Casualties),"all raid casualties enter hospital");
         int xp=hero.Xp;progress.Restore(settlementSnapshot);world.Advance(100,false);
         Check(settled==1 && hero.Xp==xp && !world.IsDeployed(hero.InstanceId),"saved returning raid cannot grant rewards twice");
-        var legacy=progress.Capture();legacy.Version=7;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.WorldMap=null;progress.Restore(legacy);
+        var legacy=progress.Capture();legacy.Version=7;AssetFixtures.AsLegacyWorld(legacy);legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.WorldMap=null;progress.Restore(legacy);
         Check(world.Capture().Missions.Length==0 && world.Camps[0].X==camps[0].X,"version seven migration preserves camp seed without phantom missions");
         var broken=progress.Capture();broken.WorldMap=null;Reject(()=>progress.Restore(broken),"current save missing world state rejected");
-        var oldBusy=progress.Capture();oldBusy.Version=7;oldBusy.Resources=oldBusy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();oldBusy.WorldMap=null;
+        var oldBusy=progress.Capture();oldBusy.Version=7;AssetFixtures.AsLegacyWorld(oldBusy);oldBusy.Resources=oldBusy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();oldBusy.WorldMap=null;
         for(int i=0;i<6;i++){oldBusy.Development.Plots[i].Kind=PlotKind.Farm;oldBusy.Development.Plots[i].Level=1;}
         oldBusy.Scavenging.Sites[0].Workers=5;oldBusy.Scavenging.Sites[0].Stored=10;oldBusy.Scavenging.Sites[0].Remaining=990;
         oldBusy.Scavenging.Sites[1].Workers=5;progress.Restore(oldBusy);
@@ -100,14 +100,14 @@ internal static class WorldMapChecks
         var generated=ScavengingService.Generate(4821);var legacyCamps=WorldMapService.GenerateCamps(generated,true);
         Check(camps.Take(9).Select(c=>c.Id+":"+c.X+":"+c.Z+":"+c.Level).SequenceEqual(legacyCamps.Select(c=>c.Id+":"+c.X+":"+c.Z+":"+c.Level)),"overworld expansion preserves all original camp IDs, coordinates and strength");
         Check(camps.All(c=>c.Level==WorldRegions.ThreatAt(camps,c.X,c.Z)),"every enemy camp matches its region threat level");
-        Check(camps.Select(c=>c.X+":"+c.Z).Distinct().Count()==WorldRegions.CampCount,"all 256 camp tiles are unique");
+        Check(camps.Select(c=>c.X+":"+c.Z).Distinct().Count()==WorldRegions.CampCount,"all 512 camp tiles are unique");
         Check(camps.All(c=>camps.All(other=>c==other || (c.X-other.X)*(c.X-other.X)+(c.Z-other.Z)*(c.Z-other.Z)>=64)),"camp footprints remain separated at close zoom");
         Check(WorldRegions.ThreatAt(camps,0,0)==1 && WorldRegions.Name(1)!=WorldRegions.Name(2) && WorldRegions.Name(2)!=WorldRegions.Name(3),"home remains in grassland with three distinct biome names");
         Check(generated.Sites.All(s=>s.Remaining==ScavengingService.InitialDeposit*WorldRegions.ThreatAt(camps,s.X,s.Z)),"new resource deposits contain 1000, 2000 or 3000 by region level");
         var oldMap=ScavengingService.Generate(4821);foreach(var node in oldMap.Sites)node.Remaining=1000;oldMap.Sites[0].Workers=2;
         var migrated=new ScavengingService(new ResourceManager(),4821);migrated.Validate(oldMap);migrated.RestoreValidated(oldMap);
         Check(migrated.Capture().Sites.All(s=>s.Remaining==1000) && migrated.Site(oldMap.Sites[0].Id).Workers==2,"legacy deposits and worker assignments restore without refill or regeneration");
-        Check(WorldRegions.Tile(3.49f)==3 && WorldRegions.Tile(-3.5f)==-4 && WorldRegions.Tile(float.MaxValue)==100 && WorldRegions.Tile(float.MinValue)==-100,"tile selection rounds consistently and clamps extreme coordinates");
+        Check(WorldRegions.Tile(3.49f)==3 && WorldRegions.Tile(-3.5f)==-4 && WorldRegions.Tile(float.MaxValue)==200 && WorldRegions.Tile(float.MinValue)==-200,"tile selection rounds consistently and clamps extreme coordinates");
         Check(Math.Abs(WorldRegions.Normalized(0)-.5f)<.000001f && WorldRegions.Normalized(-100)>0 && WorldRegions.Normalized(100)<1,"tile-centre normalization matches atlas and marker coordinates");
         Reject(()=>WorldRegions.Tile(float.NaN),"nonfinite grid coordinates rejected");
         return count;

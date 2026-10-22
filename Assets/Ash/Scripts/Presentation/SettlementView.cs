@@ -60,7 +60,7 @@ namespace Ash
             art = new SettlementArt(); font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             presentation = new GameObject("Original Ashlands Settlement");
             world = new GameObject("Settlement World").transform; world.SetParent(presentation.transform,false);
-            oldAmbientMode=RenderSettings.ambientMode; oldAmbient = RenderSettings.ambientLight; RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,160); RenderSettings.ambientLight = new Color(.40f,.43f,.47f);
+            oldAmbientMode=RenderSettings.ambientMode; oldAmbient = RenderSettings.ambientLight; RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat; oldShadowDistance = QualitySettings.shadowDistance; QualitySettings.shadowDistance = Mathf.Max(oldShadowDistance,160); RenderSettings.ambientLight = new Color(.32f,.34f,.31f);
             BuildWorld(); BuildUI(); BuildPortrait();
             controls.FocusOn(new Vector3(0,0,1),18);
             gameManager.Resources.Changed += Refresh; gameManager.HeroArmies.Changed += Refresh; gameManager.Fragments.Changed += Refresh; gameManager.Buildings.Changed += Refresh;
@@ -125,6 +125,7 @@ namespace Ash
             sun.cullingMask=~((1<<PortraitLayer)|(1<<VisualBattlePlayback.Layer));
             sun.type = LightType.Directional; sun.transform.rotation = Quaternion.Euler(48,-38,0); sun.intensity = 1.08f;
             sun.color = new Color(1,.91f,.79f); sun.shadows = LightShadows.Soft; sun.shadowStrength=.82f; sun.shadowBias=.025f; sun.shadowNormalBias=.25f;
+            camera.gameObject.AddComponent<SettlementAtmosphere>().Configure(sun);
             art.Box(world,"Continuous outpost earth",new Vector3(0,-.2f,0),new Vector3(128,.4f,128),SettlementArt.OutpostSoil);
             Building("HEADQUARTERS","Your command post. Open HEROES to manage survivors and their armies.",new Vector3(-3,0,3),new Vector3(3.4f,2.3f,2.8f),"Headquarters",BuildingKind.Headquarters);
             Building("WORKSHOP","A salvaged warehouse of tools, spare parts, and forgotten machines.",new Vector3(3,0,2.5f),new Vector3(3,2.3f,2.8f),"Workshop");

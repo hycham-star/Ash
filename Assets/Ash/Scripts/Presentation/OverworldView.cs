@@ -37,7 +37,7 @@ namespace Ash
             foreach(var camp in MapCamps)
             {
                 if(!campMarkers.TryGetValue(camp.Id,out var marker))continue;
-                bool active=(side>=2200 || index<WorldRegions.LegacyCampCount) && visible.Contains(marker.anchoredPosition);index++;
+                bool active=(ReferenceMapSize>=2200 || index<WorldRegions.LegacyCampCount) && visible.Contains(marker.anchoredPosition);index++;
                 if(marker.gameObject.activeSelf!=active)marker.gameObject.SetActive(active);
             }
         }

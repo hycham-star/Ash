@@ -168,7 +168,7 @@ namespace Ash
         private void SetSize(float requested)
         {
             float minimum=Mathf.Max(200,Mathf.Max(viewport.rect.width,viewport.rect.height));
-            side=Mathf.Clamp(requested,minimum,10000); map.sizeDelta=new Vector2(side,side); PositionMarkers();
+            side=Mathf.Clamp(requested,minimum,24000); map.sizeDelta=new Vector2(side,side); PositionMarkers();
         }
         private void Fit() { homeSelected=false;SetSize(Mathf.Max(viewport.rect.width,viewport.rect.height)); map.anchoredPosition=Vector2.zero; scroll.StopMovement();RefreshWorldOverview(); }
         private void Locate()

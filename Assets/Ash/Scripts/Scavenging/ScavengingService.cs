@@ -22,7 +22,7 @@ namespace Ash
     public sealed class ScavengingService
     {
         public const int TotalWorkers=10, MaximumWorkersPerSite=5, CarryCapacityPerWorker=100, SiteCapacity=MaximumWorkersPerSite*CarryCapacityPerWorker, InitialDeposit=1000;
-        public const int MapHalfSize=100;
+        public const int MapHalfSize=WorldRegions.HalfSize, LegacySiteCount=16, SiteCount=48;
         private readonly ResourceManager resources;
         private ScavengingState state;
         private bool commanding;
@@ -67,13 +67,31 @@ namespace Ash
             }
             for(int i=cells.Count-1;i>0;i--) { int j=Next(i+1); int t=cells[i]; cells[i]=cells[j]; cells[j]=t; }
             var types=new[] { ResourceType.Food,ResourceType.Water,ResourceType.Scrap,ResourceType.Lumber };
-            var sites=new ScavengingSiteState[16];
-            for(int i=0;i<sites.Length;i++)sites[i]=new ScavengingSiteState {
+            var sites=new ScavengingSiteState[SiteCount];
+            for(int i=0;i<LegacySiteCount;i++)sites[i]=new ScavengingSiteState {
                 Id="site-"+(i+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture), Resource=types[i%types.Length],
                 X=-90+cells[i]%10*20+Next(9)-4, Z=-90+cells[i]/10*20+Next(9)-4, Remaining=InitialDeposit
             };
+            // Append outer sites with a separate random stream. The original sixteen never move.
+            uint outer=(uint)seed^0xD71F39u;
+            int NextOuter(int count){unchecked{outer^=outer<<13;outer^=outer>>17;outer^=outer<<5;}return (int)(outer%(uint)count);}
+            var outerCells=new List<int>();
+            for(int cell=0;cell<400;cell++){int x=-190+cell%20*20,z=-190+cell/20*20;if(Math.Abs(x)>100 || Math.Abs(z)>100)outerCells.Add(cell);}
+            for(int i=outerCells.Count-1;i>0;i--){int j=NextOuter(i+1),tmp=outerCells[i];outerCells[i]=outerCells[j];outerCells[j]=tmp;}
+            var originalSites=new ScavengingSiteState[LegacySiteCount];Array.Copy(sites,originalSites,LegacySiteCount);
+            var originalCamps=WorldMapService.GenerateCamps(new ScavengingState{Seed=seed,Sites=originalSites},false,true);
+            int added=LegacySiteCount;
+            foreach(int cell in outerCells)
+            {
+                int x=-190+cell%20*20+NextOuter(9)-4,z=-190+cell/20*20+NextOuter(9)-4;bool clear=true;
+                foreach(var camp in originalCamps)if((camp.X-x)*(camp.X-x)+(camp.Z-z)*(camp.Z-z)<225){clear=false;break;}
+                if(!clear)continue;
+                sites[added]=new ScavengingSiteState{Id="site-"+(added+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture),Resource=types[added%4],X=x,Z=z,Remaining=InitialDeposit};
+                if(++added==sites.Length)break;
+            }
+            if(added!=SiteCount)throw new InvalidOperationException("Unable to place expanded resource sites.");
             var map=new ScavengingState { Seed=seed,Sites=sites };
-            var regions=WorldMapService.GenerateCamps(map,true);
+            var regions=originalCamps;
             foreach(var site in sites)site.Remaining=InitialDeposit*WorldRegions.ThreatAt(regions,site.X,site.Z);
             return map;
         }

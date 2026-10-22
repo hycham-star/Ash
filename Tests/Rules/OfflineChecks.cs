@@ -83,7 +83,7 @@ internal static class OfflineChecks
             Reject<ArgumentOutOfRangeException>(()=>next.Progress.Restore(bad),"bad saved timestamp rejected before restore");
             C(codec.Encode(next.Progress.Capture())==exact,"bad timestamp leaves all live domains unchanged");
         }
-        var old=codec.Decode(exact); old.Version=3;old.Resources=old.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray(); old.ScavengingUtcSeconds=0;old.Scavenging.Sites.Single(n=>n.Id==lumber).Workers=1;
+        var old=codec.Decode(exact); old.Version=3;AssetFixtures.AsLegacyWorld(old);old.Resources=old.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray(); old.ScavengingUtcSeconds=0;old.Scavenging.Sites.Single(n=>n.Id==lumber).Workers=1;
         next.Progress.Restore(old); int stock=next.Sites.Site(lumber).Stored;
         C(next.Clock.Resume(2000000).Seconds==0 && next.Sites.Site(lumber).Stored==stock && next.Sites.Site(lumber).Workers==1,"v3 migration retains world/workers without retroactive offline credit");
         string directory=Path.Combine(Path.GetTempPath(),"ash-offline-"+Guid.NewGuid().ToString("N"));

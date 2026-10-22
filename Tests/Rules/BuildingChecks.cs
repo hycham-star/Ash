@@ -78,7 +78,7 @@ internal static class BuildingChecks
         C(saved.Version==ProgressPersistence.Version && saved.Buildings.Length==3,"current schema includes building ledger");
         buildings.Collect(BuildingKind.FoodGarden); progress.Restore(Copy(saved));
         C(codec.Encode(progress.Capture())==exact,"restore preserves all domains, stored production and partial timers");
-        var legacy=Copy(saved); legacy.Version=1;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray(); legacy.Buildings=null; legacy.Scavenging=null; legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber && r.Type!=ResourceType.Gold).ToArray();
+        var legacy=Copy(saved); legacy.Version=1;AssetFixtures.AsLegacyWorld(legacy);legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray(); legacy.Buildings=null; legacy.Scavenging=null; legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Lumber && r.Type!=ResourceType.Gold).ToArray();
         progress.Restore(codec.Decode(codec.Encode(legacy)));
         C(buildings.Capture().All(b=>b.Level==1 && b.Stored==0 && b.Seconds==0),"version-one migration initializes buildings");
         var migrated=progress.Capture(); var expected=Copy(saved); expected.Buildings=migrated.Buildings;

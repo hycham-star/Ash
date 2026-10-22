@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Presentation only: never generates or changes resource sites or world coordinates.</summary>
     public static class MapLandmarkArt
     {
-        public const int AtlasWidth=1152,AtlasHeight=768,CellSize=384;
+        public const int AtlasWidth=1152,AtlasHeight=768,CellSize=384,TerrainSize=1024;
         public static string Name(ResourceType resource)
         {
             switch(resource)
@@ -59,7 +59,7 @@ namespace Ash
         public static int Cell(ResourceType resource)=>resource==ResourceType.Food?0:resource==ResourceType.Water?1:resource==ResourceType.Scrap?2:3;
         public static Texture2D Terrain(int seed)
         {
-            const int tilePixels=4,size=WorldRegions.TileCount*tilePixels;
+            const int size=TerrainSize;
             var pixels=new Color32[size*size];
             // Bundled painting is ground decoration only. Site IDs, coordinates, regions and routes stay in services.
             var paintedAsset=Resources.Load<TextAsset>("Map/WastelandTerrainPixels");
@@ -80,7 +80,7 @@ namespace Ash
             for(int y=0;y<size;y++)for(int x=0;x<size;x++)
             {
                 float u=x/(float)size,v=y/(float)size;
-                int threat=threats[y/tilePixels*WorldRegions.TileCount+x/tilePixels];
+                int threat=threats[(y*WorldRegions.TileCount/size)*WorldRegions.TileCount+x*WorldRegions.TileCount/size];
                 float broad=elevation[y*size+x],detail=Mathf.PerlinNoise(u*93+offset,v*93+offset);
                 float dx=elevation[y*size+Mathf.Min(x+1,size-1)]-elevation[y*size+Mathf.Max(x-1,0)];
                 float dz=elevation[Mathf.Min(y+1,size-1)*size+x]-elevation[Mathf.Max(y-1,0)*size+x];

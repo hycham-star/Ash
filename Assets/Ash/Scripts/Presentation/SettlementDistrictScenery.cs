@@ -21,12 +21,12 @@ namespace Ash
             if(districtScenery!=null){districtScenery.SetActive(false);SettlementArt.Release(districtScenery);}districtArt?.Dispose();districtArt=new SettlementArt();
             districtScenery=new GameObject("Outpost streets and landscaping");districtScenery.transform.SetParent(world,false);var root=districtScenery.transform;
             // Keep road cuts clear of all reserved lots, plus every actual moved building.
-            var blocked=new List<Bounds>();
+            var blocked=new List<Bounds>();var natureObstacles=new List<Bounds>();var roads=new List<Bounds>();
             foreach(var p in SettlementLayout.Plots)blocked.Add(new Bounds(new Vector3(p.X,0,p.Z),new Vector3(6,1,6)));
             foreach(var p in placement.Positions)
             {
                 bool exists=true;foreach(var plot in development.Plots)if(plot.Id==p.Id){exists=plot.Kind!=PlotKind.Empty;break;}
-                if(!exists)continue;var f=SettlementPlacementCatalog.Find(p.Id);blocked.Add(new Bounds(new Vector3(p.X,0,p.Z),new Vector3(f.Width,1,f.Depth)));
+                if(!exists)continue;var f=SettlementPlacementCatalog.Find(p.Id);var footprint=new Bounds(new Vector3(p.X,0,p.Z),new Vector3(f.Width,1,f.Depth));blocked.Add(footprint);natureObstacles.Add(footprint);
             }
             void Road(float fixedAxis,bool across,float width,float limit=-1)
             {
@@ -45,6 +45,7 @@ namespace Ash
                     if(b-a<.2f)return;float middle=(a+b)*.5f;
                     Vector3 pos=across?new Vector3(middle,.035f,fixedAxis):new Vector3(fixedAxis,.03f,middle);
                     Vector3 size=across?new Vector3(b-a,.018f,width):new Vector3(width,.018f,b-a);
+                    roads.Add(new Bounds(pos,size+new Vector3(.7f,1,.7f)));
                     districtArt.Box(root,"Dusty road shoulder",pos-Vector3.up*.012f,size+new Vector3(across?0:.65f,0,across?.65f:0),DistrictShoulder);
                     districtArt.Box(root,"Worn asphalt street",pos,size,SettlementArt.Asphalt);
                 }
@@ -62,19 +63,11 @@ namespace Ash
                 foreach(var b in blocked)if(Mathf.Abs(p.x-b.center.x)<b.extents.x+radius && Mathf.Abs(p.z-b.center.z)<b.extents.z+radius)return false;
                 return true;
             }
+            // Vacant lots can grow dry vegetation; constructing there clears it on the next refresh.
+            SettlementNature.Build(root,districtArt,natureObstacles,roads);
             int trees=0;
-            for(int side=-1;side<=1;side+=2)foreach(float z in new[]{-28f,-20,-4,4,20,28})
-            {
-                var p=new Vector3(side*25.8f,.025f,z);if(!Free(p,.55f))continue;
-                RealisticAssets.Scenery(root,"OutpostTree",p,.65f+(trees%3)*.06f,trees*137.5f);trees++;
-            }
             foreach(var p in new[]{new Vector3(-5.8f,0,8),new Vector3(5.8f,0,8),new Vector3(-5.8f,0,-7),new Vector3(5.8f,0,-7)})
-            {
-                if(!Free(p,.35f))continue;
-                RealisticAssets.Scenery(root,"OutpostTree",p+Vector3.up*.025f,.52f,trees++*137.5f);
-            }
-            foreach(var p in new[]{new Vector3(-5.8f,.02f,9.5f),new Vector3(5.8f,.02f,9.5f),new Vector3(-16,.02f,-19),new Vector3(16,.02f,19)})
-                if(Free(p,.35f))RealisticAssets.Scenery(root,"OutpostTree",p,.22f,trees++*137.5f);
+                if(Free(p,.35f))RealisticAssets.Scenery(root,"OutpostTree",p+Vector3.up*.025f,.52f,trees++*137.5f);
             // Small, noninteractive street clutter stays away from every building and vacant lot.
             for(int i=0;i<12;i++)
             {

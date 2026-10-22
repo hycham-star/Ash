@@ -23,6 +23,7 @@ Shader "Ash/Weathered Detail"
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
             #pragma multi_compile_fog
             #include "UnityCG.cginc"
+            #include "AshAtmosphere.cginc"
             #include "Lighting.cginc"
             #include "AutoLight.cginc"
             sampler2D _MainTex, _BumpMap;
@@ -57,8 +58,8 @@ Shader "Ash/Weathered Detail"
                 half occlusion=saturate(dot(albedo,half3(.2126,.7152,.0722))*3+.12h);
                 half spec=pow(saturate(dot(n,normalize(light+view))),28)*_Specular*shadow*occlusion;
                 half rim=pow(1-saturate(dot(n,view)),3)*_Rim*saturate(n.y*.5h+.5h);
-                fixed4 color=fixed4(albedo*(ambient+_LightColor0.rgb*diffuse*shadow+rim)+_LightColor0.rgb*spec,1);
-                UNITY_APPLY_FOG(i.fogCoord,color); return color;
+                fixed4 color=fixed4(albedo*(ambient+AshFillLight(n)+_LightColor0.rgb*diffuse*shadow+rim)+_LightColor0.rgb*spec,1);
+                color=AshBoundaryHaze(color,i.world);UNITY_APPLY_FOG(i.fogCoord,color); return color;
             }
             ENDCG
         }

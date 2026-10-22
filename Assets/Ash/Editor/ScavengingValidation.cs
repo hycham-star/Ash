@@ -42,7 +42,7 @@ namespace Ash.Editor
                 manager.Initialize(); Require(!manager.PersistenceActive,"Validation must not touch the real save slot.");
                 var service=manager.Scavenging;
                 var nodes=service.Capture().Sites;
-                Require(nodes.Length==16 && nodes.Select(n=>n.Resource).Distinct().Count()==4,"Map must have all four resources.");
+                Require(nodes.Length==ScavengingService.SiteCount && nodes.Select(n=>n.Resource).Distinct().Count()==4,"Map must have all four resources.");
                 var lumber=nodes.First(n=>n.Resource==ResourceType.Lumber);
                 var codec=new UnityProgressCodec();
                 var progress=new ProgressPersistence(manager.HeroArmies,manager.Resources,manager.Fragments,manager.Buildings,service);
@@ -62,7 +62,7 @@ namespace Ash.Editor
                 var siteActions=map.GetComponentsInChildren<RectTransform>(true).Single(rect=>rect.name=="Resource site actions");
                 Require(!siteActions.gameObject.activeSelf && !map.GetComponentsInChildren<Button>(true).Any(button=>button.name=="FIT" || button.name=="LOCATE" || button.name=="CONTROLS"),"World must not show permanent map action buttons.");
                 var landmarks=map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Miniature landmark").ToArray();
-                Require(landmarks.Length==16 && landmarks.All(image=>image.texture!=null && image.texture.width==MapLandmarkArt.AtlasWidth && !image.raycastTarget),"Miniature landmarks are missing or blocking site buttons.");
+                Require(landmarks.Length==ScavengingService.SiteCount && landmarks.All(image=>image.texture!=null && image.texture.width==MapLandmarkArt.AtlasWidth && !image.raycastTarget),"Miniature landmarks are missing or blocking site buttons.");
                 Require(map.GetComponentsInChildren<RawImage>(true).Count(image=>image.name=="Rusty enemy base" && image.texture!=null)==WorldRegions.CampCount,"Clickable world camps missing.");
                 var terrain=map.GetComponentsInChildren<RawImage>(true).Single(image=>image.name=="Textured wasteland");
                 var groundPixels=Resources.Load<TextAsset>("Map/WastelandTerrainPixels");
@@ -72,14 +72,14 @@ namespace Ash.Editor
                 Require(map.GetComponentsInChildren<WastelandMetalFrame>(true).Length>10 && map.GetComponentsInChildren<WastelandMetalFrame>(true).All(frame=>!frame.raycastTarget),"World interface skin is missing or blocks input.");
                 Require(landmarks.All(image=>image.rectTransform.parent.GetComponentInChildren<WastelandMetalFrame>(true)==null),"Resource hit areas must not receive opaque interface frames.");
                 Require(CampIconsSafe(map),"Camp hit areas must stay transparent and clickable.");
-                Require(terrain.texture.width==WorldRegions.TileCount*4 && landmarks.Select(image=>image.texture).Distinct().Count()==1,"Overworld must use tiled biome terrain and one shared landmark atlas.");
+                Require(terrain.texture.width==MapLandmarkArt.TerrainSize && landmarks.Select(image=>image.texture).Distinct().Count()==1,"Overworld must use tiled biome terrain and one shared landmark atlas.");
                 var campIcons=map.GetComponentsInChildren<RawImage>(true).Where(image=>image.name=="Rusty enemy base").ToArray();
                 Require(campIcons.Count(image=>image.rectTransform.parent.gameObject.activeSelf)<=9,"Far zoom must reduce camp clutter.");
-                map.ZoomBy(100);Require(map.MapSize==10000 && landmarks.All(image=>image.rectTransform.parent.GetComponent<RectTransform>().rect.width>150),"Close zoom does not enlarge resource landmarks.");
+                map.ZoomBy(100);Require(map.MapSize==24000 && landmarks.All(image=>image.rectTransform.parent.GetComponent<RectTransform>().rect.width>150),"Close zoom does not enlarge resource landmarks.");
                 var viewfinder=map.GetComponentsInChildren<RectTransform>(true).Single(rect=>rect.name=="Visible map bounds");
                 Require(viewfinder.anchorMax.x>viewfinder.anchorMin.x && viewfinder.anchorMax.x-viewfinder.anchorMin.x<.5f,"Overview viewfinder must contract with zoom.");
                 Require(campIcons.Count(image=>image.rectTransform.parent.gameObject.activeSelf)<WorldRegions.CampCount,"Offscreen camp markers were not culled at close zoom.");
-                map.ZoomBy(.001f);Require(map.MapSize>=200 && map.MapSize<10000,"Map cannot zoom out again.");
+                map.ZoomBy(.001f);Require(map.MapSize>=200 && map.MapSize<24000,"Map cannot zoom out again.");
                 string campId=manager.WorldMap.Camps[0].Id;
                 map.GetComponentsInChildren<Button>(true).Single(button=>button.name=="Enemy base • "+campId).onClick.Invoke();
                 map.GetComponentsInChildren<Button>(true).Single(button=>button.name=="SCOUT").onClick.Invoke();
@@ -96,6 +96,10 @@ namespace Ash.Editor
                 service.Recall(lumber.Id);
                 progress.Restore(store.Load().State); progress.NotifyRestored();
                 Require(codec.Encode(progress.Capture())==exact,"Native map disk round trip changed coordinates, workers or stock.");
+                var legacyWorld=codec.Decode(exact);legacyWorld.Version=11;
+                legacyWorld.Scavenging.Sites=legacyWorld.Scavenging.Sites.Take(ScavengingService.LegacySiteCount).ToArray();
+                store.Save(legacyWorld);progress.Restore(store.Load().State);progress.NotifyRestored();
+                Require(codec.Encode(progress.Capture())==exact,"Native version-eleven disk migration moved sites or lost assigned workers/work/cargo.");
                 service.Advance(23); Require(service.Recall(lumber.Id)==ScavengingResult.Success && manager.Resources.Get(ResourceType.Lumber)==8,"Lumber did not reach resource ledger.");
                 Require(service.Assign(lumber.Id,2)==ScavengingResult.Success,"Team dispatch failed.");
                 service.Advance(750);
@@ -124,7 +128,7 @@ namespace Ash.Editor
                 Require(occupied.GetComponentInChildren<RawImage>(true).color==Color.white,"Recalled gathering site must recover its normal colour.");
                 store.Save(progress.Capture());string missionJson=codec.Encode(progress.Capture());manager.WorldMap.Advance(100);
                 progress.Restore(store.Load().State);progress.NotifyRestored();Require(codec.Encode(progress.Capture())==missionJson,"Native mission disk round trip changed convoy state.");
-                Debug.Log("PASS Unity world map: sixteen resource landmarks, 256 grid camp buttons/scouting, close zoom sizing, bus/bike travel, gathering site colours and hidden parked convoys, native JsonUtility mission disk round trip, civilian gathering and legacy migration. Temporary saves only; test pinch/drag/convoy motion and raid dust/results on phone.");
+                Debug.Log("PASS Unity world map: 48 resource landmarks, 512 grid camp buttons/scouting, close zoom sizing, bus/bike travel, gathering site colours and hidden parked convoys, native JsonUtility mission disk round trip, civilian gathering and legacy migration. Temporary saves only; test pinch/drag/convoy motion and raid dust/results on phone.");
             }
             catch(Exception error) { Debug.LogException(error); if(Application.isBatchMode)EditorApplication.Exit(1); throw; }
             finally {

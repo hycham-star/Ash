@@ -92,7 +92,7 @@ internal static class HospitalChecks
             s=>s.Hospital.Patients[0]=new HospitalPatientState{DefinitionId=id,Level=1,Quantity=21,Status=PatientStatus.Healing},
             s=>s.Armies.Reserve.First(r=>r.DefinitionId==id).Quantity=int.MaxValue})
         {var bad=codec.Decode(before);corrupt(bad);Reject<ArgumentException>(()=>restore.Progress.Restore(bad),"malformed hospital or fighter overflow rejected");C(Json(restore)==before,"failed hospital restore leaves every live domain unchanged");}
-        var old=codec.Decode(before);old.Version=5;old.Resources=old.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();old.Hospital=null;restore.Progress.Restore(old);
+        var old=codec.Decode(before);old.Version=5;AssetFixtures.AsLegacyWorld(old);old.Resources=old.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();old.Hospital=null;restore.Progress.Restore(old);
         C(restore.Hospital.Level==1 && restore.Hospital.TotalWounded==0 && restore.Hero.Army.TotalUnits==save.Hero.Army.TotalUnits && restore.Sites.Seed==save.Sites.Seed,"version-five migration adds an empty hospital without resetting map or army");
         string directory=Path.Combine(Path.GetTempPath(),"ash-hospital-"+Guid.NewGuid().ToString("N"));
         try

@@ -206,7 +206,7 @@ namespace Ash
                 if(carried.TryGetValue(site.Id,out long cargo) && cargo+site.Remaining+site.Stored>original.Remaining)throw new ArgumentException("Army cargo exceeds harvested deposit.");
             }
         }
-        public static WorldCamp[] GenerateCamps(ScavengingState map,bool legacyOnly=false)
+        public static WorldCamp[] GenerateCamps(ScavengingState map,bool legacyOnly=false,bool originalOnly=false)
         {
             uint random=(uint)map.Seed^0xA51C29u;
             int Next(int max){unchecked{random^=random<<13;random^=random>>17;random^=random<<5;}return (int)(random%(uint)max);}
@@ -217,7 +217,7 @@ namespace Ash
             {
                 int x=-90+cell%10*20,z=-90+cell/10*20;
                 if(x*x+z*z<900)continue;
-                bool clear=true;foreach(var site in map.Sites)if((site.X-x)*(site.X-x)+(site.Z-z)*(site.Z-z)<225)clear=false;
+                bool clear=true;foreach(var site in map.Sites)if(Math.Abs(site.X)<=100 && Math.Abs(site.Z)<=100 && (site.X-x)*(site.X-x)+(site.Z-z)*(site.Z-z)<225)clear=false;
                 if(!clear)continue;
                 camps.Add(new WorldCamp("camp-"+(camps.Count+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture),x,z,camps.Count%3));
                 if(camps.Count==9)break;
@@ -229,14 +229,29 @@ namespace Ash
             foreach(int cell in extra)
             {
                 int x=-96+cell%25*8,z=-96+cell/25*8;if(x*x+z*z<900)continue;
-                bool clear=true;foreach(var site in map.Sites)if((site.X-x)*(site.X-x)+(site.Z-z)*(site.Z-z)<225){clear=false;break;}
+                bool clear=true;foreach(var site in map.Sites)if(Math.Abs(site.X)<=100 && Math.Abs(site.Z)<=100 && (site.X-x)*(site.X-x)+(site.Z-z)*(site.Z-z)<225){clear=false;break;}
+                if(!clear)continue;
+                foreach(var camp in camps)if((camp.X-x)*(camp.X-x)+(camp.Z-z)*(camp.Z-z)<64){clear=false;break;}
+                if(!clear)continue;
+                camps.Add(new WorldCamp("camp-"+(camps.Count+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture),x,z,WorldRegions.ThreatAt(anchors,x,z)-1));
+                if(camps.Count==WorldRegions.OriginalCampCount)break;
+            }
+            if(camps.Count!=WorldRegions.OriginalCampCount)throw new InvalidOperationException("Unable to place original overworld camps.");
+            if(originalOnly)return camps.ToArray();
+            var outerCells=new List<int>();
+            for(int cell=0;cell<49*49;cell++){int x=-192+cell%49*8,z=-192+cell/49*8;if(Math.Abs(x)>104 || Math.Abs(z)>104)outerCells.Add(cell);}
+            for(int i=outerCells.Count-1;i>0;i--){int j=Next(i+1),tmp=outerCells[i];outerCells[i]=outerCells[j];outerCells[j]=tmp;}
+            foreach(int cell in outerCells)
+            {
+                int x=-192+cell%49*8,z=-192+cell/49*8;bool clear=true;
+                foreach(var site in map.Sites)if((site.X-x)*(site.X-x)+(site.Z-z)*(site.Z-z)<225){clear=false;break;}
                 if(!clear)continue;
                 foreach(var camp in camps)if((camp.X-x)*(camp.X-x)+(camp.Z-z)*(camp.Z-z)<64){clear=false;break;}
                 if(!clear)continue;
                 camps.Add(new WorldCamp("camp-"+(camps.Count+1).ToString("00",System.Globalization.CultureInfo.InvariantCulture),x,z,WorldRegions.ThreatAt(anchors,x,z)-1));
                 if(camps.Count==WorldRegions.CampCount)break;
             }
-            if(camps.Count!=WorldRegions.CampCount)throw new InvalidOperationException("Unable to place overworld camps.");
+            if(camps.Count!=WorldRegions.CampCount)throw new InvalidOperationException("Unable to place expanded overworld camps.");
             return camps.ToArray();
         }
         private static MapMission Copy(MapMission m)=>new MapMission{HeroId=m.HeroId,TargetId=m.TargetId,Kind=m.Kind,Phase=m.Phase,Elapsed=m.Elapsed,Cargo=m.Cargo,Work=m.Work};

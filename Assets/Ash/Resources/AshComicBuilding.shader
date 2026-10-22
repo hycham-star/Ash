@@ -23,16 +23,17 @@ Shader "Ash/Comic Outpost"
             #pragma target 3.0
             #pragma multi_compile_fog
             #include "UnityCG.cginc"
+            #include "AshAtmosphere.cginc"
             half _OutlineWidth;fixed4 _OutlineColor;
             struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;};
-            struct v2f {float4 pos:SV_POSITION;UNITY_FOG_COORDS(0)};
+            struct v2f {float4 pos:SV_POSITION;float3 world:TEXCOORD0;UNITY_FOG_COORDS(1)};
             v2f vert(appdata v)
             {
                 v2f o;float3 world=mul(unity_ObjectToWorld,v.vertex).xyz;
                 world+=normalize(UnityObjectToWorldNormal(v.normal))*_OutlineWidth;
-                o.pos=mul(UNITY_MATRIX_VP,float4(world,1));UNITY_TRANSFER_FOG(o,o.pos);return o;
+                o.world=world;o.pos=mul(UNITY_MATRIX_VP,float4(world,1));UNITY_TRANSFER_FOG(o,o.pos);return o;
             }
-            fixed4 frag(v2f i):SV_Target {fixed4 color=_OutlineColor;UNITY_APPLY_FOG(i.fogCoord,color);return color;}
+            fixed4 frag(v2f i):SV_Target {fixed4 color=_OutlineColor;color=AshBoundaryHaze(color,i.world);UNITY_APPLY_FOG(i.fogCoord,color);return color;}
             ENDCG
         }
         Pass
@@ -47,14 +48,15 @@ Shader "Ash/Comic Outpost"
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
             #pragma multi_compile_fog
             #include "UnityCG.cginc"
+            #include "AshAtmosphere.cginc"
             #include "Lighting.cginc"
             #include "AutoLight.cginc"
             sampler2D _MainTex,_BumpMap;float4 _MainTex_ST;fixed4 _Color;half _NormalStrength;
             struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;float4 tangent:TANGENT;float2 uv:TEXCOORD0;};
-            struct v2f {float4 pos:SV_POSITION;float2 uv:TEXCOORD0;half3 normal:TEXCOORD1;half3 tangent:TEXCOORD2;half3 bitangent:TEXCOORD3;SHADOW_COORDS(4) UNITY_FOG_COORDS(5)};
+            struct v2f {float4 pos:SV_POSITION;float2 uv:TEXCOORD0;half3 normal:TEXCOORD1;half3 tangent:TEXCOORD2;half3 bitangent:TEXCOORD3;float3 world:TEXCOORD4;SHADOW_COORDS(5) UNITY_FOG_COORDS(6)};
             v2f vert(appdata v)
             {
-                v2f o;o.pos=UnityObjectToClipPos(v.vertex);o.uv=TRANSFORM_TEX(v.uv,_MainTex);
+                v2f o;o.world=mul(unity_ObjectToWorld,v.vertex).xyz;o.pos=UnityObjectToClipPos(v.vertex);o.uv=TRANSFORM_TEX(v.uv,_MainTex);
                 o.normal=UnityObjectToWorldNormal(v.normal);o.tangent=UnityObjectToWorldDir(v.tangent.xyz);
                 o.bitangent=cross(o.normal,o.tangent)*(v.tangent.w*unity_WorldTransformParams.w);
                 TRANSFER_SHADOW(o);UNITY_TRANSFER_FOG(o,o.pos);return o;
@@ -69,8 +71,8 @@ Shader "Ash/Comic Outpost"
                 half shadow=SHADOW_ATTENUATION(i);
                 half3 ambient=max(ShadeSH9(half4(n,1)),half3(.26h,.25h,.22h));
                 half3 albedo=tex2D(_MainTex,i.uv).rgb*_Color.rgb;
-                fixed4 color=fixed4(albedo*(ambient+_LightColor0.rgb*paint*lerp(.45h,1.0h,shadow)),1);
-                UNITY_APPLY_FOG(i.fogCoord,color);return color;
+                fixed4 color=fixed4(albedo*(ambient+AshFillLight(n)+_LightColor0.rgb*paint*lerp(.45h,1.0h,shadow)),1);
+                color=AshBoundaryHaze(color,i.world);UNITY_APPLY_FOG(i.fogCoord,color);return color;
             }
             ENDCG
         }

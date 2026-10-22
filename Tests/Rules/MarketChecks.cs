@@ -52,9 +52,9 @@ internal static class MarketChecks
             C(codec.Encode(progress.Capture())==exact,"market gold and purchased resources survive real disk save/load");
         }
         finally{if(Directory.Exists(directory))Directory.Delete(directory,true);}
-        var legacy=progress.Capture();legacy.Version=10;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Development.Plots[0].Kind=PlotKind.Empty;legacy.Development.Plots[0].Level=0;
+        var legacy=progress.Capture();legacy.Version=10;AssetFixtures.AsLegacyWorld(legacy);legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Development.Plots[0].Kind=PlotKind.Empty;legacy.Development.Plots[0].Level=0;
         string old=codec.Encode(legacy);progress.Restore(legacy);
-        C(ledger.Get(ResourceType.Gold)==0 && !market.IsBuilt && progress.Capture().Version==11,"authentic version-ten save migrates with zero gold and unchanged plot ownership");
+        C(ledger.Get(ResourceType.Gold)==0 && !market.IsBuilt && progress.Capture().Version==ProgressPersistence.Version,"authentic version-ten save migrates with zero gold and unchanged plot ownership");
         var corrupt=codec.Decode(old);corrupt.Resources=corrupt.Resources.Append(new ResourceAmount(ResourceType.Gold,100)).ToArray();bool rejected=false;
         try{progress.Restore(corrupt);}catch(ArgumentException){rejected=true;}C(rejected && ledger.Get(ResourceType.Gold)==0,"legacy save cannot smuggle new currency");
         corrupt=progress.Capture();corrupt.Resources=corrupt.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();rejected=false;

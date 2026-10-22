@@ -134,6 +134,7 @@ passed += MarketChecks.Run(definitions,fighterDefinitions);
 passed += TrainingChecks.Run(definitions,fighterDefinitions);
 passed += DevelopmentChecks.Run(definitions,fighterDefinitions);
 passed += PlacementChecks.Run(definitions,fighterDefinitions);
+passed += WorldExpansionChecks.Run(definitions,fighterDefinitions);
 passed += WorldMapChecks.Run(definitions,fighterDefinitions);
 passed += HospitalChecks.Run(definitions,fighterDefinitions);
 passed += CombatChecks.Run(definitions, fighterDefinitions);

@@ -51,7 +51,7 @@ namespace Ash.Editor
                 var reset=progress.Capture();reset.Placement=SettlementPlacementState.Fresh();progress.Restore(reset);
                 progress.Restore(store.Load().State);Call("SyncPlacement");
                 Require(codec.Encode(saved)==codec.Encode(progress.Capture()),"Native layout disk round trip changed game state.");
-                var legacy=progress.Capture();legacy.Version=8;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Placement=null;progress.Restore(codec.Decode(codec.Encode(legacy)));
+                var legacy=progress.Capture();legacy.Version=8;if(legacy.Scavenging?.Sites!=null)legacy.Scavenging.Sites=legacy.Scavenging.Sites.Take(ScavengingService.LegacySiteCount).ToArray();legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Placement=null;progress.Restore(codec.Decode(codec.Encode(legacy)));
                 Require(manager.Buildings.Position("core-headquarters").X==-3 && manager.Buildings.Plot("plot-01").Kind==PlotKind.Farm,"Version eight migration did not preserve progression with default placement.");
                 var canvas=new GameObject("Disposable world navigation UI",typeof(RectTransform),typeof(Canvas));SceneManager.MoveGameObjectToScene(canvas,scene);canvas.GetComponent<Canvas>().renderMode=RenderMode.ScreenSpaceOverlay;
                 var map=ScavengingMapUI.Create(canvas.transform,manager.Scavenging,Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));map.Show();

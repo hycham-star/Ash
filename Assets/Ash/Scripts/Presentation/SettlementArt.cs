@@ -90,6 +90,8 @@ namespace Ash
             obj.GetComponent<MeshFilter>().sharedMesh = mesh; obj.GetComponent<Renderer>().sharedMaterial = Material(color);
             staticParts.Add(obj.GetComponent<MeshFilter>()); return obj.transform;
         }
+        public Transform MeshPiece(Transform parent,string name,Vector3 position,Vector3 scale,Mesh mesh,Color color)
+            =>MeshPart(parent,name,position,scale,mesh,color);
         public void Combine(Transform root)
         {
             var groups = new Dictionary<Material, List<CombineInstance>>();

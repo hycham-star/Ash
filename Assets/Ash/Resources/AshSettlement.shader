@@ -23,6 +23,7 @@ Shader "Ash/Settlement Mobile"
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
             #pragma multi_compile_fog
             #include "UnityCG.cginc"
+            #include "AshAtmosphere.cginc"
             #include "Lighting.cginc"
             #include "AutoLight.cginc"
             fixed4 _Color;
@@ -65,8 +66,8 @@ Shader "Ash/Settlement Mobile"
                 }
                 half3 view=normalize(_WorldSpaceCameraPos-i.world);
                 half spec=pow(saturate(dot(n,normalize(light+view))),20)*_Specular*(1-earth)*shadow;
-                fixed4 color=fixed4(albedo*(ambient+_LightColor0.rgb*diffuse*shadow)+_LightColor0.rgb*spec,_Color.a);
-                UNITY_APPLY_FOG(i.fogCoord,color);return color;
+                fixed4 color=fixed4(albedo*(ambient+AshFillLight(n)+_LightColor0.rgb*diffuse*shadow)+_LightColor0.rgb*spec,_Color.a);
+                color=AshBoundaryHaze(color,i.world);UNITY_APPLY_FOG(i.fogCoord,color);return color;
             }
             ENDCG
         }

@@ -58,7 +58,7 @@ internal static class PlacementChecks
             Check(codec.Encode(progress.Capture())==exact,"malformed restore keeps complete live progression intact");
         }
         var missing=progress.Capture();missing.Placement=null;Reject(()=>progress.Restore(missing),"current save requires explicit placement state");
-        var legacy=progress.Capture();legacy.Version=8;legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Placement=null;int stock=buildings.Plot("plot-01").Stored;progress.Restore(legacy);
+        var legacy=progress.Capture();legacy.Version=8;AssetFixtures.AsLegacyWorld(legacy);legacy.Resources=legacy.Resources.Where(r=>r.Type!=ResourceType.Gold).ToArray();legacy.Placement=null;int stock=buildings.Plot("plot-01").Stored;progress.Restore(legacy);
         Check(buildings.Position("core-headquarters").X==-3 && buildings.Position("plot-01").Z==-14 && buildings.Plot("plot-01").Stored==stock,"schema eight migration adds default positions without resetting production");
         // Built structures can relocate; empty pads are fixed ground, not movable buildings.
         foreach(var definition in SettlementPlacementCatalog.Buildings)

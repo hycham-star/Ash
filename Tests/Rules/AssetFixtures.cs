@@ -9,6 +9,11 @@ using Ash;
 // Reads the flat authored fields of our assets, not a general-purpose Unity YAML importer.
 internal static class AssetFixtures
 {
+    internal static void AsLegacyWorld(ProgressState state)
+    {
+        if(state.Version<12 && state.Scavenging?.Sites!=null)state.Scavenging.Sites=state.Scavenging.Sites.Take(ScavengingService.LegacySiteCount).ToArray();
+    }
+
     internal static string Root
     {
         get

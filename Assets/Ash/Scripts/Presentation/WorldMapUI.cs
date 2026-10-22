@@ -26,7 +26,7 @@ namespace Ash
         private void SelectHome()
         {
             SetMapTravelView(true);homeSelected=true;selectedCampId=null;scroll.StopMovement();
-            SetSize(Mathf.Max(side,1200));map.anchoredPosition=Vector2.zero;
+            SetSize(Mathf.Max(side,32+1168*WorldRegions.TileCount/201f));map.anchoredPosition=Vector2.zero;
             homeMarker.SetAsLastSibling();Refresh();
             feedback.text="HOME selected • Zoom in or press + to enter settlement.";
         }
@@ -45,7 +45,8 @@ namespace Ash
         private readonly Dictionary<string,RectTransform> convoys=new Dictionary<string,RectTransform>();
         private readonly Dictionary<string,Texture2D> convoyTextures=new Dictionary<string,Texture2D>();
         private HeroData CurrentHero=>heroSelection?.Invoke();
-        private float MarkerScale=>Mathf.Clamp(side/1600,.65f,3.5f);
+        private float ReferenceMapSize=>32+(side-32)*201f/WorldRegions.TileCount;
+        private float MarkerScale=>Mathf.Clamp(ReferenceMapSize/1600,.65f,3.5f);
         public float MapSize=>side;
         public void ConfigureWorld(WorldMapService world,Func<HeroData> selectedHero,Action<int> cycle,Action<CombatResult> showResult,Action<string> select=null,Action prepare=null)
         {
@@ -162,10 +163,10 @@ namespace Ash
             foreach(var camp in MapCamps)
             {
                 if(!campMarkers.TryGetValue(camp.Id,out var marker))continue;
-                float scale=Mathf.Clamp(side/1800,.55f,3);
+                float scale=Mathf.Clamp(ReferenceMapSize/1800,.55f,3);
                 marker.anchoredPosition=MapPoint(camp.X,camp.Z);marker.sizeDelta=new Vector2(64,70)*scale;
                 var icon=marker.GetComponentInChildren<RawImage>(true);icon.rectTransform.sizeDelta=new Vector2(64,56)*scale;icon.rectTransform.anchoredPosition=new Vector2(0,5)*scale;
-                marker.GetComponentInChildren<Text>(true).enabled=side>=2500;
+                marker.GetComponentInChildren<Text>(true).enabled=ReferenceMapSize>=2500;
             }
             RefreshConvoys();CullMapMarkers();
         }
@@ -237,7 +238,7 @@ namespace Ash
             float ratio=(side-32)/(before-32);map.anchoredPosition=point-(point-old)*ratio;ClampMap();scroll.StopMovement();
             // Only home-entry zoom navigates. Other sites/camps can still zoom all the way in.
             float distanceFromHome=(point-old).magnitude*WorldRegions.TileCount/(before-32);
-            if(SettlementRequested!=null && factor>1 && side>=1600 && (homeSelected || distanceFromHome<18))RequestSettlement();
+            if(SettlementRequested!=null && factor>1 && ReferenceMapSize>=1600 && (homeSelected || distanceFromHome<18))RequestSettlement();
         }
         private void ClampMap()
         {

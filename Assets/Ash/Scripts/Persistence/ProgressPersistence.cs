@@ -6,7 +6,7 @@ namespace Ash
     /// <summary>Complete validation before in-place restoration; UI/service references stay valid.</summary>
     public sealed class ProgressPersistence
     {
-        public const int Version = 11;
+        public const int Version = 12;
         public const string Format = "ASHLANDS_PROGRESS";
         private readonly HeroArmyService armies;
         private readonly ResourceManager resources;
@@ -106,6 +106,20 @@ namespace Ash
             for(int i=0;i<18;i++)if(!seen.Contains(expanded.Positions[i].Id))throw new ArgumentException("Missing legacy position.");
             return expanded;
         }
+        private static ScavengingState ExpandLegacyScavenging(ScavengingState saved)
+        {
+            if(saved?.Sites==null || saved.Sites.Length!=ScavengingService.LegacySiteCount)throw new ArgumentException("Incomplete legacy map.");
+            var expanded=ScavengingService.Generate(saved.Seed);var seen=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var source in saved.Sites)
+            {
+                if(source==null || source.Id==null || !seen.Add(source.Id))throw new ArgumentException("Duplicate legacy site.");
+                int index=Array.FindIndex(expanded.Sites,s=>s.Id==source.Id);
+                if(index<0 || index>=ScavengingService.LegacySiteCount)throw new ArgumentException("Unknown legacy site.");
+                // Retain exact coordinates, depletion, work and cargo, then validate the full candidate.
+                expanded.Sites[index]=new ScavengingSiteState{Id=source.Id,Resource=source.Resource,X=source.X,Z=source.Z,Remaining=source.Remaining,Stored=source.Stored,Workers=source.Workers,Work=source.Work};
+            }
+            return expanded;
+        }
         private Candidate Prepare(ProgressState state)
         {
             if(state==null) throw new ArgumentException("Missing progress document.");
@@ -134,6 +148,7 @@ namespace Ash
                 if(state.Scavenging!=null)throw new ArgumentException("Unexpected scavenging in legacy save.");
                 savedScavenging=ScavengingService.Generate(scavenging.Seed);
             } else savedScavenging=state.Scavenging;
+            if(state.Version>=3 && state.Version<12)savedScavenging=ExpandLegacyScavenging(savedScavenging);
             scavenging.Validate(savedScavenging);
             // Civilian teams now share residents with plot jobs. Retain legacy cargo and
             // return only excess old dedicated workers if their population cannot staff them.
