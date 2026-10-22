@@ -6,4 +6,4 @@ The three types share the selected hero's total capacity. Each slider's maximum 
 
 Capacity uses the existing hero definition: BaseCapacity + (Level − 1) × CapacityPerLevel. Leveling raises the limit without creating fighters. The header shows level, XP, current/maximum army size and capacity growth. Lower another type to make space when the army is full.
 
-Outside Play, run **Ashlands > Validate Army Reinforcement Controls**, or the combined **Validate Production and Army Travel**. Preview validators use disposable state, never player saves. Check slider touch, number updates, reserve refunds, 48→50 reinforcement, different heroes and level-up on Android. Save/restart to confirm composition persists.
+Outside Play, run **Ashlands > Validation > Gameplay > Army Sliders and Hero Illustrations**, or the combined **Validate Production and Army Travel**. Preview validators use disposable state, never player saves. Check slider touch, number updates, reserve refunds, 48→50 reinforcement, different heroes and level-up on Android. Save/restart to confirm composition persists.

@@ -13,7 +13,7 @@ namespace Ash.Editor
 {
     public static class HospitalValidation
     {
-        [MenuItem("Ashlands/Validate Hospital")]
+        [MenuItem("Ashlands/Validation/Gameplay/Hospital")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

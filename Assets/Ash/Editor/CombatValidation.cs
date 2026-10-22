@@ -9,7 +9,7 @@ namespace Ash.Editor
 {
     public static class CombatValidation
     {
-        [MenuItem("Ashlands/Validate PvE Combat")]
+        [MenuItem("Ashlands/Validation/Gameplay/PvE Combat")]
         public static void Run()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Validate outside Play mode.");

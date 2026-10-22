@@ -10,8 +10,8 @@ No save version change, balance changes or new resource generation. The gatherin
 
 - Pure gameplay suite: 670 checks passed.
 - C# syntax and asset/GUID checks passed. These do not compile against Unity APIs.
-- Extended **Ashlands → Validate World Map** checks actual outbound/gathering/return visual states and site tint reset.
-- Extended **Ashlands → Validate Settlement Presentation** checks all five building kits, fewer than 3,500 added triangles per kit, collider isolation and relocation.
+- Extended **Ashlands → Validation → World Map → Map and Scavenging** checks actual outbound/gathering/return visual states and site tint reset.
+- Extended **Ashlands → Validation → Settlement → Presentation and Isometric View** checks all five building kits, fewer than 3,500 added triangles per kit, collider isolation and relocation.
 - Unity Editor/Android unavailable in the cloud; the two native validators and visual/touch checks must run locally outside Play mode.
 
 ## Manual check

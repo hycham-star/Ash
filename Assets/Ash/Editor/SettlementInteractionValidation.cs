@@ -11,7 +11,7 @@ namespace Ash.Editor
 {
     public static class SettlementInteractionValidation
     {
-        [MenuItem("Ashlands/Validate Settlement Interaction")]
+        [MenuItem("Ashlands/Validation/Settlement/Building Movement and Zoom")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

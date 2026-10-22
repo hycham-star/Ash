@@ -12,7 +12,7 @@ namespace Ash.Editor
 {
     public static class OfflineValidation
     {
-        [MenuItem("Ashlands/Validate Offline Scavenging")]
+        [MenuItem("Ashlands/Validation/World Map/Offline Scavenging")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

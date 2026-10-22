@@ -20,6 +20,6 @@ The large resource-site information panel is removed. The map gains 110 referenc
 
 Existing schema-nine saves remain compatible. Placement validation uses the saved development snapshot, rather than the current live building types, to check occupied footprints. Saved positions retain stable IDs; fixed pad positions come from the authored layout. No reset is needed.
 
-Run **Ashlands → Validate Settlement Interaction** once after this update, outside Play mode. It checks fixed pads, missing labels, movable building meshes, starting-building placement on a vacant spot, native disk round trips, legacy migration, compact map layout and HOME selection plus zoom entry. Normal launches only require **Open Settlement Scene → Play**.
+Run **Ashlands → Validation → Settlement → Building Movement and Zoom** once after this update, outside Play mode. It checks fixed pads, missing labels, movable building meshes, starting-building placement on a vacant spot, native disk round trips, legacy migration, compact map layout and HOME selection plus zoom entry. Normal launches only require **Open Settlement Scene → Play**.
 
 The cloud gameplay suite passes **681 checks**, including empty-pad movement rejection, core placement on pads, construction overlap/cost protection, reusable vacated spots, preserved production and candidate-state save validation. Syntax and asset checks pass. Unity API compilation and Editor/Android input/rendering checks require local Unity and have not run in the cloud.

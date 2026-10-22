@@ -11,7 +11,7 @@ namespace Ash.Editor
 {
     public static class RaidPreparationValidation
     {
-        [MenuItem("Ashlands/Validate Raid Preparation")]
+        [MenuItem("Ashlands/Validation/Gameplay/Raid Preparation")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

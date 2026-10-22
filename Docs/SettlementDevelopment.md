@@ -35,7 +35,7 @@ All construction choices are persistent; moving or demolishing buildings is not 
 
 ## Verify in Unity and on Android
 
-1. Open the project in **Unity 6000.3.26f1**. Outside Play, run **Ashlands → Validate Settlement Development**, then **Validate Settlement Presentation**, **Validate Local Save Load** and **Validate Hospital**.
+1. Open the project in **Unity 6000.3.26f1**. Outside Play, run **Ashlands → Validation → Settlement → Construction and Production**, then **Validate Settlement Presentation**, **Validate Local Save Load** and **Validate Hospital**.
 2. Open Settlement Scene in portrait 9:16 and press Play. HOME should show the enlarged walls and all twelve plot markers. Zoom in and drag to the outer districts.
 3. Open the scavenging map and gather Lumber if needed. Choose a plot, select FARM and build it. Check the resource debit, free resident count and immediate 3D building appearance.
 4. Select another plot and build HOUSING, then a WELL or SCRAPYARD. Confirm each building occupies only its selected plot. An occupied plot must not be replaced by BUILD.

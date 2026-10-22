@@ -21,5 +21,5 @@ Army composition and missions use the existing local save. The picker and its pe
 
 - Existing gameplay suite: **681 checks passed**; existing deterministic combat, deployment guards and persistence remain covered.
 - C# syntax and asset-reference checks passed, without Unity API compilation.
-- New **Ashlands → Validate Raid Preparation** runs a disposable preview: actual barracks inspection/FILL controls, independent armies, exactly two camp actions, scouting without dispatch, eight illustrated choices, empty/deployed restrictions, selected-hero preparation, explicit chosen-hero/camp dispatch and cancellation isolation. Real saves are not opened.
+- New **Ashlands → Validation → Gameplay → Raid Preparation** runs a disposable preview: actual barracks inspection/FILL controls, independent armies, exactly two camp actions, scouting without dispatch, eight illustrated choices, empty/deployed restrictions, selected-hero preparation, explicit chosen-hero/camp dispatch and cancellation isolation. Real saves are not opened.
 - Unity Editor/Android are unavailable in the cloud. The native validator and layout/touch checks must run locally, outside Play mode. It is a one-time update check, not a required step before each launch.

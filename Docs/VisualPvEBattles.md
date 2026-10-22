@@ -13,8 +13,8 @@ Each occupied fighter type has a representative and a real quantity badge, rathe
 
 ## Test step by step
 
-1. Outside Play mode, select **Ashlands → Validate Realistic Visuals**, then **Validate PvE Combat**. Both should print PASS. The art validator also checks the new bundled dust shader.
-2. Select **Ashlands → Open PvE Battle Scene**, press Play, then **Balanced Army**.
+1. Outside Play mode, select **Ashlands → Validation → Graphics → Visual Imports**, then **Validate PvE Combat**. Both should print PASS. The art validator also checks the new bundled dust shader.
+2. Select **Ashlands → Test Scenes → PvE Battle Scene**, press Play, then **Balanced Army**.
 3. Select **Preview — No Changes**. Check the overhead march, dust on arrival, 2.5-second pause, then results. Your army, XP and resources must remain unchanged.
 4. Select **Fight — Apply Result**. Check the same presentation, then the actual casualties and rewards.
 5. Try **Skip to Results** while marching and during dust in separate previews. Skipping only opens the existing result. It never grants another reward.

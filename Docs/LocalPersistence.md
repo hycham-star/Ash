@@ -42,14 +42,14 @@ The status line fits below the resource values. Save/Load/Reset share the old br
 
 The first corrupt-primary test exposed a missing InvalidDataException recovery classification; corrected and the full suite passed. This was a new persistence defect, not an application-state workaround.
 
-Source syntax and asset/reference checks are separate from actual Unity API compilation. The cloud machine has no Unity Editor. `Ashlands > Validate Local Save Load` / `Ash.Editor.ProgressValidation.Run` tests the actual Unity codec, disk round-trip, earned battle state, backup recovery, stable hero identity, and reset behavior in a disposable preview scene and temporary directory. It intentionally never activates the real settlement save slot. This menu validator, automatic lifecycle integration, UI controls, and Android builds remain **unrun here**.
+Source syntax and asset/reference checks are separate from actual Unity API compilation. The cloud machine has no Unity Editor. `Ashlands > Validation > Save and Load > Local Progress` / `Ash.Editor.ProgressValidation.Run` tests the actual Unity codec, disk round-trip, earned battle state, backup recovery, stable hero identity, and reset behavior in a disposable preview scene and temporary directory. It intentionally never activates the real settlement save slot. This menu validator, automatic lifecycle integration, UI controls, and Android builds remain **unrun here**.
 
 The user's earlier Unity 6.3 smoke checks confirmed the settlement, portraits, assignment, independent armies, preview/raid settlement, and rewards before persistence was added.
 
 ## Manual test gate
 
 1. Install/open the whole updated project (including Packages/manifest.json and SettlementScene.unity), not just replacement scripts. Use Unity 6000.3.23f1 and resolve packages.
-2. Outside Play, choose **Ashlands > Validate Local Save Load** and confirm the PASS message.
+2. Outside Play, choose **Ashlands > Validation > Save and Load > Local Progress** and confirm the PASS message.
 3. Choose **Open Settlement Scene**, use 9:16 / 540×960, press Play. A new slot shows no save yet; an existing valid slot loads before the HUD.
 4. Select Mara, assign fighters, click SAVE, and confirm the saved status. Stop and restart Play: army quantity and reserve must match.
 5. Add a mixed army, complete Stray Raiders, SAVE, and restart: XP, resources, fragments, and survivors must match. Other heroes must stay independent.

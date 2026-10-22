@@ -8,7 +8,7 @@ namespace Ash.Editor
 {
     public static class SettlementEnvironmentValidation
     {
-        [MenuItem("Ashlands/Validate Settlement Environment")]
+        [MenuItem("Ashlands/Validation/Graphics/Settlement Environment")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

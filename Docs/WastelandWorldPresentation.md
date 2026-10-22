@@ -19,7 +19,7 @@ To replace source terrain artwork, run `python3 Tools/Art/pack_world_terrain.py 
 
 ## Verification
 
-Outside Play mode, run **Ashlands → Validate Wasteland World Presentation**, then **Open Settlement Scene**, Play, **WORLD MAP**. The menu combines existing map/save/scavenging checks with raid preparation checks; new assertions cover painted pixels, shared overview texture, viewfinder zoom, decorative frame raycasts and transparent landmark buttons. Temporary directories are used, not the real player's save slot.
+Outside Play mode, run **Ashlands → Validation → World Map → Map and Raid Selection**, then **Open Settlement Scene**, Play, **WORLD MAP**. The menu combines existing map/save/scavenging checks with raid preparation checks; new assertions cover painted pixels, shared overview texture, viewfinder zoom, decorative frame raycasts and transparent landmark buttons. Temporary directories are used, not the real player's save slot.
 
 On phone, check pinch/drag, close resource selection, Collect/Gather/Recall, camp Scout/Raid, hero selection, the clean raid travel view, and zoom into home to return to the settlement. Existing progress requires no reset.
 

@@ -10,7 +10,7 @@ namespace Ash.Editor
     /// <summary>Compare actual rendered pixels, not just Light/Renderer inspector settings.</summary>
     public static class SettlementLightingValidation
     {
-        [MenuItem("Ashlands/Validate Rendered Lighting")]
+        [MenuItem("Ashlands/Validation/Graphics/Rendered Lighting")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

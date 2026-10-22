@@ -12,7 +12,7 @@ The world map restores prerendered 2.5D resource sites and rusty camps over text
 
 ## Verify in Unity
 
-1. Outside Play, run **Ashlands > Validate Construction and Barracks**. It runs disposable construction/training, hero preparation, settlement projection and map checks. It does not open real player saves.
+1. Outside Play, run **Ashlands > Validation > Workflows > Construction and Barracks**. It runs disposable construction/training, hero preparation, settlement projection and map checks. It does not open real player saves.
 2. Open Settlement Scene and press Play. Tap Barracks, choose two different heroes and fill their armies independently. Inspect a deployed hero to confirm reinforcement is unavailable.
 3. Open Construction and build each training-center type. Select a quantity, train, then check the corresponding reserve in Barracks. Check all expanded spots and hold/drag a center.
 4. Open the world map. Confirm resource/camp miniatures and the settlement icon; select home and zoom in. Verify old missions, workers and building positions after restarting Play.

@@ -29,7 +29,7 @@ The service is pure C#; Unity UI and the 3D clinic only issue commands and displ
 
 ## Test step by step
 
-1. Open the update with **Unity 6000.3.26f1**. Outside Play run **Ashlands → Validate Hospital**, then **Validate PvE Combat**, **Validate Local Save Load** and **Validate Army Reinforcement Controls**. The hospital validator uses real UI buttons, JsonUtility and GameManager startup over unique temporary saves; it never opens player saves.
+1. Open the update with **Unity 6000.3.26f1**. Outside Play run **Ashlands → Validation → Gameplay → Hospital**, then **Validate PvE Combat**, **Validate Local Save Load** and **Validate Army Reinforcement Controls**. The hospital validator uses real UI buttons, JsonUtility and GameManager startup over unique temporary saves; it never opens player saves.
 2. Open **Settlement Scene** in 9:16, press Play and check the new clinic and HOSPITAL button.
 3. Assign an army and preview a difficult raid. Check that projected wounded do not create hospital patients.
 4. Apply the raid. Survivors stay in the army; every player casualty must be listed in Hospital. The hero must still be selectable and available.

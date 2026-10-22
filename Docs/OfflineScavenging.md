@@ -10,4 +10,4 @@ Partial cargo remains with an active team. The offline summary reports resources
 
 Save version 5 accepts versions 1–4 and preserves existing progression. GameManager checkpoints resources, cargo, assignments and the UTC watermark together using the existing atomic save and backup path.
 
-Run **Ashlands → Validate Offline Scavenging** outside Play for controlled-clock Unity lifecycle, native JSON/disk restart, partial recall, full-load return and no-repeat validation. It uses unique temporary saves. The cloud rules suite also exercises clock rollback, interval caps, partial work, save failures and recovery. Native Unity and Android checks remain necessary.
+Run **Ashlands → Validation → World Map → Offline Scavenging** outside Play for controlled-clock Unity lifecycle, native JSON/disk restart, partial recall, full-load return and no-repeat validation. It uses unique temporary saves. The cloud rules suite also exercises clock rollback, interval caps, partial work, save failures and recovery. Native Unity and Android checks remain necessary.

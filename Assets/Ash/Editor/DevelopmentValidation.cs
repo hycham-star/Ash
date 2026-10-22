@@ -15,7 +15,7 @@ namespace Ash.Editor
         {
             public int Version;public string Format;public HeroArmyState Armies;public ResourceAmount[] Resources;public FragmentState[] Fragments;public BuildingState[] Buildings;public HospitalState Hospital;public ScavengingState Scavenging;public long ScavengingUtcSeconds;
         }
-        [MenuItem("Ashlands/Validate Settlement Development")]
+        [MenuItem("Ashlands/Validation/Settlement/Construction and Production")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

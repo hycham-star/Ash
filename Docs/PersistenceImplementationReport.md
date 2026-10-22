@@ -51,6 +51,6 @@ Added the actual Unity JSON codec and declared its bundled JSONSerialize module.
 
 ## Next step
 
-Download/open the updated project in Unity 6000.3.23f1, let packages resolve, and run **Ashlands > Validate Local Save Load** outside Play. Then open SettlementScene, assign fighters, click SAVE, stop/start Play, and check the exact saved army/reserve. Repeat after a raid for XP/resources/fragments. RESET requires a second confirmation click within eight seconds and intentionally clears progress. See LocalPersistence.md for recovery policy, storage location, and full manual checks.
+Download/open the updated project in Unity 6000.3.23f1, let packages resolve, and run **Ashlands > Validation > Save and Load > Local Progress** outside Play. Then open SettlementScene, assign fighters, click SAVE, stop/start Play, and check the exact saved army/reserve. Repeat after a raid for XP/resources/fragments. RESET requires a second confirmation click within eight seconds and intentionally clears progress. See LocalPersistence.md for recovery policy, storage location, and full manual checks.
 
 The saved cloud startup instructions have been updated to this workflow; publication remains a separate user action.

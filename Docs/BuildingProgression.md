@@ -20,7 +20,7 @@ Cloud: **283 total checks** passed (61 building/migration checks plus 222 prior 
 
 Static C# parsing: **35 files, zero syntax errors**. Asset checks: **78 GUIDs, 81 resolved references**. These do not compile Unity APIs/shaders. No Unity Editor/Android build is available in cloud. Native migration, production/pause lifecycle, new UI on narrow phones, actual Android install/update and rendering remain unrun for this change. Existing graphics/zoom/local-save Android behavior was user-confirmed before this milestone.
 
-Unity menu **Ashlands > Validate Building Progression** uses a disposable preview and a unique temporary save directory. It checks HQ gates, spending, production, collection, native JSON/disk round trip and missing-field v1 migration; it never opens real player saves. Also rerun Validate Local Save Load and Validate Settlement Presentation.
+Unity menu **Ashlands > Validation > Settlement > Building Progression** uses a disposable preview and a unique temporary save directory. It checks HQ gates, spending, production, collection, native JSON/disk round trip and missing-field v1 migration; it never opens real player saves. Also rerun Validate Local Save Load and Validate Settlement Presentation.
 
 Manual check in 9:16:
 

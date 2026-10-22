@@ -82,6 +82,6 @@ The three Sample fighter assets were renamed to Infantry, Sharpshooter, and Cava
 
 ## Next step
 
-Open Unity 6000.0.23f1 and choose **Ashlands > Open Hero Army Test Scene**, then **Ashlands > Validate Hero Army System** outside Play mode. In 9:16 portrait Play mode, assign different quantities to two heroes, switch between them, remove fighters, reach capacity, and give XP to only one hero. Verify independent quantities, power, levels, clean Console output, and fresh state after restarting Play.
+Open Unity 6000.0.23f1 and choose **Ashlands > Test Scenes > Hero Army Test Scene**, then **Ashlands > Validation > Gameplay > Hero Army System** outside Play mode. In 9:16 portrait Play mode, assign different quantities to two heroes, switch between them, remove fighters, reach capacity, and give XP to only one hero. Verify independent quantities, power, levels, clean Console output, and fresh state after restarting Play.
 
 See HeroArmySystem.md for the roster, formulas, prototype balance values, and integration boundaries. Saved cloud startup instructions were updated to this workflow; publication of the environment remains a user action.

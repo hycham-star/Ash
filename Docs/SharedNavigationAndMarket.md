@@ -34,7 +34,7 @@ The six-cell `Resources/HUD/WastelandNavigation` atlas contains original OpenAI-
 
 ## Verify
 
-Outside Play mode, run **Ashlands → Validate Shared Map And Market**, then **Open Settlement Scene → Play**. The menu combines the HUD/Market, map/save/scavenging and raid-selection native checks using disposable preview scenes and temporary saves. It never resets a player's progress. Cloud checks cover pure gameplay, schema migration and syntax/asset metadata. Actual Unity API compilation, import, rendering and Android gestures still require the Editor/device.
+Outside Play mode, run **Ashlands → Validation → Workflows → Shared Map and Market**, then **Open Settlement Scene → Play**. The menu combines the HUD/Market, map/save/scavenging and raid-selection native checks using disposable preview scenes and temporary saves. It never resets a player's progress. Cloud checks cover pure gameplay, schema migration and syntax/asset metadata. Actual Unity API compilation, import, rendering and Android gestures still require the Editor/device.
 
 On device:
 

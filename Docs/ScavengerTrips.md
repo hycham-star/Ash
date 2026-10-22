@@ -18,7 +18,7 @@ If the integer resource balance is already at its maximum, workers still return 
 
 ## Test in Unity
 
-1. Open Unity 6000.3.23f1. Outside Play, run **Ashlands → Validate Map Scavenging**, **Validate Offline Scavenging**, then **Validate Map Restart**. Validators use temporary saves.
+1. Open Unity 6000.3.23f1. Outside Play, run **Ashlands → Validation → World Map → Map and Scavenging**, **Validate Offline Scavenging**, then **Validate Map Restart**. Validators use temporary saves.
 2. Open **Settlement Scene**, press Play and open the scavenging map in portrait 9:16.
 3. Choose a Food center, select one worker and press **SEND TEAM**. Capacity should show 100 and free workers should drop by one.
 4. After ten minutes of active Food gathering, the worker should be free again, the cargo zero and Food increased by 100. Wait longer: no new trip should start. Food Garden production is independent, so also check the selected center's remaining deposit and worker count.

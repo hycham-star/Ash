@@ -69,6 +69,6 @@ No files were removed. Existing hero and fighter assets and Unity pin/package de
 
 ## Next step
 
-In Unity 6000.0.23f1, choose **Ashlands > Open PvE Battle Scene**, then **Ashlands > Validate PvE Combat** outside Play mode. In 9:16 portrait Play mode, prepare Mara's balanced army, preview/fight Raider Patrol, inspect survivors/casualties/XP/resources/fragments, and compare the same fixture with abilities off after resetting. Test Fortified Outpost defeat and empty-army rejection. Confirm a clean Console, scrolling results, scene reset, and no duplicated rewards when viewing results.
+In Unity 6000.0.23f1, choose **Ashlands > Test Scenes > PvE Battle Scene**, then **Ashlands > Validation > Gameplay > PvE Combat** outside Play mode. In 9:16 portrait Play mode, prepare Mara's balanced army, preview/fight Raider Patrol, inspect survivors/casualties/XP/resources/fragments, and compare the same fixture with abilities off after resetting. Test Fortified Outpost defeat and empty-army rejection. Confirm a clean Console, scrolling results, scene reset, and no duplicated rewards when viewing results.
 
 See PvECombat.md for deterministic rules, reward configuration, and prototype limitations.

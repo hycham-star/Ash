@@ -10,7 +10,7 @@ namespace Ash.Editor
 {
     public static class ProgressValidation
     {
-        [MenuItem("Ashlands/Validate Local Save Load")]
+        [MenuItem("Ashlands/Validation/Save and Load/Local Progress")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

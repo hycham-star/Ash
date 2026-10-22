@@ -32,6 +32,6 @@ Counters retain their behavior under the new names: Melee > Biker > Sharpshooter
 
 614 gameplay checks pass, including numeric category/save-ID compatibility and the preceding capacity, combat, wounds, gathering and persistence checks. Syntax and PNG/GUID checks are separate from native Unity compilation.
 
-In Unity 6000.3.26f1, outside Play, run **Ashlands > Validate Hero Illustrations**. It exercises the actual dossier UI for all eight portrait bindings, then the existing adjustable reinforcement controls including 48→50, single replacements and reserve limits in a disposable preview. Also run **Validate Realistic Visuals** for import settings and **Validate Local Save Load**. Native checks are supplied but unrun in the cloud.
+In Unity 6000.3.26f1, outside Play, run **Ashlands > Validation > Gameplay > Army Sliders and Hero Illustrations**. It exercises the actual dossier UI for all eight portrait bindings, then the existing adjustable reinforcement controls including 48→50, single replacements and reserve limits in a disposable preview. Also run **Validate Realistic Visuals** for import settings and **Validate Local Save Load**. Native checks are supplied but unrun in the cloud.
 
 Then open Settlement Scene, Play, click VIEW HERO and cycle through all eight. Check faces, framing, rarity colours and readable statistics on the phone. Change all three fighter types and verify counts fit the level-based total; existing wounded and convoy missions should remain after updating.

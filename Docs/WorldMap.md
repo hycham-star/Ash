@@ -33,7 +33,7 @@ WorldMapService is pure C#, with time supplied by GameManager and UI-only convoy
 
 Cloud: **612 gameplay checks**, including 43 world-map checks; separate C# syntax and asset checks. Eighteen original RGBA images were inspected/checked for transparency, unclipped art and eight distinct bus/bike headings. Rebuild using `blender -b -t 4 --python-exit-code 1 --python Tools/Art/build_convoy_landmarks.py -- /path/to/Ash`.
 
-Unity 6000.3.26f1, outside Play: **Ashlands > Validate World Map**, **Validate Realistic Visuals**, **Validate Local Save Load**. Native checks are supplied but unrun in cloud. The map validator uses a preview scene and unique temporary save directory for UI/zoom, camp/convoy wiring and native JsonUtility mission round trip; player saves are untouched.
+Unity 6000.3.26f1, outside Play: **Ashlands > Validation > World Map > Map and Scavenging**, **Validate Realistic Visuals**, **Validate Local Save Load**. Native checks are supplied but unrun in cloud. The map validator uses a preview scene and unique temporary save directory for UI/zoom, camp/convoy wiring and native JsonUtility mission round trip; player saves are untouched.
 
 Manual Unity/Android checks still required:
 

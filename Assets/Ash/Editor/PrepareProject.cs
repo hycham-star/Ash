@@ -14,7 +14,7 @@ namespace Ash.Editor
         public const string BattleScene = "Assets/Ash/Scenes/BattleScene.unity";
         public const string SettlementScene = "Assets/Ash/Scenes/SettlementScene.unity";
 
-        [MenuItem("Ashlands/Open Settlement Scene")]
+        [MenuItem("Ashlands/Open Settlement Scene", false, 0)]
         public static void OpenSettlementScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -23,7 +23,7 @@ namespace Ash.Editor
             EditorSceneManager.OpenScene(SettlementScene);
         }
 
-        [MenuItem("Ashlands/Open PvE Battle Scene")]
+        [MenuItem("Ashlands/Test Scenes/PvE Battle Scene")]
         public static void OpenBattleScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -32,7 +32,7 @@ namespace Ash.Editor
             EditorSceneManager.OpenScene(BattleScene);
         }
 
-        [MenuItem("Ashlands/Open Hero Army Test Scene")]
+        [MenuItem("Ashlands/Test Scenes/Hero Army Test Scene")]
         public static void OpenHeroArmyScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -41,7 +41,7 @@ namespace Ash.Editor
             EditorSceneManager.OpenScene(HeroArmyScene);
         }
 
-        [MenuItem("Ashlands/Open Phase 1 Test Scene")]
+        [MenuItem("Ashlands/Test Scenes/Phase 1 Test Scene")]
         public static void OpenTestScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -50,7 +50,7 @@ namespace Ash.Editor
             EditorSceneManager.OpenScene(TestScene);
         }
 
-        [MenuItem("Ashlands/Prepare Project")]
+        [MenuItem("Ashlands/Prepare Project", false, 10)]
         public static void Prepare()
         {
             if (!File.Exists(TestScene) || !File.Exists(HeroArmyScene) || !File.Exists(BattleScene) || !File.Exists(SettlementScene)) throw new InvalidOperationException("Missing tracked test scene.");

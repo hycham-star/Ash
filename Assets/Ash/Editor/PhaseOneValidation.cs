@@ -9,10 +9,10 @@ namespace Ash.Editor
 {
     public static class PhaseOneValidation
     {
-        [MenuItem("Ashlands/Validate Phase 1 Architecture")]
+        [MenuItem("Ashlands/Validation/Architecture/Project Foundation")]
         public static void Run() => ValidateScene(PrepareProject.TestScene);
 
-        [MenuItem("Ashlands/Validate Hero Army System")]
+        [MenuItem("Ashlands/Validation/Gameplay/Hero Army System")]
         public static void RunHeroArmy() => ValidateScene(PrepareProject.HeroArmyScene);
 
         private static void ValidateScene(string scenePath)

@@ -12,9 +12,9 @@ namespace Ash.Editor
 {
     public static class WastelandHudValidation
     {
-        [MenuItem("Ashlands/Validate Shared Map And Market")]
+        [MenuItem("Ashlands/Validation/Workflows/Shared Map and Market")]
         public static void ValidateSharedMapAndMarket(){Run();ScavengingValidation.Run();RaidPreparationValidation.Run();}
-        [MenuItem("Ashlands/Validate Wasteland HUD")]
+        [MenuItem("Ashlands/Validation/Graphics/HUD")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

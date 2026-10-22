@@ -7,7 +7,7 @@ namespace Ash.Editor
 {
     public static class RealisticArtValidation
     {
-        [MenuItem("Ashlands/Validate Realistic Visuals")]
+        [MenuItem("Ashlands/Validation/Graphics/Visual Imports")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)

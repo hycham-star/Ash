@@ -15,7 +15,7 @@ The new meshes replace the previous simple building/tank/crop geometry. The exis
 
 1. Extract the complete project ZIP into a new folder and retain the working previous project.
 2. Open with Unity **6000.3.23f1** and wait for imports.
-3. Outside Play mode, choose **Ashlands > Validate Realistic Visuals**. This now includes all four new buildings. Also run **Ashlands > Validate Building Progression** if checking gameplay wiring after an import.
+3. Outside Play mode, choose **Ashlands > Validation > Graphics > Visual Imports**. This now includes all four new buildings. Also run **Ashlands > Validation > Settlement > Building Progression** if checking gameplay wiring after an import.
 4. Choose **Ashlands > Open Settlement Scene**, then Play with a **9:16** Game view.
 5. Inspect the Workshop, Barracks, Water Station and Garden. Drag/zoom to inspect details; HOME restores the overview. Tap Workshop/Barracks for their descriptions. Tap Garden and Water Station to check their existing upgrade and collection panels.
 6. Collect available food/water, save, stop Play and restart to confirm your progress. Avoid RESET while testing existing progress.

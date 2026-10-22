@@ -20,7 +20,7 @@ namespace Ash.Editor
             public ResourceAmount[] Resources;
             public FragmentState[] Fragments;
         }
-        [MenuItem("Ashlands/Validate Building Progression")]
+        [MenuItem("Ashlands/Validation/Settlement/Building Progression")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

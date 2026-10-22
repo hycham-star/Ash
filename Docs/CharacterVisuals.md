@@ -27,7 +27,7 @@ Exported facing markers normalize model orientation with an upright yaw on a sep
 
 1. Extract the full ZIP into a new folder and retain the working previous project.
 2. Open in **Unity 6000.3.23f1** and wait for imports.
-3. Outside Play mode run **Ashlands > Validate Realistic Visuals**, then **Ashlands > Validate Settlement Presentation**. The visual validator checks every new model/material/atlas, facing markers, skin bindings, both clips and the eight hero ID bindings. It does not change real player saves.
+3. Outside Play mode run **Ashlands > Validation > Graphics > Visual Imports**, then **Ashlands > Validation > Settlement > Presentation and Isometric View**. The visual validator checks every new model/material/atlas, facing markers, skin bindings, both clips and the eight hero ID bindings. It does not change real player saves.
 4. Open **Ashlands > Open Settlement Scene**, choose a **9:16** Game view, and press Play.
 5. Inspect the engineer, gate sentry and selected hero. Check patrol direction, idle/walk animation, clipping and feet placement. HOME restores the overview.
 6. Open **HEROES**. Use the arrows to cycle through all eight heroes. Check that names, stats, model and portrait agree. Confirm faces are visible, helmets/hair/feet fit in frame, and no portrait is blank. Close/reopen the panel and repeat a few switches.

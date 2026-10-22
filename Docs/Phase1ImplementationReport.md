@@ -85,4 +85,4 @@ See Phase1Architecture.md for document reconciliation. Sample content is test da
 
 ## Next step
 
-Open the checkout in Unity 6000.0.23f1, allow package resolution, choose **Ashlands > Open Phase 1 Test Scene**, then **Ashlands > Validate Phase 1 Architecture**. In portrait Play mode, verify all four test controls and confirm the Console has no errors. Stop and restart Play to verify state isolation. Do not proceed to later-phase gameplay without a separate instruction.
+Open the checkout in Unity 6000.0.23f1, allow package resolution, choose **Ashlands > Test Scenes > Phase 1 Test Scene**, then **Ashlands > Validation > Architecture > Project Foundation**. In portrait Play mode, verify all four test controls and confirm the Console has no errors. Stop and restart Play to verify state isolation. Do not proceed to later-phase gameplay without a separate instruction.

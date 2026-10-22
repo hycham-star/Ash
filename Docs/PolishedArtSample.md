@@ -32,6 +32,6 @@ Run the sample builder after the base reference-kit builder if recreating all ar
 
 ## Verify
 
-In Unity, outside Play select **Ashlands > Validate Polished Art Sample**. It checks imported kit budgets/materials and the existing rendered sun/shadow comparison. It requires a graphics device. Then **Open Settlement Scene > Play** in 9:16: inspect HQ doors/steps/roof surfaces at close zoom, a constructed house, wall watchtowers and the Engineer near the workshop. Check building taps/movement, zoom and a world-map round trip. Rebuild the APK to inspect phone texture clarity and shadows.
+In Unity, outside Play select **Ashlands > Validation > Graphics > Polished Art Sample**. It checks imported kit budgets/materials and the existing rendered sun/shadow comparison. It requires a graphics device. Then **Open Settlement Scene > Play** in 9:16: inspect HQ doors/steps/roof surfaces at close zoom, a constructed house, wall watchtowers and the Engineer near the workshop. Check building taps/movement, zoom and a world-map round trip. Rebuild the APK to inspect phone texture clarity and shadows.
 
 The cloud verifies actual FBX geometry/UV/material round trips, source budgets, atlases/GUIDs, C# syntax and gameplay regressions. Unity import/API/shader compilation, Play-mode rendering and Android performance require the local Editor/device. Remaining buildings and all hero model surfaces need subsequent art passes after this sample is reviewed.

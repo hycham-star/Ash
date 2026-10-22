@@ -3,7 +3,7 @@ namespace Ash.Editor
 {
     public static class ConstructionValidation
     {
-        [MenuItem("Ashlands/Validate Construction and Barracks")]
+        [MenuItem("Ashlands/Validation/Workflows/Construction and Barracks")]
         public static void Run()
         {
             DevelopmentValidation.Run();

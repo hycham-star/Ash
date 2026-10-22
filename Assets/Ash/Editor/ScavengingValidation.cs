@@ -11,11 +11,9 @@ namespace Ash.Editor
 {
     public static class ScavengingValidation
     {
-        [MenuItem("Ashlands/Validate Overworld Map")]
+        [MenuItem("Ashlands/Validation/World Map/Map and Raid Selection")]
         public static void ValidateOverworld(){Run();RaidPreparationValidation.Run();}
-        [MenuItem("Ashlands/Validate Wasteland World Presentation")]
         public static void ValidateWorldPresentation(){Run();RaidPreparationValidation.Run();}
-        [MenuItem("Ashlands/Validate World Map")]
         public static void ValidateWorldMap()=>Run();
         [Serializable]
         private sealed class LegacyV2
@@ -27,7 +25,7 @@ namespace Ash.Editor
             public FragmentState[] Fragments;
             public BuildingState[] Buildings;
         }
-        [MenuItem("Ashlands/Validate Map Scavenging")]
+        [MenuItem("Ashlands/Validation/World Map/Map and Scavenging")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

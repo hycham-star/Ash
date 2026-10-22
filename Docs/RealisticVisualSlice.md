@@ -15,7 +15,7 @@ This update refines the original HQ and one animated settlement scavenger and ad
 
 1. Extract the complete new ZIP into a separate folder. Keep the previous working project. Do not extract it into another Unity project's Assets folder.
 2. Open the extracted project in Unity 6.3 LTS (6000.3.23f1) and wait for model/texture imports.
-3. Outside Play mode, choose **Ashlands > Validate Realistic Visuals**. Copy any red error in full before proceeding.
+3. Outside Play mode, choose **Ashlands > Validation > Graphics > Visual Imports**. Copy any red error in full before proceeding.
 4. Choose **Ashlands > Open Settlement Scene**, then Play. Keep the Game view at **9:16**.
 5. Choose **BUILDINGS > HQ > VIEW HQ**. Inspect the building, surrounding props and walking NPC. Drag/zoom to examine details; **HOME** restores the overview.
 6. Check walking, textures, framing and ordinary hero/raid/scavenging/save actions. Test on Android after it works in the Editor. Build a new APK into Builds/Android; the older installed APK will not update itself.

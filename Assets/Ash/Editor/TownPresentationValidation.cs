@@ -5,7 +5,7 @@ namespace Ash.Editor
 {
     public static class TownPresentationValidation
     {
-        [MenuItem("Ashlands/Validate Town Presentation")]
+        [MenuItem("Ashlands/Validation/Graphics/Town Presentation")]
         public static void Run()
         {
             WastelandHudValidation.Run();

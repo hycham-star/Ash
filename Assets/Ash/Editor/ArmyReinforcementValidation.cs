@@ -11,11 +11,10 @@ namespace Ash.Editor
 {
     public static class ArmyReinforcementValidation
     {
-        [MenuItem("Ashlands/Validate Production and Army Travel")]
+        [MenuItem("Ashlands/Validation/Workflows/Production and Army Travel")]
         public static void ValidateProductionAndTravel(){Run();DevelopmentValidation.Run();ScavengingValidation.Run();RaidPreparationValidation.Run();}
-        [MenuItem("Ashlands/Validate Hero Illustrations")]
         public static void ValidateIllustrations()=>Run();
-        [MenuItem("Ashlands/Validate Army Reinforcement Controls")]
+        [MenuItem("Ashlands/Validation/Gameplay/Army Sliders and Hero Illustrations")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");

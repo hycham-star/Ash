@@ -9,10 +9,9 @@ namespace Ash.Editor
 {
     public static class SettlementValidation
     {
-        [MenuItem("Ashlands/Validate 2.5D Isometric View")]
         public static void ValidateIsometricView() => Run();
 
-        [MenuItem("Ashlands/Validate Settlement Presentation")]
+        [MenuItem("Ashlands/Validation/Settlement/Presentation and Isometric View")]
         public static void Run()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Validate outside Play mode.");

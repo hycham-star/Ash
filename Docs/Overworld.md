@@ -34,7 +34,7 @@ Save schema remains nine because no persisted fields changed. Existing sites kee
 
 **691 gameplay checks pass**, including 100 seeded camp-layout builds, original camp compatibility, camp spacing and zone levels, regional deposits, unchanged legacy stock/workers, cargo bounds and grid conversion. Syntax, asset references and PNG properties also pass. Unity API compilation and Android performance/input checks remain local.
 
-Run **Ashlands → Validate Overworld Map** once outside Play. This combines native map and raid-preparation checks: shared atlas/tiled terrain, camp counts/culling, actual hero selection and launched-raid control hiding. Normal play only needs Open Settlement Scene → Play.
+Run **Ashlands → Validation → World Map → Map and Raid Selection** once outside Play. This combines native map and raid-preparation checks: shared atlas/tiled terrain, camp counts/culling, actual hero selection and launched-raid control hiding. Normal play only needs Open Settlement Scene → Play.
 
 ![Layout preview](OverworldPreview.png)
 

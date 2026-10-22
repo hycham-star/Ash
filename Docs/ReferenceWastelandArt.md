@@ -30,7 +30,7 @@ The kit contains **15** single-mesh/single-material assets, each with 1024×1024
 
 New resource/camp/home icons share the existing 1152×768 six-cell map atlas and exact raw RGBA fallback. The 1024×1024 terrain also retains its exact raw fallback. Git marks `.bytes` files as binary so Windows checkout cannot convert their pixel bytes into CRLF text.
 
-In Unity, outside Play, run **Ashlands > Validate Reference Wasteland Art**. It includes the full settlement environment check, all fifteen imports/materials, distinct training bindings, map sprites/zoom/camps, movement/save checks and the rendered-light/shadow pixel comparison. The cloud cannot run Unity import/API/shader/Play checks; run this locally and then inspect the Android build.
+In Unity, outside Play, run **Ashlands > Validation > Graphics > Settlement Environment**. It includes the full settlement environment check, all fifteen imports/materials, distinct training bindings, map sprites/zoom/camps, movement/save checks and the rendered-light/shadow pixel comparison. The cloud cannot run Unity import/API/shader/Play checks; run this locally and then inspect the Android build.
 
 Open **Ashlands > Open Settlement Scene**, then Play in 9:16. Inspect the HQ and ground first. Inspect any built training centers, houses and producers. Hold/move a building, inspect the hospital/market, then open the world map and check oasis, farm, scrap, timber and enemy camp visuals. Save and restart without resetting.
 

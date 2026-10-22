@@ -27,7 +27,7 @@ namespace Ash.Editor
             public string Encode(ProgressState state)=>JsonUtility.ToJson(new LegacyV2 { Version=2,Format=state.Format,Armies=state.Armies,Resources=state.Resources,Fragments=state.Fragments,Buildings=state.Buildings });
             public ProgressState Decode(string json)=>new UnityProgressCodec().Decode(json);
         }
-        [MenuItem("Ashlands/Validate Map Restart")]
+        [MenuItem("Ashlands/Validation/World Map/Restart Persistence")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Validate outside Play mode.");
